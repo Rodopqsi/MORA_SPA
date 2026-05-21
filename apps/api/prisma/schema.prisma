@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReservationChannel {
+  WHATSAPP
+  WEB
+  PRESENCIAL
+  REDES
+}
+
+enum ReservationStatus {
+  PENDIENTE_ADELANTO
+  CONFIRMADA
+  EN_PROCESO
+  ATENDIDA
+  CANCELADA
+  NO_SHOW
+  VENCIDA
+}
+
+enum PaymentType {
+  ADELANTO
+  SALDO
+  TOTAL
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  YAPE
+}
+
+enum PaymentStatus {
+  CONFIRMADO
+  ANULADO
+  PENDIENTE
+}
+
+enum PromotionType {
+  PORCENTAJE
+  MONTO
+  REGALO
+}
+
+enum LoyaltyType {
+  CUMPLEANIOS
+  REFERIDO
+  CLIENTE_FIEL
+}
+
+enum ReviewStatus {
+  PENDIENTE
+  APROBADA
+  OCULTA
+}
+
+enum AlbumPrivacy {
+  INTERNO
+  PRIVADO_CLIENTE
+  PUBLICO
+}
+
+enum PhotoType {
+  ANTES
+  DESPUES
+  RESULTADO
+}
+
+enum ConsentMethod {
+  WHATSAPP
+  FIRMA
+  VERBAL
+  OTRO
+}
+
+model Role {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  users UserRole[]
+}
+
+model User {
+  id         Int       @id @default(autoincrement())
+  username   String    @unique
+  passwordHash String
+  fullName   String
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  roles      UserRole[]
+  createdReservations Reservation[] @relation("CreatedReservations")
+  reservationHistory ReservationHistory[]
+  productSales ProductSale[]
+  albumsCreated Album[] @relation("AlbumCreatedBy")
+  photosUploaded AlbumPhoto[] @relation("PhotoUploadedBy")
+  consentsRegistered ImageConsent[] @relation("ConsentRegisteredBy")
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [id])
+  role   Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model BusinessConfig {
+  id                 Int     @id @default(autoincrement())
+  businessName       String  @default("Gisela Mora SPA-BARBER")
+  personType         String  @default("NATURAL")
+  docType            String  @default("DNI")
+  docNumber          String?
+  requiresAdvance    Boolean @default(true)
+  advanceType        String  @default("PORCENTAJE")
+  advanceValue       Decimal @default(30.0) @db.Decimal(10, 2)
+  minAdvanceMinutes  Int     @default(10)
+}
+
+model Staff {
+  id       Int     @id @default(autoincrement())
+  name     String
+  role     String?
+  phone    String?
+  active   Boolean @default(true)
+  services StaffService[]
+  schedules StaffSchedule[]
+  reservationDetails ReservationDetail[]
+  agendaBlocks AgendaBlock[]
+}
+
+model Service {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  durationMin Int
+  priceBase   Decimal @db.Decimal(10, 2)
+  active      Boolean @default(true)
+  staff       StaffService[]
+  reservationDetails ReservationDetail[]
+  promotionServices PromotionService[]
+  packageServices PackageService[]
+}
+
+model StaffService {
+  staffId   Int
+  serviceId Int
+  staff     Staff   @relation(fields: [staffId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@id([staffId, serviceId])
+}
+
+model SalonSchedule {
+  id          Int      @id @default(autoincrement())
+  dayOfWeek   Int
+  shift1Start DateTime @db.Time
+  shift1End   DateTime @db.Time
+  shift2Start DateTime? @db.Time
+  shift2End   DateTime? @db.Time
+  active      Boolean  @default(true)
+}
+
+model StaffSchedule {
+  id          Int      @id @default(autoincrement())
+  staffId     Int
+  dayOfWeek   Int
+  shift1Start DateTime @db.Time
+  shift1End   DateTime @db.Time
+  shift2Start DateTime? @db.Time
+  shift2End   DateTime? @db.Time
+  active      Boolean  @default(true)
+  staff       Staff    @relation(fields: [staffId], references: [id])
+}
+
+model AgendaBlock {
+  id       Int      @id @default(autoincrement())
+  staffId  Int?
+  start    DateTime
+  end      DateTime
+  reason   String?
+  staff    Staff?   @relation(fields: [staffId], references: [id])
+}
+
+model Client {
+  id           Int     @id @default(autoincrement())
+  docType      String  @default("DNI")
+  docNumber    String?
+  email        String? @unique
+  name         String
+  phone        String  @unique
+  passwordHash String?
+  whatsapp     String?
+  birthDate    DateTime?
+  referredById Int?
+  createdAt    DateTime @default(now())
+  lastLoginAt  DateTime?
+  active       Boolean  @default(true)
+  referredBy   Client?  @relation("ClientReferral", fields: [referredById], references: [id])
+  referrals    Client[] @relation("ClientReferral")
+  reservations Reservation[]
+  reviews      Review[]
+  albums       Album[]
+  consents     ImageConsent[]
+  loyaltyBenefits LoyaltyBenefit[]
+  productSales ProductSale[]
+}
+
+model Reservation {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  clientId    Int
+  channel     ReservationChannel
+  status      ReservationStatus
+  start       DateTime
+  end         DateTime
+  notes       String?
+  createdById Int?
+  createdAt   DateTime @default(now())
+  client      Client   @relation(fields: [clientId], references: [id])
+  createdBy   User?    @relation("CreatedReservations", fields: [createdById], references: [id])
+  details     ReservationDetail[]
+  history     ReservationHistory[]
+  payments    Payment[]
+  promotions  ReservationPromotion[]
+  receipts    ReceiptRef[]
+  review      Review?
+  albums      Album[]
+  imageConsents ImageConsent[]
+}
+
+model ReservationDetail {
+  id           Int      @id @default(autoincrement())
+  reservationId Int
+  serviceId     Int
+  staffId       Int?
+  start         DateTime
+  end           DateTime
+  priceList     Decimal @db.Decimal(10, 2)
+  discount      Decimal @default(0) @db.Decimal(10, 2)
+  subtotal      Decimal @db.Decimal(10, 2)
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  service       Service     @relation(fields: [serviceId], references: [id])
+  staff         Staff?      @relation(fields: [staffId], references: [id])
+}
+
+model ReservationHistory {
+  id           Int      @id @default(autoincrement())
+  reservationId Int
+  action       String
+  detail       String?
+  userId       Int?
+  date         DateTime @default(now())
+  reservation  Reservation @relation(fields: [reservationId], references: [id])
+  user         User?    @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  reservationId Int
+  type         PaymentType
+  method       PaymentMethod
+  amount       Decimal @db.Decimal(10, 2)
+  reference    String?
+  date         DateTime @default(now())
+  status       PaymentStatus @default(CONFIRMADO)
+  reservation  Reservation @relation(fields: [reservationId], references: [id])
+}
+
+model ReceiptRef {
+  id           Int      @id @default(autoincrement())
+  reservationId Int?
+  type         String  @default("BOLETA")
+  seriesNumber String?
+  external     Boolean @default(true)
+  date         DateTime @default(now())
+  reservation  Reservation? @relation(fields: [reservationId], references: [id])
+}
+
+model Promotion {
+  id         Int      @id @default(autoincrement())
+  name       String
+  type       PromotionType
+  value      Decimal? @db.Decimal(10, 2)
+  startDate  DateTime
+  endDate    DateTime
+  channel    String?
+  active     Boolean  @default(true)
+  services   PromotionService[]
+  reservations ReservationPromotion[]
+}
+
+model PromotionService {
+  promotionId Int
+  serviceId   Int
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  service     Service   @relation(fields: [serviceId], references: [id])
+
+  @@id([promotionId, serviceId])
+}
+
+model ReservationPromotion {
+  reservationId Int
+  promotionId   Int
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  reservation    Reservation @relation(fields: [reservationId], references: [id])
+  promotion      Promotion   @relation(fields: [promotionId], references: [id])
+
+  @@id([reservationId, promotionId])
+}
+
+model LoyaltyBenefit {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  type      LoyaltyType
+  description String?
+  value     Decimal? @db.Decimal(10, 2)
+  date      DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id])
+}
+
+model Product {
+  id     Int     @id @default(autoincrement())
+  name   String
+  price  Decimal @db.Decimal(10, 2)
+  stock  Int     @default(0)
+  active Boolean @default(true)
+  saleDetails ProductSaleDetail[]
+}
+
+model ProductSale {
+  id        Int      @id @default(autoincrement())
+  clientId  Int?
+  method    PaymentMethod
+  total     Decimal @db.Decimal(10, 2)
+  date      DateTime @default(now())
+  userId    Int?
+  client    Client? @relation(fields: [clientId], references: [id])
+  user      User?   @relation(fields: [userId], references: [id])
+  details   ProductSaleDetail[]
+}
+
+model ProductSaleDetail {
+  id        Int      @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+  sale      ProductSale @relation(fields: [saleId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  reservationId Int   @unique
+  clientId    Int
+  rating      Int
+  comment     String?
+  status      ReviewStatus @default(PENDIENTE)
+  visible     Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+  reservation Reservation @relation(fields: [reservationId], references: [id])
+  client      Client      @relation(fields: [clientId], references: [id])
+}
+
+model Album {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  reservationId Int?
+  title       String
+  description String?
+  privacy     AlbumPrivacy @default(INTERNO)
+  createdAt   DateTime @default(now())
+  createdById Int?
+  client      Client @relation(fields: [clientId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  createdBy   User?   @relation("AlbumCreatedBy", fields: [createdById], references: [id])
+  photos      AlbumPhoto[]
+}
+
+model AlbumPhoto {
+  id          Int      @id @default(autoincrement())
+  albumId     Int
+  type        PhotoType @default(RESULTADO)
+  url         String
+  fileName    String?
+  order       Int @default(1)
+  isCover     Boolean @default(false)
+  takenAt     DateTime?
+  uploadedAt  DateTime @default(now())
+  uploadedById Int?
+  deleted     Boolean @default(false)
+  album       Album @relation(fields: [albumId], references: [id])
+  uploadedBy  User?  @relation("PhotoUploadedBy", fields: [uploadedById], references: [id])
+}
+
+model ImageConsent {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  reservationId Int?
+  internalUse Boolean @default(true)
+  marketingUse Boolean @default(false)
+  method      ConsentMethod
+  notes       String?
+  authorizedAt DateTime @default(now())
+  registeredById Int?
+  client      Client @relation(fields: [clientId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  registeredBy User? @relation("ConsentRegisteredBy", fields: [registeredById], references: [id])
+}
+
+model Package {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal @db.Decimal(10, 2)
+  active      Boolean @default(true)
+  services    PackageService[]
+}
+
+model PackageService {
+  packageId Int
+  serviceId Int
+  package   Package @relation(fields: [packageId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@id([packageId, serviceId])
+}
