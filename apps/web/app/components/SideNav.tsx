@@ -42,7 +42,7 @@ export default function SideNav() {
 
   return (
     <aside className="sidebar">
-      <div className="brand !flex !flex-row !items-center gap-3 mb-8">
+      <div className="brand">
   <div className="brand-badge flex-shrink-0">GM</div>
   <div className="flex flex-col justify-center text-left">
     <div className="brand-title leading-tight font-bold">Gisela Mora</div>
