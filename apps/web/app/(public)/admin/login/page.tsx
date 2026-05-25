@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
-import { setToken } from '../../../lib/auth';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { setStaffToken } = useAuth();
   const [form, setForm] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +29,7 @@ export default function AdminLoginPage() {
           password: form.password
         })
       });
-      setToken(response.token, 'staffToken');
+      setStaffToken(response.token);
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de ingreso');

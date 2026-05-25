@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import SideNav from '../components/SideNav';
 
 export const metadata = {
@@ -16,9 +17,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <input placeholder="Buscar cliente, servicio o cita..." />
           </div>
           <div className="topbar-actions">
-            <button className="chip" type="button">Hoy</button>
-            <button className="btn btn-outline" type="button">Ver agenda</button>
-            <button className="btn" type="button">Nueva reserva</button>
+            <Link className="chip" href="/agenda">Hoy</Link>
+            <Link className="btn btn-outline" href="/agenda">Ver agenda</Link>
+            <Link className="btn" href="/reservas">Nueva reserva</Link>
             <div className="user-chip">
               <div className="user-avatar">GM</div>
               <div>

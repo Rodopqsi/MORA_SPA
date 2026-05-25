@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
-import { setToken } from '../../lib/auth';
+import { useAuth } from '../../context/AuthContext';
 
 export default function RegistroPage() {
   const router = useRouter();
+  const { setClientToken } = useAuth();
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,7 +37,7 @@ export default function RegistroPage() {
         body: JSON.stringify({ phone: form.phone, password: form.password })
       });
 
-      setToken(login.token);
+      setClientToken(login.token);
       router.push('/mi-cuenta');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrar');

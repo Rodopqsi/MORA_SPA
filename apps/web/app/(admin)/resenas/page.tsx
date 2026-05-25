@@ -57,7 +57,9 @@ export default function ResenasPage() {
           <p>Modera, responde y usa el feedback para mejorar.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nueva resena</button>
+          <button className="btn" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            Nueva resena
+          </button>
         </div>
       </header>
 

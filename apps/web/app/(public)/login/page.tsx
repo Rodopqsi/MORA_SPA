@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
-import { setToken } from '../../lib/auth';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setClientToken } = useAuth();
   const [form, setForm] = useState({ phone: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +27,7 @@ export default function LoginPage() {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      setToken(response.token);
+      setClientToken(response.token);
       router.push('/mi-cuenta');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de ingreso');

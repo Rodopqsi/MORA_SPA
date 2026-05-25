@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Reservation = {
@@ -13,6 +13,7 @@ type Reservation = {
 
 type Service = { id: number; name: string; durationMin: number };
 type Staff = { id: number; name: string };
+type Client = { id: number; name: string; phone: string };
 
 const statusOptions = ['PENDIENTE_ADELANTO', 'CONFIRMADA', 'EN_PROCESO', 'ATENDIDA', 'CANCELADA', 'NO_SHOW', 'VENCIDA'];
 
@@ -20,23 +21,30 @@ export default function ReservasPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [status, setStatus] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [query, setQuery] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ clientId: '', serviceId: '', staffId: '', start: '' });
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([
       staffFetch<{ data: Service[] }>('/services'),
-      staffFetch<{ data: Staff[] }>('/staff')
+      staffFetch<{ data: Staff[] }>('/staff'),
+      staffFetch<{ data: Client[] }>('/clients')
     ])
-      .then(([servicesRes, staffRes]) => {
+      .then(([servicesRes, staffRes, clientsRes]) => {
         setServices(servicesRes.data ?? []);
         setStaff(staffRes.data ?? []);
+        setClients(clientsRes.data ?? []);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Error'));
   }, []);
 
-  useEffect(() => {
+  const loadReservations = () => {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
     if (date) {
@@ -46,10 +54,26 @@ export default function ReservasPage() {
     staffFetch<{ data: Reservation[] }>(`/reservations?${params.toString()}`)
       .then((res) => setReservations(res.data ?? []))
       .catch((err) => setError(err instanceof Error ? err.message : 'Error'));
+  };
+
+  useEffect(() => {
+    loadReservations();
   }, [status, date]);
 
   const serviceMap = useMemo(() => new Map(services.map((service) => [service.id, service])), [services]);
   const staffMap = useMemo(() => new Map(staff.map((item) => [item.id, item])), [staff]);
+
+  const filteredReservations = useMemo(() => {
+    if (!query) return reservations;
+    const term = query.toLowerCase();
+    return reservations.filter((reservation) => {
+      const clientMatch = reservation.client?.name?.toLowerCase().includes(term);
+      const serviceMatch = reservation.details.some((detail) =>
+        serviceMap.get(detail.serviceId)?.name?.toLowerCase().includes(term)
+      );
+      return clientMatch || serviceMatch;
+    });
+  }, [query, reservations, serviceMap]);
 
   const updateStatus = async (id: number, nextStatus: string) => {
     try {
@@ -63,6 +87,48 @@ export default function ReservasPage() {
     }
   };
 
+  const cancelReservation = async (id: number) => {
+    try {
+      await staffFetch(`/reservations/${id}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Cancelado desde panel' })
+      });
+      loadReservations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cancelar');
+    }
+  };
+
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    if (!createForm.clientId || !createForm.serviceId || !createForm.staffId || !createForm.start) {
+      setError('Completa cliente, servicio, especialista y fecha.');
+      return;
+    }
+    try {
+      await staffFetch('/reservations', {
+        method: 'POST',
+        body: JSON.stringify({
+          clientId: Number(createForm.clientId),
+          channel: 'PRESENCIAL',
+          details: [
+            {
+              serviceId: Number(createForm.serviceId),
+              staffId: Number(createForm.staffId),
+              start: createForm.start
+            }
+          ]
+        })
+      });
+      setCreateForm({ clientId: '', serviceId: '', staffId: '', start: '' });
+      setShowCreate(false);
+      loadReservations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear');
+    }
+  };
+
   return (
     <div className="page-stack">
       <header className="page-head">
@@ -72,14 +138,85 @@ export default function ReservasPage() {
           <p>11 citas - Minimo 10 min antes - Duracion 20 min a 4 horas</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nueva reserva</button>
+          <button
+            className="btn"
+            onClick={() => {
+              setShowCreate(true);
+              setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }}
+          >
+            Nueva reserva
+          </button>
         </div>
       </header>
+
+      {showCreate && (
+        <section className="card reveal" ref={formRef}>
+          <div className="section-head">
+            <div>
+              <div className="eyebrow">Crear reserva</div>
+              <h2>Agenda manual</h2>
+            </div>
+          </div>
+          <form className="auth-form" onSubmit={handleCreate}>
+            <label>
+              Cliente
+              <select
+                value={createForm.clientId}
+                onChange={(event) => setCreateForm({ ...createForm, clientId: event.target.value })}
+              >
+                <option value="">Selecciona</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Servicio
+              <select
+                value={createForm.serviceId}
+                onChange={(event) => setCreateForm({ ...createForm, serviceId: event.target.value })}
+              >
+                <option value="">Selecciona</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>{service.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Especialista
+              <select
+                value={createForm.staffId}
+                onChange={(event) => setCreateForm({ ...createForm, staffId: event.target.value })}
+              >
+                <option value="">Selecciona</option>
+                {staff.map((member) => (
+                  <option key={member.id} value={member.id}>{member.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Fecha y hora
+              <input
+                type="datetime-local"
+                value={createForm.start}
+                onChange={(event) => setCreateForm({ ...createForm, start: event.target.value })}
+              />
+            </label>
+            {error && <div className="auth-error">{error}</div>}
+            <button className="btn" type="submit">Crear reserva</button>
+          </form>
+        </section>
+      )}
 
       <div className="toolbar">
         <div className="search wide">
           <span className="search-dot" />
-          <input placeholder="Buscar cliente o servicio" />
+          <input
+            placeholder="Buscar cliente o servicio"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
         </div>
         <div className="chip-row">
           <input
@@ -110,8 +247,8 @@ export default function ReservasPage() {
           <div>Acciones</div>
         </div>
         <div className="table-body">
-          {reservations.length === 0 && <div className="table-row">Sin reservas para esta fecha.</div>}
-          {reservations.map((item) => {
+          {filteredReservations.length === 0 && <div className="table-row">Sin reservas para esta fecha.</div>}
+          {filteredReservations.map((item) => {
             const detail = item.details[0];
             const service = detail ? serviceMap.get(detail.serviceId) : null;
             const staffName = detail?.staffId ? staffMap.get(detail.staffId)?.name : 'Sin asignar';
@@ -143,9 +280,9 @@ export default function ReservasPage() {
                   </select>
                 </div>
                 <div className="table-actions">
-                  <button className="icon-btn">OK</button>
-                  <button className="icon-btn">ED</button>
-                  <button className="icon-btn danger">X</button>
+                  <button className="icon-btn" onClick={() => updateStatus(item.id, 'CONFIRMADA')}>OK</button>
+                  <button className="icon-btn" onClick={() => updateStatus(item.id, 'EN_PROCESO')}>ED</button>
+                  <button className="icon-btn danger" onClick={() => cancelReservation(item.id)}>X</button>
                 </div>
               </div>
             );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Service = { id: number; name: string; durationMin: number; priceBase: string; active: boolean };
@@ -9,6 +9,7 @@ export default function ServiciosPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [form, setForm] = useState({ name: '', durationMin: 30, priceBase: 0 });
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadServices = () => {
     staffFetch<{ data: Service[] }>('/services')
@@ -59,11 +60,13 @@ export default function ServiciosPage() {
           <p>Duraciones, costos y especialistas alineados con tu agenda.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nuevo servicio</button>
+          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Nuevo servicio
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nuevo servicio</div>

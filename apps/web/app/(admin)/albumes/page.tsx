@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Album = { id: number; title: string; clientId: number; photos?: { id: number }[] };
@@ -11,6 +11,7 @@ export default function AlbumesPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [form, setForm] = useState({ title: '', clientId: '', description: '', privacy: 'INTERNO' });
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadData = () => {
     Promise.all([
@@ -59,11 +60,13 @@ export default function AlbumesPage() {
           <p>Organiza antes y despues, con permisos claros.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nuevo album</button>
+          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Nuevo album
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nuevo album</div>

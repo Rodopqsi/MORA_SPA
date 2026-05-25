@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Product = { id: number; name: string; price: string; stock: number; active: boolean };
@@ -9,6 +9,7 @@ export default function ProductosPage() {
   const [inventory, setInventory] = useState<Product[]>([]);
   const [form, setForm] = useState({ name: '', price: 0, stock: 0 });
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadProducts = () => {
     staffFetch<{ data: Product[] }>('/products')
@@ -60,11 +61,13 @@ export default function ProductosPage() {
           <p>Control de stock, precios y ventas al instante.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nuevo producto</button>
+          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Nuevo producto
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nuevo producto</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type User = { id: number; username: string; fullName: string; active: boolean; roles: string[] };
@@ -11,6 +11,7 @@ export default function UsuariosPage() {
   const [form, setForm] = useState({ username: '', fullName: '', password: '', role: 'RECEPCION' });
   const [roleEdit, setRoleEdit] = useState<Record<number, string>>({});
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadData = () => {
     Promise.all([
@@ -83,11 +84,13 @@ export default function UsuariosPage() {
           <p>Gestiona roles, permisos y accesos desde un solo lugar.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nuevo usuario</button>
+          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Nuevo usuario
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nuevo usuario</div>

@@ -1,238 +1,274 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { apiFetch } from '../lib/api';
 
-const carouselItems = [
+type Service = {
+  id: number;
+  name: string;
+  description?: string | null;
+  priceBase: string | number;
+  durationMin: number;
+};
+type Promotion = { id: number; name: string; channel?: string | null; startDate: string; endDate: string };
+type Staff = { id: number; name: string; role?: string | null; services?: { service: { name: string } }[] };
+
+const heroSlides = [
   {
-    id: 1,
-    badge: 'Descuento Especial',
-    title: 'Un espacio de belleza donde cada cita se convierte en ritual',
-    subtitle: 'Agenda tus servicios favoritos, descubre promociones activas y vive una atención pensada para ti.',
-    image: '/assets/img35.webp',
+    badge: 'Mora signature',
+    title: 'Color, corte y cuidado en una sola experiencia',
+    subtitle: 'Reserva online, elige a tu especialista y llega a tu cita con todo coordinado desde tu cuenta.',
+    image: '/assets/img35.webp'
   },
   {
-    id: 2,
-    badge: 'Nuevo Servicio',
-    title: 'Renueva tu estilo con nuestra Barbería Premium',
-    subtitle: 'Cortes clásicos, cuidado de barba ritual y tratamientos faciales exclusivos para caballeros.',
-    image: '/assets/img24.jpeg',
+    badge: 'Agenda inteligente',
+    title: 'Horarios reales segun servicios, staff y disponibilidad',
+    subtitle: 'El sistema cruza duraciones y equipo activo para mostrar solo slots realmente reservables.',
+    image: '/assets/img24.jpeg'
   },
   {
-    id: 3,
-    badge: 'Especialidades',
-    title: 'Extensiones en acrílico, gel y técnicas de Nail Art avanzado',
-    subtitle: 'Estructuras perfectas, fortalecimiento de uña natural y diseños personalizados creados por expertas.',
-    image: '/assets/img18.jpeg',
+    badge: 'Cuidado continuo',
+    title: 'Resultados que se ven bien hoy y se mantienen despues',
+    subtitle: 'Desde barberia y color hasta nails y tratamientos, cada visita parte de un diagnostico claro.',
+    image: '/assets/img18.jpeg'
   }
+] as const;
+
+const galleryImages = [
+  '/assets/img1.jpeg',
+  '/assets/img7.jpeg',
+  '/assets/img9.jpeg',
+  '/assets/img14.jpeg',
+  '/assets/img22.jpeg',
+  '/assets/img27.jpeg'
 ];
+
+const experienceHighlights = [
+  {
+    title: 'Diagnostico claro',
+    text: 'Cada servicio se recomienda segun necesidad real, tiempo disponible y objetivo de resultado.'
+  },
+  {
+    title: 'Agenda sin fricciones',
+    text: 'Tu cuenta conserva reservas, historial y accesos para que reagendar sea rapido y ordenado.'
+  },
+  {
+    title: 'Equipo especializado',
+    text: 'Asignamos a cada profesional segun servicio y disponibilidad, no por una agenda ficticia.'
+  }
+] as const;
 
 export default function PublicHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [rulesVisible, setRulesVisible] = useState(false);
-  const rulesRef = useRef<HTMLDivElement>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
 
   useEffect(() => {
-    // Timer del carrusel
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev === carouselItems.length - 1 ? 0 : prev + 1));
-    }, 6000);
+      setCurrentSlide((prev) => (prev === heroSlides.length - 1 ? 0 : prev + 1));
+    }, 6500);
 
-    // Animación de Scroll con Intersection Observer
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setRulesVisible(true);
-        }
-      },
-      { threshold: 0.15 } // Se activa cuando se ve el 15% de la sección
-    );
-
-    if (rulesRef.current) {
-      observer.observe(rulesRef.current);
-    }
-
-    return () => {
-      clearInterval(timer);
-      if (rulesRef.current) observer.disconnect();
-    };
+    return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    Promise.all([
+      apiFetch<{ data: Service[] }>('/public/services'),
+      apiFetch<{ data: Promotion[] }>('/public/promotions'),
+      apiFetch<{ data: Staff[] }>('/public/staff')
+    ])
+      .then(([servicesRes, promotionsRes, staffRes]) => {
+        setServices(servicesRes.data ?? []);
+        setPromotions(promotionsRes.data ?? []);
+        setStaff(staffRes.data ?? []);
+      })
+      .catch(() => {
+        setServices([]);
+        setPromotions([]);
+        setStaff([]);
+      });
+  }, []);
+
+  const serviceImages = useMemo(
+    () => ['/assets/img10.jpeg', '/assets/img12.jpeg', '/assets/img15.jpeg', '/assets/img31.jpeg'],
+    []
+  );
 
   return (
     <div className="public-page reveal">
-      
-      {/* SECCIÓN 1: HERO INMERSIVO */}
       <section className="hero-immersive">
-        <img 
-          src={carouselItems[currentSlide].image} 
-          alt="Mora Spa Hero" 
-          className="hero-bg-media"
-          key={currentSlide}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--ink)]/90 via-[var(--ink)]/40 to-transparent z-0" />
-        
+        <img src={heroSlides[currentSlide].image} alt="Mora Spa" className="hero-bg-media" />
+        <div className="hero-overlay" />
+
         <div className="hero-floating-content">
-          <span className="hero-badge" style={{ background: 'var(--accent)', color: '#fff', border: 'none' }}>
-            {carouselItems[currentSlide].badge}
-          </span>
-          <h1>{carouselItems[currentSlide].title}</h1>
-          <p>{carouselItems[currentSlide].subtitle}</p>
-          
+          <span className="hero-badge hero-badge-accent">{heroSlides[currentSlide].badge}</span>
+          <h1>{heroSlides[currentSlide].title}</h1>
+          <p>{heroSlides[currentSlide].subtitle}</p>
           <div className="hero-button-stack">
-            <Link href="/registro" className="btn hero-btn-primary">
-              Crear cuenta
-            </Link>
-            <Link href="/login" className="btn hero-btn-secondary">
-              Ya tengo cuenta
-            </Link>
+            <Link href="/reservar" className="btn hero-btn-primary">Reservar ahora</Link>
+            <Link href="/registro" className="btn hero-btn-secondary">Crear cuenta</Link>
           </div>
         </div>
 
-        <div className="absolute right-10 flex flex-col gap-3 z-10">
-          {carouselItems.map((_, index) => (
+        <div className="hero-carousel-dots">
+          {heroSlides.map((_, index) => (
             <button
               key={index}
+              type="button"
+              className={`hero-carousel-dot ${currentSlide === index ? 'active' : ''}`}
               onClick={() => setCurrentSlide(index)}
-              className={`w-1 transition-all duration-500 ${currentSlide === index ? 'h-12 bg-[var(--accent)]' : 'h-6 bg-white/30'}`}
+              aria-label={`Slide ${index + 1}`}
             />
           ))}
         </div>
       </section>
 
-      {/* SECCIÓN 2: REGLAS OPERATIVAS (Luxury Status Bar) */}
-      <section 
-        id="luxury-status-bar"
-        ref={rulesRef} 
-        className={`luxury-status-bar ${rulesVisible ? 'animate-in' : ''}`}
-      >
-        <div className="bar-light-sweep" />
-
-        {/* Bloque 01 */}
-        <div className="bar-segment tone-rose">
-          <div className="segment-indicator">
-            <span className="dot-pulse-rose"></span>
-            <span className="segment-number">01</span>
-          </div>
-          <div className="segment-content">
-            <h4>Atención Diaria</h4>
-            <p>Lun a Dom • 09-01 PM / 04-09 PM</p>
-          </div>
-          <span className="segment-badge badge-rose">Feriados Estables</span>
-        </div>
-
-        <div className="bar-divider" />
-
-        {/* Bloque 02 */}
-        <div className="bar-segment tone-sun">
-          <div className="segment-indicator">
-            <span className="segment-number">02</span>
-          </div>
-          <div className="segment-content">
-            <h4>Reserva Segura</h4>
-            <p>Garantía de turno con adelanto</p>
-          </div>
-          <div className="segment-badge-group">
-            <span className="segment-badge badge-purple">⚡ Yape</span>
-            <span className="segment-badge badge-green">💵 Efectivo</span>
-          </div>
-        </div>
-
-        <div className="bar-divider" />
-
-        {/* Bloque 03 */}
-        <div className="bar-segment tone-mint">
-          <div className="segment-indicator">
-            <span className="segment-number">03</span>
-          </div>
-          <div className="segment-content">
-            <h4>Gestión de Tiempos</h4>
-            <p>Puntualidad y autogestión de citas</p>
-          </div>
-          <span className="segment-badge badge-mint">Tolerancia: 10 min</span>
-        </div>
-      </section>
-
-      {/* SECCIÓN 3: SERVICIOS */}
-      <section id="servicios" className="public-section" style={{ background: 'none', border: 'none', boxShadow: 'none' }}>
+      <section className="public-section" id="servicios" style={{ background: 'none', border: 'none', boxShadow: 'none' }}>
         <div className="section-premium-head">
           <div>
-            <span className="eyebrow">Nuestra Carta</span>
-            <h2>Experiencia Mora</h2>
+            <span className="eyebrow">Favoritos del salon</span>
+            <h2>Servicios principales</h2>
           </div>
-          <Link href="/registro" className="section-link-more">Explorar catálogo →</Link>
+          <Link href="/reservar" className="section-link-more">Ver agenda</Link>
         </div>
-        
+
         <div className="showcase-evolution-grid">
-          {[
-            { title: 'Manicura Artística', tag: 'Top', price: 'S/. 35.00', duration: '45 min', img: '/assets/img35.jpeg' },
-            { title: 'Extensiones Acrílicas', tag: 'Tendencia', price: 'S/. 85.00', duration: '120 min', img: '/assets/img18.jpeg' },
-            { title: 'Pedicura SPA Profunda', tag: 'Relax', price: 'S/. 45.00', duration: '60 min', img: '/assets/img8.jpeg' },
-          ].map((srv, idx) => (
-            <div key={idx} className="premium-service-box">
+          {services.length === 0 && <div className="list-sub">Todavia no hay servicios publicados.</div>}
+          {services.slice(0, 6).map((service, index) => (
+            <div key={service.id} className="premium-service-box">
               <div className="service-box-visual">
-                <img src={srv.img} alt={srv.title} />
-                <div className="service-box-overlay"><span className="service-box-tag">{srv.tag}</span></div>
+                <img src={serviceImages[index % serviceImages.length]} alt={service.name} />
+                <div className="service-box-overlay">
+                  <span className="service-box-tag">{service.durationMin} min</span>
+                </div>
               </div>
               <div className="service-box-content">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg">{srv.title}</h3>
-                  <span className="service-box-price text-sm">{srv.price}</span>
+                <div className="service-box-header">
+                  <h3>{service.name}</h3>
+                  <span className="service-box-price">S/ {service.priceBase}</span>
                 </div>
-                <p className="text-xs text-[var(--muted)]">Duración: {srv.duration}</p>
-                <Link href="/registro" className="service-box-action">Agendar este servicio</Link>
+                <p className="service-box-text">
+                  {service.description ?? 'Atencion personalizada con diagnostico y acabado profesional.'}
+                </p>
+                <Link href="/reservar" className="service-box-action">Reservar este servicio</Link>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* SECCIÓN 4: PRODUCTOS */}
-      <section id="productos" style={{ padding: '0 32px' }}>
+      <section className="public-section" id="promos">
         <div className="section-premium-head">
           <div>
-            <span className="eyebrow">Cuidado en Casa</span>
-            <h2>Línea de Productos</h2>
+            <span className="eyebrow">Campanas activas</span>
+            <h2>Promociones vigentes</h2>
           </div>
-          <p className="text-xs text-[var(--muted)]">Consulta disponibilidad en el local</p>
+          <Link href="/reservar" className="section-link-more">Aplicar promo</Link>
         </div>
-        <div className="grid grid-3 gap-6">
-          {['Aceites Hidratantes', 'Cremas Exfoliantes', 'Bases Fortalecedoras'].map((prod, i) => (
-            <div key={i} className="card bg-white border border-[var(--border)] p-4 rounded-2xl hover:shadow-md transition-all">
-              <div className="h-32 bg-[var(--bg)] rounded-xl mb-3 flex items-center justify-center font-serif text-[var(--accent-dark)]">Product Visual</div>
-              <h4 className="font-semibold text-sm">{prod}</h4>
-              <p className="text-xs text-[var(--muted)] mt-1">Calidad profesional para prolongar tus resultados.</p>
+        <div className="promo-evolution-banner">
+          <div>
+            <h3>Beneficios listos para tu proxima visita</h3>
+            <p>Revisa las promos activas en web y reserva con la combinacion que mejor encaje con tu rutina.</p>
+          </div>
+          <div className="promo-stack">
+            {promotions.length === 0 && <div className="list-sub">No hay promociones activas por ahora.</div>}
+            {promotions.slice(0, 3).map((promo) => (
+              <div key={promo.id} className="promo-pill">
+                <div className="promo-pill-title">{promo.name}</div>
+                <div className="promo-pill-sub">
+                  Vigente hasta {new Date(promo.endDate).toLocaleDateString('es-PE')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="public-section" id="equipo">
+        <div className="section-premium-head">
+          <div>
+            <span className="eyebrow">Especialistas Mora</span>
+            <h2>Equipo especialista</h2>
+          </div>
+          <Link href="/reservar" className="section-link-more">Agendar con el equipo</Link>
+        </div>
+        <div className="staff-grid">
+          {staff.length === 0 && <div className="list-sub">Nuestro equipo aparecera aqui cuando la agenda este habilitada.</div>}
+          {staff.slice(0, 4).map((member, index) => (
+            <div key={member.id} className="staff-card">
+              <img src={galleryImages[index % galleryImages.length]} alt={member.name} />
+              <div className="staff-card-body">
+                <div className="staff-name">{member.name}</div>
+                <div className="staff-role">{member.role ?? 'Especialista'}</div>
+                <div className="staff-tags">
+                  {member.services?.slice(0, 2).map((item) => (
+                    <span key={item.service.name} className="pill">{item.service.name}</span>
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* SECCIÓN 5: FIDELIZACIÓN */}
-      <section id="fidelidad" style={{ padding: '0 32px 60px' }}>
-        <div className="loyalty-dark-panel">
-          <div className="flex flex-col gap-6">
-            <span className="eyebrow" style={{ color: 'var(--rose)' }}>Lealtad Mora</span>
-            <h2 className="text-4xl font-serif leading-tight">Reconocemos tu confianza</h2>
-            <p className="text-white/70 leading-relaxed">
-              En Mora Peluquería & Spa, premiamos que nos elijas. Nuestro sistema rastrea automáticamente tus logros y fechas especiales.
-            </p>
-            <div className="flex gap-4">
-              <Link href="/registro" className="btn">Unirse al Club</Link>
-            </div>
+      <section className="public-section" id="galeria">
+        <div className="section-premium-head">
+          <div>
+            <span className="eyebrow">Resultados reales</span>
+            <h2>Galeria de resultados</h2>
           </div>
-          
-          <div className="flex flex-col gap-4">
-            <div className="perk-item">
-              <h4 className="text-[var(--sun)] font-semibold mb-1">Regalo de Cumpleaños</h4>
-              <p className="text-xs text-white/60">Recibe una atención de cortesía o un descuento especial en tu mes festivo al estar registrada.</p>
+          <Link href="/reservar" className="section-link-more">Quiero este look</Link>
+        </div>
+        <div className="gallery-grid">
+          {galleryImages.map((image) => (
+            <div key={image} className="gallery-tile">
+              <img src={image} alt="Resultado Mora Spa" />
             </div>
-            <div className="perk-item">
-              <h4 className="text-[var(--mint)] font-semibold mb-1">Programa de Referidos</h4>
-              <p className="text-xs text-white/60">Por cada amiga que traigas al salón y complete su primera reserva, obtienes un bono directo en tu cuenta.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
+      <section className="public-section">
+        <div className="section-premium-head">
+          <div>
+            <span className="eyebrow">Experiencia Mora</span>
+            <h2>Lo que cuidamos en cada visita</h2>
+          </div>
+          <Link href="/reservar" className="section-link-more">Reservar ahora</Link>
+        </div>
+        <div className="testimonial-grid">
+          {experienceHighlights.map((item) => (
+            <div key={item.title} className="testimonial-card">
+              <p>{item.text}</p>
+              <div className="testimonial-author">{item.title}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="loyalty-dark-panel" id="fidelidad">
+        <div>
+          <span className="eyebrow" style={{ color: 'var(--rose)' }}>Club Mora</span>
+          <h2>Reserva, vuelve y mantén tu historial siempre a mano</h2>
+          <p>Crea tu cuenta para revisar citas, acceder a promociones web y reservar otra vez en pocos pasos.</p>
+          <div className="cta-row">
+            <Link href="/reservar" className="btn">Reservar</Link>
+            <Link href="/registro" className="btn btn-outline">Crear cuenta</Link>
+          </div>
+        </div>
+        <div className="cta-features">
+          <div className="perk-item">
+            <h4>Agenda mas rapido</h4>
+            <p>Tu cuenta conserva sesion, historial y reservas para que reagendar sea un proceso corto.</p>
+          </div>
+          <div className="perk-item">
+            <h4>Promos visibles</h4>
+            <p>Cuando activemos nuevas campañas, las veras desde web y podras aplicarlas al reservar.</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

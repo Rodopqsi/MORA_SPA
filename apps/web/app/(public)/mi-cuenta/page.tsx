@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiBaseUrl } from '../../lib/api';
-import { clearToken, getToken } from '../../lib/auth';
+import { clientFetch } from '../../lib/clientApi';
+import { useAuth } from '../../context/AuthContext';
 
 type Reservation = {
   id: number;
@@ -12,32 +12,25 @@ type Reservation = {
 };
 
 export default function MiCuentaPage() {
+  const { clearClient } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setError('Necesitas iniciar sesion.');
-      return;
-    }
-
-    const headers = { Authorization: `Bearer ${token}` };
-
     Promise.all([
-      fetch(`${apiBaseUrl}/client-auth/me`, { headers }).then((res) => res.json()),
-      fetch(`${apiBaseUrl}/client-reservations`, { headers }).then((res) => res.json())
+      clientFetch<{ data: any }>(`/client-auth/me`),
+      clientFetch<{ data: Reservation[] }>(`/client-reservations`)
     ])
       .then(([profileRes, reservationsRes]) => {
-        setProfile(profileRes.data ?? profileRes.client ?? profileRes.user ?? profileRes);
+        setProfile(profileRes.data ?? profileRes);
         setReservations(reservationsRes.data ?? []);
       })
-      .catch(() => setError('No se pudo cargar la informacion.'));
+      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la informacion.'));
   }, []);
 
   const handleLogout = () => {
-    clearToken();
+    clearClient();
     window.location.href = '/login';
   };
 
@@ -86,7 +79,7 @@ export default function MiCuentaPage() {
             <div className="eyebrow">Mis reservas</div>
             <h2>Historial reciente</h2>
           </div>
-          <a className="chip" href="/">Nueva reserva</a>
+          <a className="chip" href="/reservar">Nueva reserva</a>
         </div>
         <div className="list">
           {reservations.length === 0 && <div className="list-item">Aun no tienes reservas.</div>}

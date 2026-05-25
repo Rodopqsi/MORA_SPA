@@ -1,6 +1,18 @@
+"use client";
+
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
 
 export default function PublicNav() {
+  const pathname = usePathname();
+  const { isClientAuthed, refresh } = useAuth();
+
+  useEffect(() => {
+    refresh();
+  }, [pathname, refresh]);
+
   return (
     <header className="public-nav">
       <div className="brand">
@@ -14,8 +26,17 @@ export default function PublicNav() {
         <Link href="/#servicios">Servicios</Link>
         <Link href="/#promos">Promociones</Link>
         <Link href="/#experiencia">Experiencia</Link>
-        <Link href="/login" className="chip">Ingresar</Link>
-        <Link href="/registro" className="btn" >Reserva ahora</Link>
+        {isClientAuthed ? (
+          <>
+            <Link href="/mi-cuenta" className="chip">Mi cuenta</Link>
+            <Link href="/reservar" className="btn">Reservar</Link>
+          </>
+        ) : (
+          <>
+            <Link href="/login" className="chip">Ingresar</Link>
+            <Link href="/reservar" className="btn">Reserva ahora</Link>
+          </>
+        )}
       </nav>
     </header>
   );

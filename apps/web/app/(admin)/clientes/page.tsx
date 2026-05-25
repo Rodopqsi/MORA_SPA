@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Client = {
@@ -16,6 +16,7 @@ export default function ClientesPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
   const [editing, setEditing] = useState<Client | null>(null);
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadClients = () => {
     staffFetch<{ data: Client[] }>('/clients')
@@ -71,11 +72,19 @@ export default function ClientesPage() {
           <p>Segmenta, fideliza y celebra con experiencias personalizadas.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => setEditing(null)}>Nuevo cliente</button>
+          <button
+            className="btn"
+            onClick={() => {
+              setEditing(null);
+              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            Nuevo cliente
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nuevo cliente</div>
@@ -106,7 +115,7 @@ export default function ClientesPage() {
             <div className="eyebrow">Clientes destacados</div>
             <h2>Seguimiento rapido</h2>
           </div>
-          <button className="chip">Actualizar</button>
+          <button className="chip" onClick={loadClients}>Actualizar</button>
         </div>
         <div className="list">
           {clients.length === 0 && <div className="list-item">Sin clientes registrados.</div>}

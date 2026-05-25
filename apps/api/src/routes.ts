@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { addMinutes } from 'date-fns';
@@ -23,9 +24,18 @@ import {
 
 const router = Router();
 
-const toInt = z.preprocess((value) => Number(value), z.number().int());
-const toNumber = z.preprocess((value) => Number(value), z.number());
-const toBool = z.preprocess((value) => value === 'true' || value === true, z.boolean());
+const toInt = z.coerce.number().int();
+const toNumber = z.coerce.number();
+const reservationStatusSchema = z.enum([
+  'PENDIENTE_ADELANTO',
+  'CONFIRMADA',
+  'EN_PROCESO',
+  'ATENDIDA',
+  'CANCELADA',
+  'NO_SHOW',
+  'VENCIDA'
+]);
+const reviewStatusSchema = z.enum(['PENDIENTE', 'APROBADA', 'OCULTA']);
 
 const parseDateTime = (value: string) => {
   const date = new Date(value);
@@ -858,7 +868,15 @@ router.post(
       req.body
     );
 
-    const service = await prisma.service.create({ data: body });
+    const service = await prisma.service.create({
+      data: {
+        name: body.name,
+        description: body.description,
+        durationMin: body.durationMin,
+        priceBase: body.priceBase,
+        active: body.active ?? true
+      }
+    });
     res.status(201).json({ data: service });
   })
 );
@@ -916,7 +934,14 @@ router.post(
       req.body
     );
 
-    const staff = await prisma.staff.create({ data: body });
+    const staff = await prisma.staff.create({
+      data: {
+        name: body.name,
+        role: body.role,
+        phone: body.phone,
+        active: body.active ?? true
+      }
+    });
     res.status(201).json({ data: staff });
   })
 );
@@ -1311,11 +1336,11 @@ router.put(
 router.get(
   '/reservations',
   asyncHandler(async (req, res) => {
-    const status = req.query.status ? String(req.query.status) : undefined;
+    const status = req.query.status ? parse(reservationStatusSchema, req.query.status) : undefined;
     const from = req.query.from ? parseDate(String(req.query.from)) : undefined;
     const to = req.query.to ? parseDate(String(req.query.to)) : undefined;
 
-    const where: { status?: string; start?: { gte?: Date; lte?: Date } } = {};
+    const where: Prisma.ReservationWhereInput = {};
     if (status) {
       where.status = status;
     }
@@ -1476,9 +1501,7 @@ router.patch(
     const id = Number(req.params.id);
     const body = parse(
       z.object({
-        status: z
-          .enum(['PENDIENTE_ADELANTO', 'CONFIRMADA', 'EN_PROCESO', 'ATENDIDA', 'CANCELADA', 'NO_SHOW', 'VENCIDA'])
-          .optional(),
+        status: reservationStatusSchema.optional(),
         notes: z.string().optional()
       }),
       req.body
@@ -1907,8 +1930,8 @@ router.delete(
 router.get(
   '/reviews',
   asyncHandler(async (req, res) => {
-    const status = req.query.status ? String(req.query.status) : undefined;
-    const where = status ? { status } : {};
+    const status = req.query.status ? parse(reviewStatusSchema, req.query.status) : undefined;
+    const where: Prisma.ReviewWhereInput = status ? { status } : {};
     const reviews = await prisma.review.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json({ data: reviews });
   })
@@ -1956,7 +1979,7 @@ router.patch(
     const id = Number(req.params.id);
     const body = parse(
       z.object({
-        status: z.enum(['PENDIENTE', 'APROBADA', 'OCULTA']).optional(),
+        status: reviewStatusSchema.optional(),
         visible: z.boolean().optional()
       }),
       req.body

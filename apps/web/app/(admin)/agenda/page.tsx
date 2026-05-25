@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
@@ -116,9 +117,9 @@ export default function AgendaPage() {
           <p>Gestion diaria del equipo y reservas.</p>
         </div>
         <div className="page-actions">
-          <button className="chip">Hoy</button>
-          <button className="chip">Semana</button>
-          <button className="btn btn-outline">Nueva reserva</button>
+          <Link className="chip" href="/agenda">Hoy</Link>
+          <Link className="chip" href="/agenda">Semana</Link>
+          <Link className="btn btn-outline" href="/reservas">Nueva reserva</Link>
         </div>
       </header>
 

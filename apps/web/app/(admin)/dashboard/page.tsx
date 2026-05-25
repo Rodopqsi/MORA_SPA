@@ -1,57 +1,48 @@
-const stats = [
-  { label: 'Reservas del dia', value: '11', meta: '2 finalizadas - 6 por venir', tone: 'rose' },
-  { label: 'Ingresos del dia', value: 'S/ 295', meta: '+18% vs ayer', tone: 'sun' },
-  { label: 'Pagos adelantados', value: 'S/ 175', meta: 'Yape / Efectivo', tone: 'mint' },
-  { label: 'Personal en turno', value: '5', meta: 'Disponibilidad en vivo', tone: 'plum' }
-];
+"use client";
 
-const upcoming = [
-  {
-    time: '11:00',
-    client: 'Patricia Nunez',
-    service: 'Pedicure Premium',
-    staff: 'Andrea Soto',
-    price: 'S/ 40',
-    "use client";
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { staffFetch } from '../../lib/staffApi';
 
-    import { useEffect, useState } from 'react';
-    import { staffFetch } from '../../lib/staffApi';
+type Upcoming = {
+  id: number;
+  start: string;
+  status: string;
+  client: { name: string };
+  details: { service?: { name: string } | null; staff?: { name: string } | null }[];
+};
 
-    type Upcoming = {
-      id: number;
-      start: string;
-      status: string;
-      client: { name: string };
-      details: { service?: { name: string } | null; staff?: { name: string } | null }[];
-    };
+type Summary = {
+  reservationCount: number;
+  revenue: number;
+  advances: number;
+  staffOnDuty: number;
+  upcoming: Upcoming[];
+};
 
-    type Summary = {
-      reservationCount: number;
-      revenue: number;
-      advances: number;
-      staffOnDuty: number;
-      upcoming: Upcoming[];
-    };
+export default function DashboardPage() {
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [error, setError] = useState('');
 
-    export default function DashboardPage() {
-      const [summary, setSummary] = useState<Summary | null>(null);
-      const [error, setError] = useState('');
+  useEffect(() => {
+    staffFetch<{ data: Summary }>('/metrics/summary')
+      .then((res) => setSummary(res.data))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error'));
+  }, []);
 
-      useEffect(() => {
-        staffFetch<{ data: Summary }>('/metrics/summary')
-          .then((res) => setSummary(res.data))
-          .catch((err) => setError(err instanceof Error ? err.message : 'Error'));
-      }, []);
+  const stats = [
+    { label: 'Reservas del dia', value: summary?.reservationCount ?? 0, meta: 'Agenda diaria', tone: 'rose' },
+    { label: 'Ingresos del dia', value: `S/ ${summary?.revenue ?? 0}`, meta: 'Pagos confirmados', tone: 'sun' },
+    { label: 'Pagos adelantados', value: `S/ ${summary?.advances ?? 0}`, meta: 'Adelantos del dia', tone: 'mint' },
+    { label: 'Personal en turno', value: summary?.staffOnDuty ?? 0, meta: 'Disponibilidad en vivo', tone: 'plum' }
+  ];
 
-      const stats = [
-        { label: 'Reservas del dia', value: summary?.reservationCount ?? 0, meta: 'Agenda diaria', tone: 'rose' },
-        { label: 'Ingresos del dia', value: `S/ ${summary?.revenue ?? 0}`, meta: 'Pagos confirmados', tone: 'sun' },
-        { label: 'Pagos adelantados', value: `S/ ${summary?.advances ?? 0}`, meta: 'Adelantos del dia', tone: 'mint' },
-        { label: 'Personal en turno', value: summary?.staffOnDuty ?? 0, meta: 'Disponibilidad en vivo', tone: 'plum' }
-      ];
+  const upcoming = summary?.upcoming ?? [];
 
-      const upcoming = summary?.upcoming ?? [];
-
+  return (
+    <div className="page-stack">
+      <section className="grid grid-4">
+        {stats.map((stat, index) => (
           <div
             key={stat.label}
             className={`card stat-card reveal tone-${stat.tone}`}
@@ -73,7 +64,7 @@ const upcoming = [
               <div className="eyebrow">Proximas citas</div>
               <h2>Confirma o reagenda con un toque</h2>
             </div>
-            <button className="chip">Ver agenda completa</button>
+            <Link className="chip" href="/agenda">Ver agenda completa</Link>
           </div>
           <div className="list">
             {upcoming.length === 0 && <div className="list-item">No hay citas cercanas.</div>}
@@ -103,7 +94,7 @@ const upcoming = [
               <div className="eyebrow">Equipo de hoy</div>
               <h2>Disponibilidad en tiempo real</h2>
             </div>
-            <button className="chip">Ver equipo completo</button>
+            <Link className="chip" href="/equipo">Ver equipo completo</Link>
           </div>
           <div className="list">
             <div className="list-item">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Staff = { id: number; name: string; role?: string | null; active: boolean };
@@ -13,6 +13,7 @@ export default function EquipoPage() {
   const [selectedStaff, setSelectedStaff] = useState<number | null>(null);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadData = () => {
     Promise.all([
@@ -83,11 +84,13 @@ export default function EquipoPage() {
           <p>Visualiza turnos, roles y disponibilidad en tiempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nuevo personal</button>
+          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Nuevo personal
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nuevo personal</div>

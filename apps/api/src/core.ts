@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
+import type { SignOptions } from 'jsonwebtoken';
 import { z } from 'zod';
 
 export const prisma = new PrismaClient();
@@ -31,13 +32,13 @@ export class AppError extends Error {
   }
 }
 
-export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown> | unknown) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
 
-export const parse = <T>(schema: z.ZodType<T>, data: unknown): T => {
+export const parse = <TSchema extends z.ZodTypeAny>(schema: TSchema, data: unknown): z.infer<TSchema> => {
   const result = schema.safeParse(data);
   if (!result.success) {
     const message = result.error.issues.map((issue) => issue.message).join(', ');
@@ -50,9 +51,10 @@ export const hashPassword = (value: string) => bcrypt.hash(value, 10);
 export const verifyPassword = (value: string, hash: string) => bcrypt.compare(value, hash);
 
 export const signToken = (payload: object) => {
-  return jwt.sign(payload, process.env.JWT_SECRET ?? 'dev-secret', {
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '8h'
-  });
+  const secret = process.env.JWT_SECRET ?? 'dev-secret';
+  const expiresIn = (process.env.JWT_EXPIRES_IN ?? '8h') as SignOptions['expiresIn'];
+
+  return jwt.sign(payload, secret, { expiresIn });
 };
 
 export const authRequired = asyncHandler(async (req, _res, next) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
 type Promotion = { id: number; name: string; type: string; active: boolean; startDate: string; endDate: string };
@@ -9,6 +9,7 @@ export default function PromocionesPage() {
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [form, setForm] = useState({ name: '', type: 'PORCENTAJE', value: 0, startDate: '', endDate: '' });
   const [error, setError] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadPromos = () => {
     staffFetch<{ data: Promotion[] }>('/promotions')
@@ -61,11 +62,13 @@ export default function PromocionesPage() {
           <p>Planifica promociones y descuentos con impacto real.</p>
         </div>
         <div className="page-actions">
-          <button className="btn">Nueva promocion</button>
+          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            Nueva promocion
+          </button>
         </div>
       </header>
 
-      <section className="card reveal">
+      <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
             <div className="eyebrow">Nueva promocion</div>
