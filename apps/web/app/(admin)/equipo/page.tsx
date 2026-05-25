@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { normalizePersonName, normalizePhone } from '../../lib/validation';
 
 type Staff = { id: number; name: string; role?: string | null; active: boolean };
 type Service = { id: number; name: string };
@@ -33,13 +34,15 @@ export default function EquipoPage() {
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError('');
+
     try {
       await staffFetch('/staff', {
         method: 'POST',
         body: JSON.stringify({
-          name: form.name,
-          role: form.role,
-          phone: form.phone
+          name: form.name.trim(),
+          role: form.role.trim(),
+          phone: form.phone.trim()
         })
       });
       setForm({ name: '', role: '', phone: '' });
@@ -100,7 +103,12 @@ export default function EquipoPage() {
         <form className="auth-form" onSubmit={handleCreate}>
           <label>
             Nombre
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: normalizePersonName(e.target.value) })}
+              pattern="[A-Za-zÀ-ÿ\s]+"
+              title="Solo se permiten letras y espacios"
+            />
           </label>
           <label>
             Rol
@@ -108,7 +116,13 @@ export default function EquipoPage() {
           </label>
           <label>
             Telefono
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <input
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
+              inputMode="numeric"
+              pattern="[0-9]+"
+              title="Solo se permiten numeros"
+            />
           </label>
           {error && <div className="auth-error">{error}</div>}
           <button className="btn" type="submit">Guardar</button>

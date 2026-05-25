@@ -74,7 +74,7 @@ export default function SideNav() {
       </nav>
 
       <div className="sidebar-card">
-        <div className="sidebar-card-title">35 anos floreciendo belleza</div>
+        <div className="sidebar-card-title">35 años floreciendo belleza</div>
         <div className="sidebar-card-text">Atendemos todos los dias: 9-1 y 4-9</div>
       </div>
     </aside>

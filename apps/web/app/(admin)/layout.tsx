@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import SideNav from '../components/SideNav';
+import AdminSearch from '../components/AdminSearch';
+import AdminLogoutButton from '../components/AdminLogoutButton';
 
 export const metadata = {
   title: 'Mora Spa Admin',
@@ -12,14 +14,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <SideNav />
       <div className="app-main">
         <header className="topbar">
-          <div className="search">
-            <span className="search-dot" />
-            <input placeholder="Buscar cliente, servicio o cita..." />
-          </div>
+          <AdminSearch />
           <div className="topbar-actions">
             <Link className="chip" href="/agenda">Hoy</Link>
             <Link className="btn btn-outline" href="/agenda">Ver agenda</Link>
             <Link className="btn" href="/reservas">Nueva reserva</Link>
+            <AdminLogoutButton />
             <div className="user-chip">
               <div className="user-avatar">GM</div>
               <div>

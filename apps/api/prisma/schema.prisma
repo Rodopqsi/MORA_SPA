@@ -33,6 +33,7 @@ enum PaymentType {
 enum PaymentMethod {
   EFECTIVO
   YAPE
+  PASARELA
 }
 
 enum PaymentStatus {
@@ -69,6 +70,11 @@ enum PhotoType {
   ANTES
   DESPUES
   RESULTADO
+}
+
+enum ProductImageSource {
+  URL
+  LOCAL
 }
 
 enum ConsentMethod {
@@ -324,24 +330,48 @@ model LoyaltyBenefit {
 }
 
 model Product {
-  id     Int     @id @default(autoincrement())
-  name   String
-  price  Decimal @db.Decimal(10, 2)
-  stock  Int     @default(0)
-  active Boolean @default(true)
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?
+  category    String?
+  price       Decimal        @db.Decimal(10, 2)
+  stock       Int            @default(0)
+  active      Boolean        @default(true)
+  featured    Boolean        @default(false)
+  images      ProductImage[]
   saleDetails ProductSaleDetail[]
 }
 
 model ProductSale {
-  id        Int      @id @default(autoincrement())
-  clientId  Int?
-  method    PaymentMethod
-  total     Decimal @db.Decimal(10, 2)
-  date      DateTime @default(now())
-  userId    Int?
-  client    Client? @relation(fields: [clientId], references: [id])
-  user      User?   @relation(fields: [userId], references: [id])
-  details   ProductSaleDetail[]
+  id               Int            @id @default(autoincrement())
+  clientId         Int?
+  method           PaymentMethod
+  total            Decimal        @db.Decimal(10, 2)
+  date             DateTime       @default(now())
+  userId           Int?
+  customerName     String?
+  customerPhone    String?
+  customerEmail    String?
+  paymentStatus    PaymentStatus  @default(PENDIENTE)
+  paymentReference String?
+  notes            String?
+  client           Client?        @relation(fields: [clientId], references: [id])
+  user             User?          @relation(fields: [userId], references: [id])
+  details          ProductSaleDetail[]
+}
+
+model ProductImage {
+  id        Int                @id @default(autoincrement())
+  productId Int
+  url       String
+  fileName  String?
+  source    ProductImageSource @default(URL)
+  order     Int                @default(1)
+  isCover   Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  product   Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, order])
 }
 
 model ProductSaleDetail {

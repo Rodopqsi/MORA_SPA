@@ -7,6 +7,7 @@ import { clientFetch } from '../../../lib/clientApi';
 import { BookingTimeline } from '../BookingTimeline';
 import {
   Availability,
+  AvailabilityMeta,
   BookingState,
   Staff,
   defaultBookingState,
@@ -20,6 +21,7 @@ export default function ReservarPaso3Page() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [slots, setSlots] = useState<Availability[]>([]);
   const [loading, setLoading] = useState(false);
+  const [meta, setMeta] = useState<AvailabilityMeta | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
 
@@ -49,6 +51,7 @@ export default function ReservarPaso3Page() {
   useEffect(() => {
     if (booking.selectedServices.length === 0 || staff.length === 0) {
       setSlots([]);
+      setMeta(null);
       return;
     }
 
@@ -60,15 +63,28 @@ export default function ReservarPaso3Page() {
     }
 
     setLoading(true);
-    clientFetch<{ data: Availability[] }>(`/client-availability?${params.toString()}`)
+    clientFetch<{ data: Availability[]; meta: AvailabilityMeta }>(`/client-availability?${params.toString()}`)
       .then((res) => {
         const data = res.data ?? [];
+        setMeta(res.meta ?? null);
         if (data.length === 0) {
           setSlots([]);
-          setNotice('No hay horarios disponibles para la fecha elegida.');
+          if (res.meta?.reason === 'NO_COMPATIBLE_STAFF') {
+            setNotice('El especialista elegido no puede cubrir todos los servicios seleccionados. Cambia de especialista o usa sin preferencia.');
+          } else if (res.meta?.reason === 'NO_TEAM_COVERAGE') {
+            setNotice('No hay personal suficiente para cubrir la combinacion elegida. Prueba otra combinacion o separa la reserva.');
+          } else if (res.meta?.reason === 'NO_ACTIVE_STAFF') {
+            setNotice('Aun no hay especialistas habilitados para la agenda online.');
+          } else {
+            setNotice('No hay horarios disponibles para la fecha elegida.');
+          }
         } else {
           setSlots(data);
-          setNotice('');
+          setNotice(
+            res.meta?.mode === 'multi_staff'
+              ? 'Se encontro una secuencia continua con varios especialistas para cubrir toda tu reserva.'
+              : ''
+          );
         }
       })
       .catch(() => {
@@ -83,8 +99,18 @@ export default function ReservarPaso3Page() {
     [staff]
   );
 
-  const selectSlot = (staffId: number, start: string) => {
-    const nextState = { ...booking, selectedSlot: { staffId, start } };
+  const selectSlot = (entry: Availability, slot: Availability['slots'][number]) => {
+    const nextState = {
+      ...booking,
+      selectedSlot: {
+        id: slot.id,
+        staffId: entry.staffId,
+        start: slot.start,
+        end: slot.end,
+        label: entry.label,
+        assignments: slot.assignments
+      }
+    };
     setBooking(nextState);
     saveBookingState(nextState);
     setError('');
@@ -139,6 +165,12 @@ export default function ReservarPaso3Page() {
           />
         </div>
 
+        <div className="list-sub">
+          {meta?.mode === 'multi_staff'
+            ? 'Se mostraran bloques continuos y, cuando haga falta, una secuencia automatica con varios especialistas.'
+            : 'Se mostraran bloques continuos segun la duracion total de tus servicios.'}
+        </div>
+
         {loading && <div className="list-sub">Buscando disponibilidad...</div>}
         {!loading && slots.length === 0 && (
           <div className="list-sub">
@@ -152,24 +184,30 @@ export default function ReservarPaso3Page() {
           {slots.flatMap((entry) =>
             entry.slots.map((slot) => (
               <button
-                key={`${entry.staffId}-${slot.start}`}
+                key={slot.id}
                 type="button"
                 className={`booking-slot ${
-                  booking.selectedSlot?.start === slot.start &&
-                  booking.selectedSlot?.staffId === entry.staffId
+                  booking.selectedSlot?.id === slot.id
                     ? 'active'
                     : ''
                 }`}
-                onClick={() => selectSlot(entry.staffId, slot.start)}
+                onClick={() => selectSlot(entry, slot)}
               >
                 <div className="booking-title">
                   {new Date(slot.start).toLocaleTimeString('es-PE', {
                     hour: '2-digit',
                     minute: '2-digit',
+                  })}{' '}
+                  -{' '}
+                  {new Date(slot.end).toLocaleTimeString('es-PE', {
+                    hour: '2-digit',
+                    minute: '2-digit',
                   })}
                 </div>
                 <div className="booking-sub">
-                  {staffMap.get(entry.staffId)?.name ?? 'Equipo'}
+                  {entry.mode === 'multi_staff'
+                    ? entry.label ?? 'Equipo asignado'
+                    : staffMap.get(entry.staffId ?? -1)?.name ?? entry.label ?? 'Equipo'}
                 </div>
               </button>
             ))

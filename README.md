@@ -5,8 +5,9 @@ Monorepo with an ExpressJS API, Prisma/PostgreSQL, and a Next.js application for
 ## What is included
 - Client registration and login
 - Online booking flow backed by real availability
+- Public mini-ecommerce for products with catalog, cart, checkout, and payment gateway placeholder step
 - Admin dashboard, agenda, reservations, clients, staff, services, promotions, products, albums, and reviews pages
-- Prisma seed with starter roles, admin user, service catalog, staff, schedules, and an active web promotion
+- Prisma seed with starter roles, admin user, service catalog, staff, schedules, an active web promotion, and starter ecommerce products
 
 ## Requirements
 - Node.js 18+
@@ -32,4 +33,4 @@ Next.js app will run at http://localhost:3000
 ## Seed defaults
 - Admin username: value from ADMIN_USERNAME or admin
 - Admin password: value from ADMIN_PASSWORD or admin123
-- Starter catalog: 6 services, 3 staff members, weekly salon schedule, 1 active promotion
+- Starter catalog: 6 services, 3 staff members, weekly salon schedule, 1 active promotion, and 4 ecommerce products with images

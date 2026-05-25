@@ -52,13 +52,13 @@ export default function ResenasPage() {
     <div className="page-stack">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Resenas y reputacion</div>
+          <div className="eyebrow">Reseñas y reputación</div>
           <h1>Lo que dicen tus clientas</h1>
           <p>Modera, responde y usa el feedback para mejorar.</p>
         </div>
         <div className="page-actions">
           <button className="btn" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            Nueva resena
+            Nueva reseña
           </button>
         </div>
       </header>

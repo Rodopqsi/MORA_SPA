@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../lib/api';
+import { CatalogProduct, getProductCover } from '../lib/shopCart';
 
 type Service = {
   id: number;
@@ -64,6 +65,7 @@ export default function PublicHomePage() {
   const [services, setServices] = useState<Service[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -77,17 +79,20 @@ export default function PublicHomePage() {
     Promise.all([
       apiFetch<{ data: Service[] }>('/public/services'),
       apiFetch<{ data: Promotion[] }>('/public/promotions'),
-      apiFetch<{ data: Staff[] }>('/public/staff')
+      apiFetch<{ data: Staff[] }>('/public/staff'),
+      apiFetch<{ data: CatalogProduct[] }>('/public/products')
     ])
-      .then(([servicesRes, promotionsRes, staffRes]) => {
+      .then(([servicesRes, promotionsRes, staffRes, productsRes]) => {
         setServices(servicesRes.data ?? []);
         setPromotions(promotionsRes.data ?? []);
         setStaff(staffRes.data ?? []);
+        setProducts(productsRes.data ?? []);
       })
       .catch(() => {
         setServices([]);
         setPromotions([]);
         setStaff([]);
+        setProducts([]);
       });
   }, []);
 
@@ -156,6 +161,42 @@ export default function PublicHomePage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="public-section" id="productos">
+        <div className="section-premium-head">
+          <div>
+            <span className="eyebrow">Linea de productos</span>
+            <h2>Compra desde la web</h2>
+          </div>
+          <Link href="/tienda" className="section-link-more">Ir a tienda</Link>
+        </div>
+        <div className="shop-feature-grid">
+          {products.filter((product) => product.featured).slice(0, 4).map((product) => {
+            const cover = getProductCover(product);
+            return (
+              <article key={product.id} className="shop-feature-card">
+                <div className="shop-feature-media">
+                  {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
+                </div>
+                <div className="shop-feature-body">
+                  <div className="shop-product-meta">
+                    <div>
+                      <h3>{product.name}</h3>
+                      <div className="list-sub">{product.category ?? 'Linea Mora'}</div>
+                    </div>
+                    <span className="price-tag">S/ {Number(product.price).toFixed(2)}</span>
+                  </div>
+                  <p>{product.description ?? 'Compra este favorito desde la tienda online de Mora.'}</p>
+                  <Link href="/tienda" className="service-box-action">Comprar ahora</Link>
+                </div>
+              </article>
+            );
+          })}
+          {products.filter((product) => product.featured).length === 0 && (
+            <div className="empty-state">Los productos destacados apareceran aqui cuando el catalogo este listo.</div>
+          )}
         </div>
       </section>
 

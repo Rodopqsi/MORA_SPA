@@ -43,6 +43,7 @@ export default function ReservarPaso1Page() {
     const nextState = {
       ...booking,
       selectedServices: next,
+      selectedStaff: 'any',
       selectedSlot: null
     };
     setBooking(nextState);

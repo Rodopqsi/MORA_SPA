@@ -17,6 +17,16 @@ type Client = { id: number; name: string; phone: string };
 
 const statusOptions = ['PENDIENTE_ADELANTO', 'CONFIRMADA', 'EN_PROCESO', 'ATENDIDA', 'CANCELADA', 'NO_SHOW', 'VENCIDA'];
 
+const statusLabels: Record<string, string> = {
+  PENDIENTE_ADELANTO: 'Pendiente',
+  CONFIRMADA: 'Confirmada',
+  EN_PROCESO: 'En proceso',
+  ATENDIDA: 'Atendida',
+  CANCELADA: 'Cancelada',
+  NO_SHOW: 'No show',
+  VENCIDA: 'Vencida'
+};
+
 export default function ReservasPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -228,7 +238,7 @@ export default function ReservasPage() {
           <select className="chip" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">Todos</option>
             {statusOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
+              <option key={option} value={option}>{statusLabels[option] ?? option}</option>
             ))}
           </select>
         </div>
@@ -267,7 +277,7 @@ export default function ReservasPage() {
                   <div className="table-sub">Detalle interno</div>
                 </div>
                 <div className="table-sub">{staffName ?? '-'}</div>
-                <div className="table-title">Pendiente</div>
+                <div className="table-title">{statusLabels[item.status] ?? item.status}</div>
                 <div>
                   <select
                     className="chip"
@@ -275,14 +285,14 @@ export default function ReservasPage() {
                     onChange={(event) => updateStatus(item.id, event.target.value)}
                   >
                     {statusOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
+                      <option key={option} value={option}>{statusLabels[option] ?? option}</option>
                     ))}
                   </select>
                 </div>
                 <div className="table-actions">
-                  <button className="icon-btn" onClick={() => updateStatus(item.id, 'CONFIRMADA')}>OK</button>
-                  <button className="icon-btn" onClick={() => updateStatus(item.id, 'EN_PROCESO')}>ED</button>
-                  <button className="icon-btn danger" onClick={() => cancelReservation(item.id)}>X</button>
+                  <button className="chip" onClick={() => updateStatus(item.id, 'CONFIRMADA')}>Aceptar</button>
+                  <button className="chip" onClick={() => updateStatus(item.id, 'EN_PROCESO')}>En proceso</button>
+                  <button className="chip danger" onClick={() => cancelReservation(item.id)}>Cancelar</button>
                 </div>
               </div>
             );

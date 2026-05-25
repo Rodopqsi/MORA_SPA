@@ -1,12 +1,48 @@
 export type Service = { id: number; name: string; durationMin: number; priceBase: string | number };
-export type Staff = { id: number; name: string };
-export type Availability = { staffId: number; slots: { start: string; end: string }[] };
+export type BookingAssignment = {
+  serviceId: number;
+  staffId: number;
+  start: string;
+  end: string;
+};
+
+export type AvailabilitySlot = {
+  id: string;
+  start: string;
+  end: string;
+  assignments?: BookingAssignment[];
+};
+
+export type Staff = {
+  id: number;
+  name: string;
+  services?: { serviceId: number }[];
+};
+export type Availability = {
+  staffId: number | null;
+  label?: string;
+  mode?: 'single_staff' | 'multi_staff';
+  slots: AvailabilitySlot[];
+};
+
+export type AvailabilityMeta = {
+  mode: 'single_staff' | 'multi_staff';
+  reason: 'SLOTS_FOUND' | 'NO_ACTIVE_STAFF' | 'NO_COMPATIBLE_STAFF' | 'NO_TEAM_COVERAGE' | 'NO_OPEN_SLOTS';
+  totalDurationMin: number;
+};
 
 export type BookingState = {
   selectedServices: number[];
   selectedStaff: string;
   date: string;
-  selectedSlot: { staffId: number; start: string } | null;
+  selectedSlot: {
+    id: string;
+    staffId: number | null;
+    start: string;
+    end: string;
+    label?: string;
+    assignments?: BookingAssignment[];
+  } | null;
   notes: string;
 };
 

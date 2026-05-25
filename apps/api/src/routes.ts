@@ -19,6 +19,7 @@ import {
   computeAvailableSlots,
   getBusyIntervals,
   getWorkingIntervals,
+  isWithinWorkingHours,
   overlaps
 } from './schedule';
 
@@ -26,6 +27,57 @@ const router = Router();
 
 const toInt = z.coerce.number().int();
 const toNumber = z.coerce.number();
+const emptyStringToUndefined = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
+const personNameSchema = z
+  .string()
+  .trim()
+  .min(3, 'El nombre debe tener al menos 3 caracteres')
+  .regex(/^[A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+)*$/, 'Solo se permiten letras y espacios');
+
+const optionalPersonNameSchema = z.preprocess(emptyStringToUndefined, personNameSchema.optional());
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(6, 'El telefono debe tener al menos 6 digitos')
+  .max(15, 'El telefono no puede exceder 15 digitos')
+  .regex(/^\d+$/, 'El telefono solo debe contener numeros');
+
+const optionalPhoneSchema = z.preprocess(emptyStringToUndefined, phoneSchema.optional());
+const productNameSchema = z.string().trim().min(2, 'El producto debe tener al menos 2 caracteres');
+const productDescriptionSchema = z.preprocess(emptyStringToUndefined, z.string().trim().min(8).optional());
+const productCategorySchema = z.preprocess(emptyStringToUndefined, z.string().trim().min(2).optional());
+const productPriceSchema = z.coerce.number().min(0, 'El precio no puede ser negativo');
+const productStockSchema = z.coerce.number().int().min(0, 'El stock no puede ser negativo');
+const productPaymentStatusSchema = z.enum(['CONFIRMADO', 'ANULADO', 'PENDIENTE']);
+const productPaymentMethodSchema = z.enum(['EFECTIVO', 'YAPE', 'PASARELA']);
+const productImageInputSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .min(1, 'La imagen es obligatoria')
+    .refine(
+      (value) =>
+        value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('/assets/') ||
+        value.startsWith('/uploads/') ||
+        value.startsWith('data:image/'),
+      'La imagen debe ser una URL valida o una imagen local cargada'
+    ),
+  fileName: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+  source: z.enum(['URL', 'LOCAL']).optional(),
+  isCover: z.boolean().optional()
+});
+
 const reservationStatusSchema = z.enum([
   'PENDIENTE_ADELANTO',
   'CONFIRMADA',
@@ -53,6 +105,10 @@ const parseDate = (value: string) => {
   return date;
 };
 
+const toDateEnd = (date: Date) => {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+};
+
 const timeStringToDate = (value: string) => {
   const [hours, minutes] = value.split(':').map((part) => Number(part));
   if (Number.isNaN(hours) || Number.isNaN(minutes)) {
@@ -62,6 +118,453 @@ const timeStringToDate = (value: string) => {
 };
 
 const generateCode = () => `RSV-${Date.now().toString(36).toUpperCase()}`;
+
+const productInclude = {
+  images: {
+    orderBy: [{ isCover: 'desc' }, { order: 'asc' }]
+  }
+} satisfies Prisma.ProductInclude;
+
+const saleInclude = {
+  client: true,
+  user: true,
+  details: {
+    orderBy: { id: 'asc' },
+    include: {
+      product: {
+        include: productInclude
+      }
+    }
+  }
+} satisfies Prisma.ProductSaleInclude;
+
+type ProductImageInput = z.infer<typeof productImageInputSchema>;
+
+const normalizeProductImages = (images: ProductImageInput[] = []) => {
+  const prepared = images.map((image, index) => ({
+    url: image.url.trim(),
+    fileName: image.fileName?.trim(),
+    source: image.source ?? (image.url.startsWith('data:image/') ? 'LOCAL' : 'URL'),
+    isCover: Boolean(image.isCover),
+    order: index + 1
+  }));
+
+  const coverIndex = prepared.findIndex((image) => image.isCover);
+
+  return prepared.map((image, index) => ({
+    ...image,
+    isCover: coverIndex === -1 ? index === 0 : index === coverIndex
+  }));
+};
+
+const createProductSale = async (input: {
+  items: { productId: number; quantity: number }[];
+  method: 'EFECTIVO' | 'YAPE' | 'PASARELA';
+  paymentStatus: 'CONFIRMADO' | 'ANULADO' | 'PENDIENTE';
+  clientId?: number;
+  userId?: number;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  paymentReference?: string;
+  notes?: string;
+  publicOnly?: boolean;
+}) => {
+  const products = await prisma.product.findMany({
+    where: { id: { in: input.items.map((item) => item.productId) } },
+    include: productInclude
+  });
+
+  const items = input.items.map((item) => {
+    const product = products.find((candidate) => candidate.id === item.productId);
+    if (!product) {
+      throw new AppError(404, 'Product not found', 'not_found');
+    }
+
+    if (input.publicOnly && !product.active) {
+      throw new AppError(400, 'Product unavailable', 'product_unavailable');
+    }
+
+    if (item.quantity < 1) {
+      throw new AppError(400, 'Invalid quantity', 'invalid_quantity');
+    }
+
+    if (product.stock < item.quantity) {
+      throw new AppError(400, 'Not enough stock', 'stock_error');
+    }
+
+    const unitPrice = Number(product.price);
+    return {
+      productId: product.id,
+      quantity: item.quantity,
+      unitPrice,
+      subtotal: unitPrice * item.quantity
+    };
+  });
+
+  const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+  return prisma.$transaction(async (tx) => {
+    const sale = await tx.productSale.create({
+      data: {
+        clientId: input.clientId,
+        userId: input.userId,
+        method: input.method,
+        total,
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        customerEmail: input.customerEmail,
+        paymentStatus: input.paymentStatus,
+        paymentReference: input.paymentReference,
+        notes: input.notes,
+        details: {
+          create: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: item.subtotal
+          }))
+        }
+      },
+      include: saleInclude
+    });
+
+    if (input.paymentStatus !== 'ANULADO') {
+      for (const item of items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+    }
+
+    return sale;
+  });
+};
+
+type AvailabilityMode = 'single_staff' | 'multi_staff';
+type AvailabilityReason =
+  | 'SLOTS_FOUND'
+  | 'NO_ACTIVE_STAFF'
+  | 'NO_COMPATIBLE_STAFF'
+  | 'NO_TEAM_COVERAGE'
+  | 'NO_OPEN_SLOTS';
+
+type StaffWithServices = {
+  id: number;
+  name: string;
+  services: { serviceId: number }[];
+};
+
+type OrderedService = {
+  id: number;
+  durationMin: number;
+};
+
+type AvailabilityAssignment = {
+  serviceId: number;
+  staffId: number;
+  start: Date;
+  end: Date;
+};
+
+type AvailabilityEntry = {
+  staffId: number | null;
+  label: string;
+  mode: AvailabilityMode;
+  slots: {
+    id: string;
+    start: Date;
+    end: Date;
+    assignments?: AvailabilityAssignment[];
+  }[];
+};
+
+type AvailabilityPayload = {
+  data: AvailabilityEntry[];
+  meta: {
+    mode: AvailabilityMode;
+    reason: AvailabilityReason;
+    totalDurationMin: number;
+  };
+};
+
+const staffCanPerformService = (staff: StaffWithServices, serviceId: number) => {
+  return staff.services.some((item) => item.serviceId === serviceId);
+};
+
+const buildSingleStaffAvailability = async (
+  date: Date,
+  eligible: StaffWithServices[],
+  durationMin: number,
+  step: number,
+  minStart?: Date
+): Promise<AvailabilityEntry[]> => {
+  const entries: AvailabilityEntry[] = [];
+
+  for (const staff of eligible) {
+    const working = await getWorkingIntervals(date, staff.id);
+    const busy = await getBusyIntervals(date, staff.id);
+    const slots = computeAvailableSlots(working, busy, durationMin, step).filter(
+      (slot) => !minStart || slot.start >= minStart
+    );
+
+    if (slots.length === 0) {
+      continue;
+    }
+
+    entries.push({
+      staffId: staff.id,
+      label: staff.name,
+      mode: 'single_staff',
+      slots: slots.map((slot) => ({
+        id: `single-${staff.id}-${slot.start.toISOString()}`,
+        start: slot.start,
+        end: slot.end
+      }))
+    });
+  }
+
+  return entries;
+};
+
+const buildTeamAvailability = async (
+  date: Date,
+  services: OrderedService[],
+  staffList: StaffWithServices[],
+  step: number,
+  minStart?: Date
+): Promise<AvailabilityEntry[]> => {
+  const totalDurationMin = services.reduce((sum, service) => sum + service.durationMin, 0);
+  const candidatesByService = services.map((service) =>
+    staffList.filter((staff) => staffCanPerformService(staff, service.id))
+  );
+
+  if (candidatesByService.some((candidates) => candidates.length === 0)) {
+    return [];
+  }
+
+  const uniqueStaffIds = [...new Set(candidatesByService.flat().map((staff) => staff.id))];
+  const availabilityCache = new Map<
+    number,
+    {
+      working: Awaited<ReturnType<typeof getWorkingIntervals>>;
+      busy: Awaited<ReturnType<typeof getBusyIntervals>>;
+    }
+  >();
+
+  await Promise.all(
+    uniqueStaffIds.map(async (id) => {
+      const [working, busy] = await Promise.all([getWorkingIntervals(date, id), getBusyIntervals(date, id)]);
+      availabilityCache.set(id, { working, busy });
+    })
+  );
+
+  const staffById = new Map(staffList.map((staff) => [staff.id, staff]));
+  const workingDay = await getWorkingIntervals(date);
+  const grouped = new Map<string, AvailabilityEntry>();
+
+  const isStaffAvailable = (staffId: number, start: Date, end: Date) => {
+    const availability = availabilityCache.get(staffId);
+    if (!availability) {
+      return false;
+    }
+
+    if (!isWithinWorkingHours(availability.working, start, end)) {
+      return false;
+    }
+
+    return !availability.busy.some((interval) => overlaps({ start, end }, interval));
+  };
+
+  const findAssignments = (
+    cursor: Date,
+    serviceIndex: number,
+    previousStaffId?: number
+  ): AvailabilityAssignment[] | null => {
+    if (serviceIndex >= services.length) {
+      return [];
+    }
+
+    const service = services[serviceIndex];
+    const start = new Date(cursor);
+    const end = addMinutes(start, service.durationMin);
+
+    const candidates = [...candidatesByService[serviceIndex]].sort((left, right) => {
+      if (left.id === previousStaffId && right.id !== previousStaffId) {
+        return -1;
+      }
+      if (right.id === previousStaffId && left.id !== previousStaffId) {
+        return 1;
+      }
+      return left.name.localeCompare(right.name);
+    });
+
+    for (const candidate of candidates) {
+      if (!isStaffAvailable(candidate.id, start, end)) {
+        continue;
+      }
+
+      const rest = findAssignments(end, serviceIndex + 1, candidate.id);
+      if (!rest) {
+        continue;
+      }
+
+      return [
+        {
+          serviceId: service.id,
+          staffId: candidate.id,
+          start,
+          end
+        },
+        ...rest
+      ];
+    }
+
+    return null;
+  };
+
+  for (const interval of workingDay) {
+    let cursor = new Date(interval.start);
+
+    while (addMinutes(cursor, totalDurationMin) <= interval.end) {
+      if (minStart && cursor < minStart) {
+        cursor = addMinutes(cursor, step);
+        continue;
+      }
+
+      const assignments = findAssignments(cursor, 0);
+
+      if (assignments) {
+        const start = assignments[0].start;
+        const end = assignments[assignments.length - 1].end;
+        const label = [...new Set(assignments.map((assignment) => staffById.get(assignment.staffId)?.name ?? 'Equipo'))].join(' + ');
+        const key = label || 'Equipo';
+        const slot = {
+          id: `multi-${assignments.map((assignment) => `${assignment.serviceId}-${assignment.staffId}`).join('_')}-${start.toISOString()}`,
+          start,
+          end,
+          assignments
+        };
+
+        const existing = grouped.get(key);
+        if (existing) {
+          existing.slots.push(slot);
+        } else {
+          grouped.set(key, {
+            staffId: null,
+            label: key,
+            mode: 'multi_staff',
+            slots: [slot]
+          });
+        }
+      }
+
+      cursor = addMinutes(cursor, step);
+    }
+  }
+
+  return [...grouped.values()];
+};
+
+const getAvailabilityPayload = async ({
+  date,
+  serviceIds,
+  staffId,
+  step,
+  activeOnly,
+  applyMinAdvance
+}: {
+  date: Date;
+  serviceIds: number[];
+  staffId?: number;
+  step: number;
+  activeOnly: boolean;
+  applyMinAdvance: boolean;
+}): Promise<AvailabilityPayload> => {
+  const services = await prisma.service.findMany({
+    where: activeOnly ? { id: { in: serviceIds }, active: true } : { id: { in: serviceIds } }
+  });
+  const serviceMap = new Map(services.map((service) => [service.id, service]));
+  const orderedServices = serviceIds.map((id) => serviceMap.get(id)).filter(Boolean) as OrderedService[];
+
+  if (orderedServices.length !== serviceIds.length) {
+    throw new AppError(400, 'Invalid services', 'invalid_services');
+  }
+
+  const totalDurationMin = orderedServices.reduce((sum, service) => sum + service.durationMin, 0);
+  const config = applyMinAdvance ? await prisma.businessConfig.findFirst() : null;
+  const minAdvance = config?.minAdvanceMinutes ?? 10;
+  const minStart = applyMinAdvance ? new Date(Date.now() + minAdvance * 60 * 1000) : undefined;
+  const staffList = (await prisma.staff.findMany({
+    where: staffId ? { id: staffId, active: true } : { active: true },
+    include: { services: true },
+    orderBy: { name: 'asc' }
+  })) as StaffWithServices[];
+
+  if (staffList.length === 0) {
+    return {
+      data: [],
+      meta: {
+        mode: 'single_staff',
+        reason: 'NO_ACTIVE_STAFF',
+        totalDurationMin
+      }
+    };
+  }
+
+  const singleEligible = staffList.filter((staff) =>
+    serviceIds.every((serviceId) => staffCanPerformService(staff, serviceId))
+  );
+
+  const singleAvailability = await buildSingleStaffAvailability(date, singleEligible, totalDurationMin, step, minStart);
+  if (singleAvailability.length > 0) {
+    return {
+      data: singleAvailability,
+      meta: {
+        mode: 'single_staff',
+        reason: 'SLOTS_FOUND',
+        totalDurationMin
+      }
+    };
+  }
+
+  if (staffId) {
+    return {
+      data: [],
+      meta: {
+        mode: 'single_staff',
+        reason: singleEligible.length === 0 ? 'NO_COMPATIBLE_STAFF' : 'NO_OPEN_SLOTS',
+        totalDurationMin
+      }
+    };
+  }
+
+  const teamAvailability = await buildTeamAvailability(date, orderedServices, staffList, step, minStart);
+  if (teamAvailability.length > 0) {
+    return {
+      data: teamAvailability,
+      meta: {
+        mode: 'multi_staff',
+        reason: 'SLOTS_FOUND',
+        totalDurationMin
+      }
+    };
+  }
+
+  const hasTeamCoverage = orderedServices.every((service) =>
+    staffList.some((staff) => staffCanPerformService(staff, service.id))
+  );
+
+  return {
+    data: [],
+    meta: {
+      mode: hasTeamCoverage ? 'multi_staff' : 'single_staff',
+      reason: hasTeamCoverage ? 'NO_OPEN_SLOTS' : 'NO_TEAM_COVERAGE',
+      totalDurationMin
+    }
+  };
+};
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -124,7 +627,7 @@ router.post(
       z.object({
         username: z.string().min(3),
         password: z.string().min(6),
-        fullName: z.string().min(3),
+        fullName: personNameSchema,
         roles: z.array(z.string().min(3)).optional()
       }),
       req.body
@@ -164,8 +667,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = parse(
       z.object({
-        name: z.string().min(3),
-        phone: z.string().min(6),
+        name: personNameSchema,
+        phone: phoneSchema,
         password: z.string().min(6),
         email: z.string().email().optional(),
         whatsapp: z.string().optional(),
@@ -315,8 +818,8 @@ router.patch(
       z.object({
         docType: z.string().optional(),
         docNumber: z.string().optional(),
-        name: z.string().min(3).optional(),
-        phone: z.string().min(6).optional(),
+        name: optionalPersonNameSchema,
+        phone: optionalPhoneSchema,
         email: z.string().email().optional(),
         whatsapp: z.string().optional(),
         birthDate: z.string().optional()
@@ -419,37 +922,16 @@ router.get(
     const staffId = req.query.staffId ? Number(req.query.staffId) : undefined;
     const step = req.query.step ? Number(req.query.step) : 10;
 
-    const services = await prisma.service.findMany({ where: { id: { in: serviceIds }, active: true } });
-    if (services.length !== serviceIds.length) {
-      throw new AppError(400, 'Invalid services', 'invalid_services');
-    }
+    const availability = await getAvailabilityPayload({
+      date,
+      serviceIds,
+      staffId,
+      step,
+      activeOnly: true,
+      applyMinAdvance: true
+    });
 
-    const durationMin = services.reduce((sum, service) => sum + service.durationMin, 0);
-
-    const staffList = staffId
-      ? await prisma.staff.findMany({ where: { id: staffId, active: true }, include: { services: true } })
-      : await prisma.staff.findMany({ where: { active: true }, include: { services: true } });
-
-    const eligible = staffList.filter((staff) =>
-      serviceIds.every((serviceId) => staff.services.some((item) => item.serviceId === serviceId))
-    );
-
-    const availability = [];
-
-    for (const staff of eligible) {
-      const working = await getWorkingIntervals(date, staff.id);
-      const busy = await getBusyIntervals(date, staff.id);
-      const slots = computeAvailableSlots(working, busy, durationMin, step);
-      availability.push({
-        staffId: staff.id,
-        slots: slots.map((slot) => ({
-          start: slot.start,
-          end: slot.end
-        }))
-      });
-    }
-
-    res.json({ data: availability });
+    res.json(availability);
   })
 );
 
@@ -634,6 +1116,66 @@ router.post(
   })
 );
 
+router.get(
+  '/public/products',
+  asyncHandler(async (_req, res) => {
+    const products = await prisma.product.findMany({
+      where: { active: true },
+      include: productInclude,
+      orderBy: [{ featured: 'desc' }, { name: 'asc' }]
+    });
+
+    res.json({ data: products });
+  })
+);
+
+router.post(
+  '/public/orders',
+  asyncHandler(async (req, res) => {
+    const body = parse(
+      z.object({
+        customerName: personNameSchema,
+        customerPhone: phoneSchema,
+        customerEmail: z.preprocess(emptyStringToUndefined, z.string().email().optional()),
+        method: productPaymentMethodSchema,
+        paymentReference: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+        notes: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+        items: z
+          .array(
+            z.object({
+              productId: toInt,
+              quantity: z.coerce.number().int().min(1)
+            })
+          )
+          .min(1)
+      }),
+      req.body
+    );
+
+    const sale = await createProductSale({
+      items: body.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity
+      })),
+      method: body.method,
+      paymentStatus: 'PENDIENTE',
+      customerName: body.customerName,
+      customerPhone: body.customerPhone,
+      customerEmail: body.customerEmail,
+      paymentReference: body.paymentReference,
+      notes: body.notes,
+      publicOnly: true
+    });
+
+    res.status(201).json({
+      data: sale,
+      meta: {
+        requiresGateway: body.method === 'PASARELA'
+      }
+    });
+  })
+);
+
 router.use(authRequired);
 
 router.get(
@@ -708,7 +1250,7 @@ router.patch(
     const id = Number(req.params.id);
     const body = parse(
       z.object({
-        fullName: z.string().min(3).optional(),
+        fullName: optionalPersonNameSchema,
         active: z.boolean().optional(),
         password: z.string().min(6).optional()
       }),
@@ -926,9 +1468,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = parse(
       z.object({
-        name: z.string().min(3),
+        name: personNameSchema,
         role: z.string().optional(),
-        phone: z.string().optional(),
+        phone: optionalPhoneSchema,
         active: z.boolean().optional()
       }),
       req.body
@@ -953,9 +1495,9 @@ router.patch(
     const id = Number(req.params.id);
     const body = parse(
       z.object({
-        name: z.string().min(3).optional(),
+        name: optionalPersonNameSchema,
         role: z.string().optional(),
-        phone: z.string().optional(),
+        phone: optionalPhoneSchema,
         active: z.boolean().optional()
       }),
       req.body
@@ -1205,8 +1747,8 @@ router.post(
         docType: z.string().optional(),
         docNumber: z.string().optional(),
         email: z.string().email().optional(),
-        name: z.string().min(3),
-        phone: z.string().min(6),
+        name: personNameSchema,
+        phone: phoneSchema,
         whatsapp: z.string().optional(),
         birthDate: z.string().optional(),
         referredById: toInt.optional(),
@@ -1253,8 +1795,8 @@ router.patch(
         docType: z.string().optional(),
         docNumber: z.string().optional(),
         email: z.string().email().optional(),
-        name: z.string().min(3).optional(),
-        phone: z.string().min(6).optional(),
+        name: optionalPersonNameSchema,
+        phone: optionalPhoneSchema,
         whatsapp: z.string().optional(),
         birthDate: z.string().optional(),
         referredById: toInt.optional(),
@@ -1338,7 +1880,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const status = req.query.status ? parse(reservationStatusSchema, req.query.status) : undefined;
     const from = req.query.from ? parseDate(String(req.query.from)) : undefined;
-    const to = req.query.to ? parseDate(String(req.query.to)) : undefined;
+    const to = req.query.to ? toDateEnd(parseDate(String(req.query.to))) : undefined;
 
     const where: Prisma.ReservationWhereInput = {};
     if (status) {
@@ -1705,37 +2247,16 @@ router.get(
     const staffId = req.query.staffId ? Number(req.query.staffId) : undefined;
     const step = req.query.step ? Number(req.query.step) : 10;
 
-    const services = await prisma.service.findMany({ where: { id: { in: serviceIds } } });
-    if (services.length !== serviceIds.length) {
-      throw new AppError(400, 'Invalid services', 'invalid_services');
-    }
+    const availability = await getAvailabilityPayload({
+      date,
+      serviceIds,
+      staffId,
+      step,
+      activeOnly: false,
+      applyMinAdvance: false
+    });
 
-    const durationMin = services.reduce((sum, service) => sum + service.durationMin, 0);
-
-    const staffList = staffId
-      ? await prisma.staff.findMany({ where: { id: staffId, active: true }, include: { services: true } })
-      : await prisma.staff.findMany({ where: { active: true }, include: { services: true } });
-
-    const eligible = staffList.filter((staff) =>
-      serviceIds.every((serviceId) => staff.services.some((item) => item.serviceId === serviceId))
-    );
-
-    const availability = [];
-
-    for (const staff of eligible) {
-      const working = await getWorkingIntervals(date, staff.id);
-      const busy = await getBusyIntervals(date, staff.id);
-      const slots = computeAvailableSlots(working, busy, durationMin, step);
-      availability.push({
-        staffId: staff.id,
-        slots: slots.map((slot) => ({
-          start: slot.start,
-          end: slot.end
-        }))
-      });
-    }
-
-    res.json({ data: availability });
+    res.json(availability);
   })
 );
 
@@ -2003,7 +2524,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
     const where = clientId ? { clientId } : {};
-    const albums = await prisma.album.findMany({ where, include: { photos: true } });
+    const albums = await prisma.album.findMany({
+      where,
+      include: {
+        photos: {
+          where: { deleted: false },
+          orderBy: [{ isCover: 'desc' }, { order: 'asc' }, { uploadedAt: 'asc' }]
+        }
+      }
+    });
     res.json({ data: albums });
   })
 );
@@ -2017,7 +2546,19 @@ router.post(
         reservationId: toInt.optional(),
         title: z.string().min(3),
         description: z.string().optional(),
-        privacy: z.enum(['INTERNO', 'PRIVADO_CLIENTE', 'PUBLICO']).optional()
+        privacy: z.enum(['INTERNO', 'PRIVADO_CLIENTE', 'PUBLICO']).optional(),
+        photos: z
+          .array(
+            z.object({
+              type: z.enum(['ANTES', 'DESPUES', 'RESULTADO']).optional(),
+              url: z.string().url(),
+              fileName: z.string().optional(),
+              order: toInt.optional(),
+              isCover: z.boolean().optional(),
+              takenAt: z.string().optional()
+            })
+          )
+          .optional()
       }),
       req.body
     );
@@ -2029,7 +2570,26 @@ router.post(
         title: body.title,
         description: body.description,
         privacy: body.privacy ?? 'INTERNO',
-        createdById: req.user?.id
+        createdById: req.user?.id,
+        photos: body.photos?.length
+          ? {
+              create: body.photos.map((photo, index) => ({
+                type: photo.type ?? 'RESULTADO',
+                url: photo.url,
+                fileName: photo.fileName,
+                order: photo.order ?? index + 1,
+                isCover: photo.isCover ?? index === 0,
+                takenAt: photo.takenAt ? parseDateTime(photo.takenAt) : undefined,
+                uploadedById: req.user?.id
+              }))
+            }
+          : undefined
+      },
+      include: {
+        photos: {
+          where: { deleted: false },
+          orderBy: [{ isCover: 'desc' }, { order: 'asc' }, { uploadedAt: 'asc' }]
+        }
       }
     });
 
@@ -2114,7 +2674,10 @@ router.post(
 router.get(
   '/products',
   asyncHandler(async (_req, res) => {
-    const products = await prisma.product.findMany({ orderBy: { name: 'asc' } });
+    const products = await prisma.product.findMany({
+      include: productInclude,
+      orderBy: [{ featured: 'desc' }, { name: 'asc' }]
+    });
     res.json({ data: products });
   })
 );
@@ -2125,21 +2688,42 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = parse(
       z.object({
-        name: z.string().min(2),
-        price: toNumber,
-        stock: toInt.optional(),
-        active: z.boolean().optional()
+        name: productNameSchema,
+        description: productDescriptionSchema,
+        category: productCategorySchema,
+        price: productPriceSchema,
+        stock: productStockSchema.optional(),
+        active: z.boolean().optional(),
+        featured: z.boolean().optional(),
+        images: z.array(productImageInputSchema).max(8).optional()
       }),
       req.body
     );
 
+    const images = normalizeProductImages(body.images ?? []);
+
     const product = await prisma.product.create({
       data: {
         name: body.name,
+        description: body.description,
+        category: body.category,
         price: body.price,
         stock: body.stock ?? 0,
-        active: body.active ?? true
-      }
+        active: body.active ?? true,
+        featured: body.featured ?? false,
+        images: images.length
+          ? {
+              create: images.map((image) => ({
+                url: image.url,
+                fileName: image.fileName,
+                source: image.source,
+                order: image.order,
+                isCover: image.isCover
+              }))
+            }
+          : undefined
+      },
+      include: productInclude
     });
 
     res.status(201).json({ data: product });
@@ -2153,16 +2737,68 @@ router.patch(
     const id = Number(req.params.id);
     const body = parse(
       z.object({
-        name: z.string().min(2).optional(),
-        price: toNumber.optional(),
-        stock: toInt.optional(),
-        active: z.boolean().optional()
+        name: productNameSchema.optional(),
+        description: productDescriptionSchema,
+        category: productCategorySchema,
+        price: productPriceSchema.optional(),
+        stock: productStockSchema.optional(),
+        active: z.boolean().optional(),
+        featured: z.boolean().optional(),
+        images: z.array(productImageInputSchema).max(8).optional()
       }),
       req.body
     );
 
-    const product = await prisma.product.update({ where: { id }, data: body });
+    const images = body.images ? normalizeProductImages(body.images) : null;
+
+    const product = await prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: {
+          name: body.name,
+          description: body.description,
+          category: body.category,
+          price: body.price,
+          stock: body.stock,
+          active: body.active,
+          featured: body.featured
+        }
+      });
+
+      if (images) {
+        await tx.productImage.deleteMany({ where: { productId: id } });
+
+        if (images.length) {
+          await tx.productImage.createMany({
+            data: images.map((image) => ({
+              productId: id,
+              url: image.url,
+              fileName: image.fileName,
+              source: image.source,
+              order: image.order,
+              isCover: image.isCover
+            }))
+          });
+        }
+      }
+
+      return tx.product.findUniqueOrThrow({ where: { id }, include: productInclude });
+    });
+
     res.json({ data: product });
+  })
+);
+
+router.get(
+  '/sales',
+  asyncHandler(async (_req, res) => {
+    const sales = await prisma.productSale.findMany({
+      include: saleInclude,
+      orderBy: { date: 'desc' },
+      take: 50
+    });
+
+    res.json({ data: sales });
   })
 );
 
@@ -2172,12 +2808,18 @@ router.post(
     const body = parse(
       z.object({
         clientId: toInt.optional(),
-        method: z.enum(['EFECTIVO', 'YAPE']),
+        customerName: optionalPersonNameSchema,
+        customerPhone: optionalPhoneSchema,
+        customerEmail: z.preprocess(emptyStringToUndefined, z.string().email().optional()),
+        method: productPaymentMethodSchema,
+        paymentStatus: productPaymentStatusSchema.optional(),
+        paymentReference: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+        notes: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
         items: z
           .array(
             z.object({
               productId: toInt,
-              quantity: toInt
+              quantity: z.coerce.number().int().min(1)
             })
           )
           .min(1)
@@ -2185,55 +2827,85 @@ router.post(
       req.body
     );
 
-    const products = await prisma.product.findMany({
-      where: { id: { in: body.items.map((item) => item.productId) } }
+    const sale = await createProductSale({
+      items: body.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity
+      })),
+      method: body.method,
+      paymentStatus: body.paymentStatus ?? 'CONFIRMADO',
+      clientId: body.clientId,
+      userId: req.user?.id,
+      customerName: body.customerName,
+      customerPhone: body.customerPhone,
+      customerEmail: body.customerEmail,
+      paymentReference: body.paymentReference,
+      notes: body.notes,
+      publicOnly: false
     });
 
-    const items = body.items.map((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) {
-        throw new AppError(404, 'Product not found', 'not_found');
-      }
-      if (product.stock < item.quantity) {
-        throw new AppError(400, 'Not enough stock', 'stock_error');
-      }
-      const unitPrice = Number(product.price);
-      return {
-        productId: product.id,
-        quantity: item.quantity,
-        unitPrice,
-        subtotal: unitPrice * item.quantity
-      };
-    });
+    res.status(201).json({ data: sale });
+  })
+);
 
-    const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+router.patch(
+  '/sales/:id/payment-status',
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    const body = parse(
+      z.object({
+        paymentStatus: productPaymentStatusSchema,
+        paymentReference: z.preprocess(emptyStringToUndefined, z.string().trim().optional())
+      }),
+      req.body
+    );
 
-    const sale = await prisma.productSale.create({
-      data: {
-        clientId: body.clientId,
-        method: body.method,
-        total,
-        userId: req.user?.id,
-        details: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            subtotal: item.subtotal
-          }))
-        }
-      },
+    const sale = await prisma.productSale.findUnique({
+      where: { id },
       include: { details: true }
     });
 
-    for (const item of items) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } }
-      });
+    if (!sale) {
+      throw new AppError(404, 'Sale not found', 'not_found');
     }
 
-    res.status(201).json({ data: sale });
+    const updated = await prisma.$transaction(async (tx) => {
+      if (sale.paymentStatus !== 'ANULADO' && body.paymentStatus === 'ANULADO') {
+        for (const item of sale.details) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } }
+          });
+        }
+      }
+
+      if (sale.paymentStatus === 'ANULADO' && body.paymentStatus !== 'ANULADO') {
+        for (const item of sale.details) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
+          if (!product || product.stock < item.quantity) {
+            throw new AppError(400, 'Not enough stock to reactivate sale', 'stock_error');
+          }
+        }
+
+        for (const item of sale.details) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } }
+          });
+        }
+      }
+
+      return tx.productSale.update({
+        where: { id },
+        data: {
+          paymentStatus: body.paymentStatus,
+          paymentReference: body.paymentReference
+        },
+        include: saleInclude
+      });
+    });
+
+    res.json({ data: updated });
   })
 );
 

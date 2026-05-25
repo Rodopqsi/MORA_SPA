@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { clientFetch } from '../../../lib/clientApi';
 import { BookingTimeline } from '../BookingTimeline';
 import {
+  BookingAssignment,
   BookingState,
   Service,
   clearBookingState,
@@ -49,6 +50,8 @@ export default function ReservarPaso4Page() {
     .map((id) => serviceMap.get(id))
     .filter(Boolean) as Service[];
 
+  const teamLabel = booking.selectedSlot?.label ?? (booking.selectedSlot?.staffId ? `Especialista ${booking.selectedSlot.staffId}` : 'Equipo asignado');
+
   const totals = selectedServiceList.reduce(
     (acc, service) => {
       const price = Number(service.priceBase);
@@ -82,16 +85,24 @@ export default function ReservarPaso4Page() {
     setNotice('');
 
     try {
-      let cursor = new Date(booking.selectedSlot.start);
-      const details = selectedServiceList.map((service) => {
-        const start = new Date(cursor);
-        cursor = new Date(cursor.getTime() + service.durationMin * 60 * 1000);
-        return {
-          serviceId: service.id,
-          staffId: booking.selectedSlot!.staffId,
-          start: start.toISOString()
-        };
-      });
+      const details = booking.selectedSlot.assignments?.length
+        ? booking.selectedSlot.assignments.map((assignment: BookingAssignment) => ({
+            serviceId: assignment.serviceId,
+            staffId: assignment.staffId,
+            start: assignment.start
+          }))
+        : (() => {
+            let cursor = new Date(booking.selectedSlot!.start);
+            return selectedServiceList.map((service) => {
+              const start = new Date(cursor);
+              cursor = new Date(cursor.getTime() + service.durationMin * 60 * 1000);
+              return {
+                serviceId: service.id,
+                staffId: booking.selectedSlot!.staffId!,
+                start: start.toISOString()
+              };
+            });
+          })();
 
       await clientFetch('/client-reservations', {
         method: 'POST',
@@ -154,7 +165,18 @@ export default function ReservarPaso4Page() {
           <div>
             <div className="booking-title">Horario</div>
             <div className="booking-sub">
-              {booking.selectedSlot ? new Date(booking.selectedSlot.start).toLocaleString('es-PE') : 'Sin horario'}
+              {booking.selectedSlot
+                ? `${new Date(booking.selectedSlot.start).toLocaleString('es-PE')} - ${new Date(booking.selectedSlot.end).toLocaleTimeString('es-PE', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}`
+                : 'Sin horario'}
+            </div>
+          </div>
+          <div>
+            <div className="booking-title">Equipo</div>
+            <div className="booking-sub">
+              {teamLabel}
             </div>
           </div>
         </div>

@@ -41,6 +41,29 @@ export default function ReservarPaso2Page() {
       });
   }, []);
 
+  const compatibleStaff = staff.filter((member) =>
+    booking.selectedServices.every((serviceId) => member.services?.some((service) => service.serviceId === serviceId))
+  );
+
+  const hasTeamCoverage = booking.selectedServices.every((serviceId) =>
+    staff.some((member) => member.services?.some((service) => service.serviceId === serviceId))
+  );
+
+  useEffect(() => {
+    if (booking.selectedStaff === 'any') {
+      return;
+    }
+
+    const stillValid = compatibleStaff.some((member) => String(member.id) === booking.selectedStaff);
+    if (stillValid) {
+      return;
+    }
+
+    const nextState = { ...booking, selectedStaff: 'any', selectedSlot: null };
+    setBooking(nextState);
+    saveBookingState(nextState);
+  }, [booking, compatibleStaff]);
+
   const selectStaff = (value: string) => {
     const nextState = { ...booking, selectedStaff: value };
     setBooking(nextState);
@@ -80,15 +103,26 @@ export default function ReservarPaso2Page() {
             <h2>Elige especialista</h2>
           </div>
         </div>
+        {booking.selectedServices.length > 0 && compatibleStaff.length === 0 && hasTeamCoverage && (
+          <div className="list-sub">
+            No hay un solo especialista que cubra toda la combinacion. Si continuas con sin preferencia, el sistema intentara armar una secuencia continua con el equipo disponible.
+          </div>
+        )}
+        {booking.selectedServices.length > 0 && !hasTeamCoverage && (
+          <div className="list-sub">
+            No hay personal suficiente para cubrir todos los servicios elegidos. Cambia la combinacion o separa la reserva.
+          </div>
+        )}
         <div className="chip-row">
           <button
             className={`chip ${booking.selectedStaff === 'any' ? 'chip-active' : ''}`}
             type="button"
+            disabled={!hasTeamCoverage}
             onClick={() => selectStaff('any')}
           >
             Sin preferencia
           </button>
-          {staff.map((member) => (
+          {compatibleStaff.map((member) => (
             <button
               key={member.id}
               className={`chip ${booking.selectedStaff === String(member.id) ? 'chip-active' : ''}`}
@@ -101,7 +135,7 @@ export default function ReservarPaso2Page() {
         </div>
         <div className="booking-nav">
           <button className="btn btn-outline" type="button" onClick={goBack}>Atras</button>
-          <button className="btn" type="button" onClick={goNext}>Continuar</button>
+          <button className="btn" type="button" onClick={goNext} disabled={!hasTeamCoverage}>Continuar</button>
         </div>
       </section>
     </div>

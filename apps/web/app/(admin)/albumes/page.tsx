@@ -3,13 +3,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
-type Album = { id: number; title: string; clientId: number; photos?: { id: number }[] };
+type AlbumPhoto = {
+  id: number;
+  url: string;
+  fileName?: string | null;
+  isCover?: boolean;
+};
+
+type Album = { id: number; title: string; clientId: number; photos?: AlbumPhoto[] };
 type Client = { id: number; name: string };
+
+type PhotoForm = {
+  url: string;
+  fileName: string;
+  type: 'ANTES' | 'DESPUES' | 'RESULTADO';
+};
+
+const emptyPhoto = (): PhotoForm => ({ url: '', fileName: '', type: 'RESULTADO' });
 
 export default function AlbumesPage() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [form, setForm] = useState({ title: '', clientId: '', description: '', privacy: 'INTERNO' });
+  const [photos, setPhotos] = useState<PhotoForm[]>([emptyPhoto()]);
   const [error, setError] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -32,20 +48,50 @@ export default function AlbumesPage() {
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
+      const validPhotos = photos
+        .map((photo, index) => ({
+          ...photo,
+          url: photo.url.trim(),
+          fileName: photo.fileName.trim(),
+          order: index + 1,
+          isCover: index === 0
+        }))
+        .filter((photo) => photo.url.length > 0);
+
       await staffFetch('/albums', {
         method: 'POST',
         body: JSON.stringify({
           title: form.title,
           clientId: Number(form.clientId),
           description: form.description || undefined,
-          privacy: form.privacy
+          privacy: form.privacy,
+          photos: validPhotos.map((photo) => ({
+            url: photo.url,
+            fileName: photo.fileName || undefined,
+            type: photo.type,
+            order: photo.order,
+            isCover: photo.isCover
+          }))
         })
       });
       setForm({ title: '', clientId: '', description: '', privacy: 'INTERNO' });
+      setPhotos([emptyPhoto()]);
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
     }
+  };
+
+  const updatePhoto = (index: number, patch: Partial<PhotoForm>) => {
+    setPhotos((current) => current.map((photo, currentIndex) => (currentIndex === index ? { ...photo, ...patch } : photo)));
+  };
+
+  const addPhotoField = () => {
+    setPhotos((current) => [...current, emptyPhoto()]);
+  };
+
+  const removePhotoField = (index: number) => {
+    setPhotos((current) => (current.length === 1 ? [emptyPhoto()] : current.filter((_, currentIndex) => currentIndex !== index)));
   };
 
   const clientName = (clientId: number) =>
@@ -99,6 +145,49 @@ export default function AlbumesPage() {
               <option value="PUBLICO">PUBLICO</option>
             </select>
           </label>
+          <div>
+            <div className="section-head" style={{ marginBottom: 12 }}>
+              <div>
+                <div className="eyebrow">Imagenes</div>
+                <h2>Cargar enlaces de fotos</h2>
+              </div>
+              <button className="chip" type="button" onClick={addPhotoField}>Agregar foto</button>
+            </div>
+            <div className="grid grid-2">
+              {photos.map((photo, index) => (
+                <div key={index} className="card" style={{ padding: 16 }}>
+                  <label>
+                    URL de la imagen
+                    <input
+                      value={photo.url}
+                      onChange={(e) => updatePhoto(index, { url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </label>
+                  <label>
+                    Nombre del archivo
+                    <input
+                      value={photo.fileName}
+                      onChange={(e) => updatePhoto(index, { fileName: e.target.value })}
+                      placeholder="antes-corte.jpg"
+                    />
+                  </label>
+                  <label>
+                    Tipo
+                    <select value={photo.type} onChange={(e) => updatePhoto(index, { type: e.target.value as PhotoForm['type'] })}>
+                      <option value="ANTES">ANTES</option>
+                      <option value="DESPUES">DESPUES</option>
+                      <option value="RESULTADO">RESULTADO</option>
+                    </select>
+                  </label>
+                  <div className="service-actions">
+                    <span className="pill">{index === 0 ? 'Portada' : `Foto ${index + 1}`}</span>
+                    <button className="chip" type="button" onClick={() => removePhotoField(index)}>Quitar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           {error && <div className="auth-error">{error}</div>}
           <button className="btn" type="submit">Guardar</button>
         </form>
@@ -112,7 +201,15 @@ export default function AlbumesPage() {
             style={{ animationDelay: `${index * 80}ms` }}
           >
             <div className="album-thumb">
-              <div className="album-glow" />
+              {album.photos?.[0]?.url ? (
+                <img
+                  src={album.photos[0].url}
+                  alt={album.photos[0].fileName || album.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 20 }}
+                />
+              ) : (
+                <div className="album-glow" />
+              )}
               <div className="album-count">{album.photos?.length ?? 0} fotos</div>
             </div>
             <div className="album-title">{album.title}</div>

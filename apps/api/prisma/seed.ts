@@ -73,6 +73,54 @@ const starterSchedules = Array.from({ length: 7 }, (_, dayOfWeek) => ({
   shift2End: dayOfWeek === 0 ? null : timeOfDay(21, 0)
 }));
 
+const starterProducts = [
+  {
+    name: 'Shampoo nutritivo Mora',
+    description: 'Limpieza suave con nutricion profunda para cabellos sensibilizados o tratados.',
+    category: 'Cabello',
+    price: 68,
+    stock: 14,
+    featured: true,
+    images: [
+      { url: '/assets/img12.jpeg', fileName: 'shampoo-mora.jpg', source: 'URL' },
+      { url: '/assets/img15.jpeg', fileName: 'shampoo-mora-secundaria.jpg', source: 'URL' }
+    ]
+  },
+  {
+    name: 'Serum brillo inmediato',
+    description: 'Acabado ligero con efecto anti-frizz y brillo visible desde la primera aplicacion.',
+    category: 'Cabello',
+    price: 92,
+    stock: 8,
+    featured: true,
+    images: [
+      { url: '/assets/img31.jpeg', fileName: 'serum-brillo.jpg', source: 'URL' }
+    ]
+  },
+  {
+    name: 'Kit manicure spa en casa',
+    description: 'Rutina de mantenimiento con exfoliante, hidratante y acabado protector.',
+    category: 'Nails',
+    price: 79,
+    stock: 10,
+    featured: false,
+    images: [
+      { url: '/assets/img22.jpeg', fileName: 'kit-manicure.jpg', source: 'URL' }
+    ]
+  },
+  {
+    name: 'Aceite de barba premium',
+    description: 'Suaviza, define y perfuma la barba sin dejar residuo pesado.',
+    category: 'Barber',
+    price: 54,
+    stock: 16,
+    featured: true,
+    images: [
+      { url: '/assets/img27.jpeg', fileName: 'aceite-barba.jpg', source: 'URL' }
+    ]
+  }
+] as const;
+
 async function main() {
   const roleNames = ['ADMIN', 'RECEPCION', 'ESTILISTA'];
 
@@ -254,6 +302,45 @@ async function main() {
       data: promoServiceIds.map((serviceId) => ({
         promotionId: promotion!.id,
         serviceId
+      }))
+    });
+  }
+
+  for (const product of starterProducts) {
+    const existing = await prisma.product.findFirst({ where: { name: product.name } });
+    const record = existing
+      ? await prisma.product.update({
+          where: { id: existing.id },
+          data: {
+            description: product.description,
+            category: product.category,
+            price: product.price,
+            stock: product.stock,
+            active: true,
+            featured: product.featured
+          }
+        })
+      : await prisma.product.create({
+          data: {
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            price: product.price,
+            stock: product.stock,
+            active: true,
+            featured: product.featured
+          }
+        });
+
+    await prisma.productImage.deleteMany({ where: { productId: record.id } });
+    await prisma.productImage.createMany({
+      data: product.images.map((image, index) => ({
+        productId: record.id,
+        url: image.url,
+        fileName: image.fileName,
+        source: image.source,
+        order: index + 1,
+        isCover: index === 0
       }))
     });
   }

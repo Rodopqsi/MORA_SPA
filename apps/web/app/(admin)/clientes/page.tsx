@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { normalizePersonName, normalizePhone } from '../../lib/validation';
 
 type Client = {
   id: number;
@@ -31,16 +32,22 @@ export default function ClientesPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    const payload = {
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim()
+    };
+
     try {
       if (editing) {
         await staffFetch(`/clients/${editing.id}`, {
           method: 'PATCH',
-          body: JSON.stringify(form)
+          body: JSON.stringify(payload)
         });
       } else {
         await staffFetch('/clients', {
           method: 'POST',
-          body: JSON.stringify(form)
+          body: JSON.stringify(payload)
         });
       }
       setForm({ name: '', phone: '', email: '' });
@@ -94,11 +101,22 @@ export default function ClientesPage() {
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nombre
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: normalizePersonName(e.target.value) })}
+              pattern="[A-Za-zÀ-ÿ\s]+"
+              title="Solo se permiten letras y espacios"
+            />
           </label>
           <label>
             Telefono
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <input
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
+              inputMode="numeric"
+              pattern="[0-9]+"
+              title="Solo se permiten numeros"
+            />
           </label>
           <label>
             Email

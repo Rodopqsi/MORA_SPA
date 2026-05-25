@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { normalizePersonName } from '../../lib/validation';
 
 type User = { id: number; username: string; fullName: string; active: boolean; roles: string[] };
 
@@ -32,15 +33,17 @@ export default function UsuariosPage() {
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    const payload = {
+      username: form.username.trim(),
+      fullName: form.fullName.trim(),
+      password: form.password,
+      roles: [form.role]
+    };
+
     try {
       await staffFetch('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({
-          username: form.username,
-          fullName: form.fullName,
-          password: form.password,
-          roles: [form.role]
-        })
+        body: JSON.stringify(payload)
       });
       setForm({ username: '', fullName: '', password: '', role: 'RECEPCION' });
       loadData();
@@ -104,7 +107,12 @@ export default function UsuariosPage() {
           </label>
           <label>
             Nombre completo
-            <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+            <input
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: normalizePersonName(e.target.value) })}
+              pattern="[A-Za-zÀ-ÿ\s]+"
+              title="Solo se permiten letras y espacios"
+            />
           </label>
           <label>
             Contrasena
