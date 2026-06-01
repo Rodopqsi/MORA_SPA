@@ -5,6 +5,8 @@ import { staffFetch } from '../../lib/staffApi';
 
 type Reservation = {
   id: number;
+  clientId: number;
+  channel: string;
   start: string;
   status: string;
   client: { name: string; phone: string };
@@ -36,9 +38,16 @@ export default function ReservasPage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [query, setQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [editingReservationId, setEditingReservationId] = useState<number | null>(null);
   const [createForm, setCreateForm] = useState({ clientId: '', serviceId: '', staffId: '', start: '' });
   const [error, setError] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
+
+  const resetCreateForm = () => {
+    setCreateForm({ clientId: '', serviceId: '', staffId: '', start: '' });
+    setEditingReservationId(null);
+    setError('');
+  };
 
   useEffect(() => {
     Promise.all([
@@ -109,34 +118,65 @@ export default function ReservasPage() {
     }
   };
 
-  const handleCreate = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     if (!createForm.clientId || !createForm.serviceId || !createForm.staffId || !createForm.start) {
       setError('Completa cliente, servicio, especialista y fecha.');
       return;
     }
+
+    const payload = {
+      details: [
+        {
+          serviceId: Number(createForm.serviceId),
+          staffId: Number(createForm.staffId),
+          start: createForm.start
+        }
+      ]
+    };
+
     try {
-      await staffFetch('/reservations', {
-        method: 'POST',
-        body: JSON.stringify({
-          clientId: Number(createForm.clientId),
-          channel: 'PRESENCIAL',
-          details: [
-            {
-              serviceId: Number(createForm.serviceId),
-              staffId: Number(createForm.staffId),
-              start: createForm.start
-            }
-          ]
-        })
-      });
-      setCreateForm({ clientId: '', serviceId: '', staffId: '', start: '' });
+      if (editingReservationId) {
+        await staffFetch(`/reservations/${editingReservationId}/reschedule`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await staffFetch('/reservations', {
+          method: 'POST',
+          body: JSON.stringify({
+            clientId: Number(createForm.clientId),
+            channel: 'PRESENCIAL',
+            ...payload
+          })
+        });
+      }
+
+      resetCreateForm();
       setShowCreate(false);
       loadReservations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear');
     }
+  };
+
+  const handleEditReservation = (reservation: Reservation) => {
+    const detail = reservation.details[0];
+    if (!detail?.staffId) {
+      setError('La reserva no tiene especialista asignado para reprogramar desde este formulario.');
+      return;
+    }
+
+    setEditingReservationId(reservation.id);
+    setCreateForm({
+      clientId: String(reservation.clientId),
+      serviceId: String(detail.serviceId),
+      staffId: String(detail.staffId),
+      start: reservation.start.slice(0, 16)
+    });
+    setShowCreate(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
 
   return (
@@ -151,6 +191,7 @@ export default function ReservasPage() {
           <button
             className="btn"
             onClick={() => {
+              resetCreateForm();
               setShowCreate(true);
               setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
             }}
@@ -164,15 +205,20 @@ export default function ReservasPage() {
         <section className="card reveal" ref={formRef}>
           <div className="section-head">
             <div>
-              <div className="eyebrow">Crear reserva</div>
-              <h2>Agenda manual</h2>
+              <div className="eyebrow">{editingReservationId ? 'Editar reserva' : 'Crear reserva'}</div>
+              <h2>{editingReservationId ? 'Reprogramar cita' : 'Agenda manual'}</h2>
             </div>
+            <button className="chip" type="button" onClick={() => {
+              resetCreateForm();
+              setShowCreate(false);
+            }}>Cerrar</button>
           </div>
-          <form className="auth-form" onSubmit={handleCreate}>
+          <form className="auth-form" onSubmit={handleSubmit}>
             <label>
               Cliente
               <select
                 value={createForm.clientId}
+                disabled={Boolean(editingReservationId)}
                 onChange={(event) => setCreateForm({ ...createForm, clientId: event.target.value })}
               >
                 <option value="">Selecciona</option>
@@ -213,8 +259,9 @@ export default function ReservasPage() {
                 onChange={(event) => setCreateForm({ ...createForm, start: event.target.value })}
               />
             </label>
+            {editingReservationId && <div className="pill">El cliente se mantiene; este formulario reprograma servicio, staff y horario.</div>}
             {error && <div className="auth-error">{error}</div>}
-            <button className="btn" type="submit">Crear reserva</button>
+            <button className="btn" type="submit">{editingReservationId ? 'Guardar cambios' : 'Crear reserva'}</button>
           </form>
         </section>
       )}
@@ -252,7 +299,7 @@ export default function ReservasPage() {
           <div>Cliente</div>
           <div>Servicio</div>
           <div>Especialista</div>
-          <div>Pago</div>
+          <div>Canal</div>
           <div>Estado</div>
           <div>Acciones</div>
         </div>
@@ -277,7 +324,7 @@ export default function ReservasPage() {
                   <div className="table-sub">Detalle interno</div>
                 </div>
                 <div className="table-sub">{staffName ?? '-'}</div>
-                <div className="table-title">{statusLabels[item.status] ?? item.status}</div>
+                <div className="table-title">{item.channel}</div>
                 <div>
                   <select
                     className="chip"
@@ -290,6 +337,7 @@ export default function ReservasPage() {
                   </select>
                 </div>
                 <div className="table-actions">
+                  <button className="chip" onClick={() => handleEditReservation(item)}>Editar</button>
                   <button className="chip" onClick={() => updateStatus(item.id, 'CONFIRMADA')}>Aceptar</button>
                   <button className="chip" onClick={() => updateStatus(item.id, 'EN_PROCESO')}>En proceso</button>
                   <button className="chip danger" onClick={() => cancelReservation(item.id)}>Cancelar</button>

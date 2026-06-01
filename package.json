@@ -6,7 +6,11 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "npm --workspace apps/api run dev",
     "dev:web": "npm --workspace apps/web run dev",
-    "build": "npm --workspace apps/api run build && npm --workspace apps/web run build"
+    "build": "npm --workspace apps/api run build && npm --workspace apps/web run build",
+    "mobile:get": "cd apps/mobile && flutter pub get",
+    "mobile:analyze": "cd apps/mobile && flutter analyze",
+    "mobile:test": "cd apps/mobile && flutter test",
+    "mobile:run": "cd apps/mobile && flutter run"
   },
   "devDependencies": {
     "concurrently": "^9.0.1",

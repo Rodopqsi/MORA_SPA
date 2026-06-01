@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { clientFetch } from '../../lib/clientApi';
 import { useAuth } from '../../context/AuthContext';
@@ -67,7 +67,9 @@ export default function TiendaPage() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [category, setCategory] = useState('Todas');
-  const [error, setError] = useState('');
+  const [cartOpen, setCartOpen] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
+  const [checkoutError, setCheckoutError] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<OrderResponse | null>(null);
@@ -78,12 +80,24 @@ export default function TiendaPage() {
     setCart(loadShopCart());
   }, [refresh]);
 
-  useEffect(() => {
-    apiFetch<{ data: CatalogProduct[] }>('/public/products')
-      .then((res) => setProducts(res.data ?? []))
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la tienda.'))
-      .finally(() => setLoading(false));
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setCatalogError('');
+
+    try {
+      const res = await apiFetch<{ data: CatalogProduct[] }>('/public/products');
+      setProducts(res.data ?? []);
+    } catch (err) {
+      setProducts([]);
+      setCatalogError(err instanceof Error ? err.message : 'No se pudo cargar la tienda.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadProducts();
+  }, [loadProducts]);
 
   useEffect(() => {
     saveShopCart(cart);
@@ -91,6 +105,7 @@ export default function TiendaPage() {
 
   useEffect(() => {
     if (!products.length) return;
+
     setCart((current) => {
       const next: CartItem[] = [];
 
@@ -130,6 +145,24 @@ export default function TiendaPage() {
       .catch(() => undefined);
   }, [isClientAuthed]);
 
+  useEffect(() => {
+    if (!cartOpen || typeof window === 'undefined') {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCartOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [cartOpen]);
+
   const categories = useMemo(
     () => ['Todas', ...new Set(products.map((product) => product.category).filter(Boolean) as string[])],
     [products]
@@ -140,12 +173,19 @@ export default function TiendaPage() {
     return products.filter((product) => product.category === category);
   }, [category, products]);
 
+  const availableProducts = useMemo(
+    () => products.filter((product) => product.stock > 0).length,
+    [products]
+  );
+
   const totalItems = cartCount(cart);
   const subtotal = cartSubtotal(cart);
 
   const addToCart = (product: CatalogProduct) => {
     if (product.stock <= 0) return;
 
+    setCheckoutError('');
+    setSuccess(null);
     setCart((current) =>
       upsertCartItem(current, {
         productId: product.id,
@@ -162,12 +202,12 @@ export default function TiendaPage() {
     event.preventDefault();
 
     if (cart.length === 0) {
-      setError('Agrega al menos un producto al carrito para continuar.');
+      setCheckoutError('Agrega al menos un producto al carrito para continuar.');
       return;
     }
 
     setSubmitting(true);
-    setError('');
+    setCheckoutError('');
 
     try {
       const response = await apiFetch<OrderResponse>('/public/orders', {
@@ -188,6 +228,7 @@ export default function TiendaPage() {
 
       setSuccess(response);
       setCart([]);
+      setCartOpen(true);
       setCheckout((current) => ({
         ...current,
         method: 'PASARELA',
@@ -195,55 +236,35 @@ export default function TiendaPage() {
         notes: ''
       }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo registrar el pedido.');
+      setCheckoutError(err instanceof Error ? err.message : 'No se pudo registrar el pedido.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="shop-page reveal">
-      <section className="shop-hero card">
-        <div>
-          <div className="eyebrow">Mini ecommerce Mora</div>
-          <h1>Compra tus productos favoritos y cierra el flujo en la pasarela de pago.</h1>
-          <p>
-            Explora el catalogo, arma tu carrito y deja registrado tu pedido con el ultimo paso listo para
-            conectar la pasarela cuando quieras activarla.
-          </p>
-        </div>
-        <div className="shop-pill-row">
-          <span className="pill">{products.length} productos activos</span>
-          <span className="pill">{totalItems} items en carrito</span>
-          {!isClientAuthed && <Link href="/login" className="btn btn-outline">Ingresar para autocompletar datos</Link>}
-        </div>
-      </section>
+    <>
+      <div className="shop-page reveal">
+        {catalogError && (
+          <section className="card shop-message-card">
+            <div>
+              <div className="eyebrow">Catalogo no disponible</div>
+              <h2>No se pudo cargar la tienda en este momento</h2>
+              <p>{catalogError}</p>
+            </div>
+            <button className="btn btn-outline" type="button" onClick={() => void loadProducts()}>
+              Reintentar carga
+            </button>
+          </section>
+        )}
 
-      {success && (
-        <section className="card shop-success">
-          <div>
-            <div className="eyebrow">Pedido registrado</div>
-            <h2>Orden #{success.data.id}</h2>
-            <p>
-              Total S/ {Number(success.data.total).toFixed(2)}. Estado actual: {success.data.paymentStatus.toLowerCase()}.
-            </p>
-          </div>
-          <div className="shop-note">
-            {success.meta?.requiresGateway
-              ? 'La pasarela aun esta en modo placeholder: el pedido ya quedo registrado y aqui puedes conectar Culqi, Mercado Pago o Stripe despues.'
-              : 'El pedido ya fue creado y puede confirmarse desde el panel administrativo.'}
-          </div>
-        </section>
-      )}
-
-      {error && <div className="auth-error">{error}</div>}
-
-      <div className="shop-layout">
-        <section className="shop-catalog card">
+        <div className="shop-stage">
+          <section id="catalogo" className="shop-catalog card">
           <div className="section-head">
             <div>
               <div className="eyebrow">Catalogo</div>
               <h2>Selecciona tus productos</h2>
+              <div className="list-sub">Filtra por linea y arma el carrito con inventario real.</div>
             </div>
             <div className="shop-filter-row">
               {categories.map((item) => (
@@ -259,143 +280,220 @@ export default function TiendaPage() {
             </div>
           </div>
 
-          <div className="shop-product-grid">
-            {loading && <div className="empty-state">Cargando tienda...</div>}
-            {!loading && visibleProducts.length === 0 && <div className="empty-state">No hay productos en esta categoria.</div>}
-            {visibleProducts.map((product) => {
-              const cover = getProductCover(product);
-              const soldOut = product.stock <= 0;
-
-              return (
-                <article key={product.id} className="shop-product-card">
-                  <div className="shop-product-media">
-                    {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
-                    {product.featured && <span className="shop-ribbon">Destacado</span>}
-                  </div>
-                  <div className="shop-product-body">
-                    <div className="shop-product-meta">
-                      <div>
-                        <h3>{product.name}</h3>
-                        <div className="list-sub">{product.category ?? 'Linea Mora'}</div>
-                      </div>
-                      <div className="price-tag">S/ {Number(product.price).toFixed(2)}</div>
-                    </div>
-                    <p>{product.description ?? 'Producto profesional recomendado por el equipo Mora.'}</p>
-                    <div className="shop-product-footer">
-                      <span className={`status-badge ${soldOut ? 'status-warn' : 'status-ok'}`}>
-                        {soldOut ? 'Sin stock' : `${product.stock} disponibles`}
-                      </span>
-                      <button className="btn" type="button" onClick={() => addToCart(product)} disabled={soldOut}>
-                        {soldOut ? 'Agotado' : 'Agregar'}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="shop-catalog-meta">
+            <span className="pill">{visibleProducts.length} visibles</span>
+            <span className="pill">{availableProducts} con stock disponible</span>
           </div>
-        </section>
 
-        <aside className="shop-sidebar">
-          <div className="card shop-sidebar-sticky">
-            <div className="section-head">
-              <div>
-                <div className="eyebrow">Carrito</div>
-                <h2>{totalItems} items</h2>
-              </div>
-              <span className="pill">S/ {subtotal.toFixed(2)}</span>
-            </div>
-
-            <div className="shop-cart-list">
-              {cart.length === 0 && <div className="empty-state">Tu carrito aun esta vacio.</div>}
-              {cart.map((item) => (
-                <div key={item.productId} className="shop-cart-item">
-                  <div className="shop-cart-item-main">
-                    {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <div className="avatar">PD</div>}
-                    <div>
-                      <div className="list-title">{item.name}</div>
-                      <div className="list-sub">S/ {item.price.toFixed(2)} c/u</div>
-                    </div>
-                  </div>
-                  <div className="shop-cart-controls">
-                    <button type="button" className="icon-btn" onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity - 1))}>-</button>
-                    <span className="pill">{item.quantity}</span>
-                    <button type="button" className="icon-btn" onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity + 1))}>+</button>
-                    <button type="button" className="chip" onClick={() => setCart((current) => removeCartItem(current, item.productId))}>Quitar</button>
+          <div className="shop-product-grid">
+            {loading &&
+              Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="shop-skeleton-card" aria-hidden="true">
+                  <div className="shop-skeleton-media" />
+                  <div className="shop-skeleton-body">
+                    <div className="shop-skeleton-line short" />
+                    <div className="shop-skeleton-line" />
+                    <div className="shop-skeleton-line" />
                   </div>
                 </div>
               ))}
+
+            {!loading && !catalogError && visibleProducts.length === 0 && (
+              <div className="empty-state shop-empty-state">
+                <strong>No hay productos en esta categoria.</strong>
+                <span>Cambia el filtro o vuelve a la vista completa para seguir comprando.</span>
+              </div>
+            )}
+
+            {!loading && !catalogError &&
+              visibleProducts.map((product) => {
+                const cover = getProductCover(product);
+                const soldOut = product.stock <= 0;
+
+                return (
+                  <article key={product.id} className="shop-product-card">
+                    <div className="shop-product-media">
+                      {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
+                      {product.featured && <span className="shop-ribbon">Destacado</span>}
+                    </div>
+                    <div className="shop-product-body">
+                      <div className="shop-product-meta">
+                        <div>
+                          <h3>{product.name}</h3>
+                          <div className="list-sub">{product.category ?? 'Linea Mora'}</div>
+                        </div>
+                        <div className="price-tag">S/ {Number(product.price).toFixed(2)}</div>
+                      </div>
+                      <p>{product.description ?? 'Producto profesional recomendado por el equipo Mora.'}</p>
+                      <div className="shop-product-footer">
+                        <span className={`status-badge ${soldOut ? 'status-warn' : 'status-ok'}`}>
+                          {soldOut ? 'Sin stock' : `${product.stock} disponibles`}
+                        </span>
+                        <button className="btn" type="button" onClick={() => addToCart(product)} disabled={soldOut}>
+                          {soldOut ? 'Agotado' : 'Agregar al carrito'}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+          </div>
+          </section>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="shop-floating-cart"
+        onClick={() => setCartOpen((current) => !current)}
+        aria-controls="shop-cart-panel"
+        aria-expanded={cartOpen}
+        aria-label={`Abrir carrito con ${totalItems} productos`}
+      >
+        <span className="shop-floating-cart-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="19" r="1.6" />
+            <circle cx="18" cy="19" r="1.6" />
+            <path d="M3 4h2.2l2.3 9.4a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H7.1" />
+          </svg>
+          <span className="shop-floating-cart-badge">{totalItems}</span>
+        </span>
+        <span className="shop-floating-cart-copy">
+          <span>Carrito</span>
+          <strong>S/ {subtotal.toFixed(2)}</strong>
+        </span>
+      </button>
+
+      <aside
+        id="shop-cart-panel"
+        className={`shop-cart-drawer ${cartOpen ? 'open' : ''}`}
+        aria-hidden={!cartOpen}
+      >
+        <div className="shop-drawer-head">
+          <div>
+            <div className="eyebrow">Carrito</div>
+            <h2>{totalItems} items</h2>
+          </div>
+          <div className="shop-drawer-actions">
+            {!isClientAuthed && <Link href="/login" className="chip">Ingresar</Link>}
+            <button type="button" className="icon-btn" onClick={() => setCartOpen(false)} aria-label="Cerrar carrito">
+              x
+            </button>
+          </div>
+        </div>
+
+        <div className="shop-drawer-body">
+          {success && (
+            <div className="shop-drawer-status">
+              <div className="eyebrow">Pedido registrado</div>
+              <strong>Orden #{success.data.id}</strong>
+              <p>
+                Total S/ {Number(success.data.total).toFixed(2)}. {success.meta?.requiresGateway
+                  ? 'La pasarela sigue como placeholder y puede conectarse despues.'
+                  : 'El pedido ya puede confirmarse desde el panel.'}
+              </p>
             </div>
+          )}
 
-            <div className="shop-total-row">
-              <span>Subtotal</span>
-              <strong>S/ {subtotal.toFixed(2)}</strong>
+          {checkoutError && <div className="auth-error">{checkoutError}</div>}
+
+          {cart.length === 0 ? (
+            <div className="empty-state shop-cart-empty">
+              <strong>Tu carrito aun esta vacio.</strong>
+              <span>Agrega productos del catalogo para habilitar el checkout.</span>
             </div>
-
-            <form className="auth-form shop-checkout-form" onSubmit={handleCheckout}>
-              <label>
-                Nombre completo
-                <input
-                  required
-                  value={checkout.customerName}
-                  onChange={(event) => setCheckout({ ...checkout, customerName: normalizePersonName(event.target.value) })}
-                  pattern="[A-Za-zÀ-ÿ\s]+"
-                  title="Solo se permiten letras y espacios"
-                />
-              </label>
-              <label>
-                Telefono
-                <input
-                  required
-                  value={checkout.customerPhone}
-                  onChange={(event) => setCheckout({ ...checkout, customerPhone: normalizePhone(event.target.value) })}
-                  inputMode="numeric"
-                  pattern="[0-9]+"
-                  title="Solo se permiten numeros"
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={checkout.customerEmail}
-                  onChange={(event) => setCheckout({ ...checkout, customerEmail: event.target.value })}
-                />
-              </label>
-              <label>
-                Metodo de pago
-                <select value={checkout.method} onChange={(event) => setCheckout({ ...checkout, method: event.target.value as CheckoutForm['method'] })}>
-                  <option value="PASARELA">Tarjeta / Pasarela</option>
-                  <option value="YAPE">Yape</option>
-                  <option value="EFECTIVO">Pago al recoger</option>
-                </select>
-              </label>
-              <label>
-                Referencia o comprobante
-                <input
-                  value={checkout.paymentReference}
-                  onChange={(event) => setCheckout({ ...checkout, paymentReference: event.target.value })}
-                  placeholder={checkout.method === 'PASARELA' ? 'ID de pago futuro o checkout session' : 'Operacion, captura o nota interna'}
-                />
-              </label>
-              <label>
-                Notas del pedido
-                <textarea value={checkout.notes} onChange={(event) => setCheckout({ ...checkout, notes: event.target.value })} rows={4} />
-              </label>
-
-              <div className="shop-gateway-card">
-                <div className="eyebrow">Pasarela de pagos</div>
-                <strong>Ultimo paso del checkout</strong>
-                <p>{paymentDescriptions[checkout.method]}</p>
+          ) : (
+            <>
+              <div className="shop-cart-list">
+                {cart.map((item) => (
+                  <div key={item.productId} className="shop-cart-item">
+                    <div className="shop-cart-item-main">
+                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <div className="avatar">PD</div>}
+                      <div>
+                        <div className="list-title">{item.name}</div>
+                        <div className="list-sub">S/ {item.price.toFixed(2)} c/u</div>
+                      </div>
+                    </div>
+                    <div className="shop-cart-controls">
+                      <button type="button" className="icon-btn" onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity - 1))}>-</button>
+                      <span className="pill">{item.quantity}</span>
+                      <button type="button" className="icon-btn" onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity + 1))}>+</button>
+                      <button type="button" className="chip" onClick={() => setCart((current) => removeCartItem(current, item.productId))}>Quitar</button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <button className="btn" type="submit" disabled={submitting || cart.length === 0}>
-                {submitting ? 'Procesando...' : 'Registrar pedido'}
-              </button>
-            </form>
-          </div>
-        </aside>
-      </div>
-    </div>
+              <div className="shop-total-row">
+                <span>Subtotal</span>
+                <strong>S/ {subtotal.toFixed(2)}</strong>
+              </div>
+
+              <form className="auth-form shop-checkout-form" onSubmit={handleCheckout}>
+                <label>
+                  Nombre completo
+                  <input
+                    required
+                    value={checkout.customerName}
+                    onChange={(event) => setCheckout({ ...checkout, customerName: normalizePersonName(event.target.value) })}
+                    pattern="[A-Za-zÀ-ÿ\s]+"
+                    title="Solo se permiten letras y espacios"
+                  />
+                </label>
+                <label>
+                  Telefono
+                  <input
+                    required
+                    value={checkout.customerPhone}
+                    onChange={(event) => setCheckout({ ...checkout, customerPhone: normalizePhone(event.target.value) })}
+                    inputMode="numeric"
+                    pattern="[0-9]+"
+                    title="Solo se permiten numeros"
+                  />
+                </label>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={checkout.customerEmail}
+                    onChange={(event) => setCheckout({ ...checkout, customerEmail: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Metodo de pago
+                  <select value={checkout.method} onChange={(event) => setCheckout({ ...checkout, method: event.target.value as CheckoutForm['method'] })}>
+                    <option value="PASARELA">Tarjeta / Pasarela</option>
+                    <option value="YAPE">Yape</option>
+                    <option value="EFECTIVO">Pago al recoger</option>
+                  </select>
+                </label>
+                <label>
+                  Referencia o comprobante
+                  <input
+                    value={checkout.paymentReference}
+                    onChange={(event) => setCheckout({ ...checkout, paymentReference: event.target.value })}
+                    placeholder={checkout.method === 'PASARELA' ? 'ID de pago futuro o checkout session' : 'Operacion, captura o nota interna'}
+                  />
+                </label>
+                <label>
+                  Notas del pedido
+                  <textarea value={checkout.notes} onChange={(event) => setCheckout({ ...checkout, notes: event.target.value })} rows={4} />
+                </label>
+
+                <div className="shop-gateway-card">
+                  <div className="eyebrow">Pasarela de pagos</div>
+                  <strong>Ultimo paso del checkout</strong>
+                  <p>{paymentDescriptions[checkout.method]}</p>
+                </div>
+
+                <button className="btn" type="submit" disabled={submitting || cart.length === 0}>
+                  {submitting ? 'Procesando...' : 'Registrar pedido'}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }

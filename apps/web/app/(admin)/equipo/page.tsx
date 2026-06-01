@@ -4,14 +4,28 @@ import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { normalizePersonName, normalizePhone } from '../../lib/validation';
 
-type Staff = { id: number; name: string; role?: string | null; active: boolean };
+type Staff = {
+  id: number;
+  name: string;
+  role?: string | null;
+  phone?: string | null;
+  active: boolean;
+  serviceIds?: number[];
+};
 type Service = { id: number; name: string };
+
+const createEmptyForm = () => ({
+  id: null as number | null,
+  name: '',
+  role: '',
+  phone: ''
+});
 
 export default function EquipoPage() {
   const [team, setTeam] = useState<Staff[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [form, setForm] = useState({ name: '', role: '', phone: '' });
-  const [selectedStaff, setSelectedStaff] = useState<number | null>(null);
+  const [form, setForm] = useState(createEmptyForm());
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [error, setError] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
@@ -32,23 +46,58 @@ export default function EquipoPage() {
     loadData();
   }, []);
 
-  const handleCreate = async (event: React.FormEvent) => {
+  const resetForm = () => {
+    setForm(createEmptyForm());
+    setError('');
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
 
     try {
-      await staffFetch('/staff', {
-        method: 'POST',
+      await staffFetch(form.id ? `/staff/${form.id}` : '/staff', {
+        method: form.id ? 'PATCH' : 'POST',
         body: JSON.stringify({
           name: form.name.trim(),
           role: form.role.trim(),
           phone: form.phone.trim()
         })
       });
-      setForm({ name: '', role: '', phone: '' });
+      resetForm();
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear');
+    }
+  };
+
+  const handleEdit = (member: Staff) => {
+    setForm({
+      id: member.id,
+      name: member.name,
+      role: member.role ?? '',
+      phone: member.phone ?? ''
+    });
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleDelete = async (member: Staff) => {
+    const confirmed = window.confirm(`Eliminar a ${member.name}? Quedara archivado como inactivo.`);
+    if (!confirmed) return;
+
+    setError('');
+    try {
+      await staffFetch(`/staff/${member.id}`, { method: 'DELETE' });
+      if (form.id === member.id) {
+        resetForm();
+      }
+      if (selectedStaff?.id === member.id) {
+        setSelectedStaff(null);
+        setSelectedServices([]);
+      }
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar');
     }
   };
 
@@ -67,12 +116,13 @@ export default function EquipoPage() {
   const saveServices = async () => {
     if (!selectedStaff) return;
     try {
-      await staffFetch(`/staff/${selectedStaff}/services`, {
+      await staffFetch(`/staff/${selectedStaff.id}/services`, {
         method: 'PUT',
         body: JSON.stringify({ serviceIds: selectedServices })
       });
       setSelectedStaff(null);
       setSelectedServices([]);
+      loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al asignar');
     }
@@ -87,7 +137,10 @@ export default function EquipoPage() {
           <p>Visualiza turnos, roles y disponibilidad en tiempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          <button className="btn" onClick={() => {
+            resetForm();
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}>
             Nuevo personal
           </button>
         </div>
@@ -96,14 +149,16 @@ export default function EquipoPage() {
       <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
-            <div className="eyebrow">Nuevo personal</div>
-            <h2>Registrar colaborador</h2>
+            <div className="eyebrow">{form.id ? 'Editar personal' : 'Nuevo personal'}</div>
+            <h2>{form.id ? 'Actualizar colaborador' : 'Registrar colaborador'}</h2>
           </div>
+          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
         </div>
-        <form className="auth-form" onSubmit={handleCreate}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nombre
             <input
+              required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: normalizePersonName(e.target.value) })}
               pattern="[A-Za-zÀ-ÿ\s]+"
@@ -125,7 +180,7 @@ export default function EquipoPage() {
             />
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">Guardar</button>
+          <button className="btn" type="submit">{form.id ? 'Actualizar' : 'Guardar'}</button>
         </form>
       </section>
 
@@ -134,9 +189,12 @@ export default function EquipoPage() {
           <div className="section-head">
             <div>
               <div className="eyebrow">Servicios asignados</div>
-              <h2>Selecciona servicios</h2>
+              <h2>{selectedStaff.name}</h2>
             </div>
-            <button className="chip" onClick={() => setSelectedStaff(null)}>Cerrar</button>
+            <button className="chip" onClick={() => {
+              setSelectedStaff(null);
+              setSelectedServices([]);
+            }}>Cerrar</button>
           </div>
           <div className="chip-row">
             {services.map((service) => (
@@ -171,20 +229,25 @@ export default function EquipoPage() {
               <div className="avatar">{member.name.split(' ').map((w) => w[0]).join('')}</div>
               <div>
                 <div className="list-title">{member.name}</div>
-                <div className="list-sub">{member.role ?? 'Equipo'}</div>
+                <div className="list-sub">{member.role ?? 'Equipo'}{member.phone ? ` · ${member.phone}` : ''}</div>
               </div>
             </div>
             <div className="team-meta">
-              <span className="pill">Estado</span>
+              <span className="pill">{member.serviceIds?.length ?? 0} servicios</span>
               <span className={`status-badge ${member.active ? 'status-ok' : 'status-warn'}`}>
                 {member.active ? 'Disponible' : 'Inactivo'}
               </span>
             </div>
             <div className="service-actions">
-              <button className="chip" onClick={() => setSelectedStaff(member.id)}>Asignar servicios</button>
+              <button className="chip" onClick={() => handleEdit(member)}>Editar</button>
+              <button className="chip" onClick={() => {
+                setSelectedStaff(member);
+                setSelectedServices(member.serviceIds ?? []);
+              }}>Asignar servicios</button>
               <button className="chip" onClick={() => toggleActive(member)}>
                 {member.active ? 'Desactivar' : 'Activar'}
               </button>
+              <button className="chip" onClick={() => handleDelete(member)}>Eliminar</button>
             </div>
           </div>
         ))}

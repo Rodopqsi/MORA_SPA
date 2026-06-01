@@ -87,13 +87,42 @@ const reservationStatusSchema = z.enum([
   'NO_SHOW',
   'VENCIDA'
 ]);
+const reservationChannelSchema = z.enum(['WHATSAPP', 'WEB', 'MOVIL', 'PRESENCIAL', 'REDES']);
 const reviewStatusSchema = z.enum(['PENDIENTE', 'APROBADA', 'OCULTA']);
 
+const businessDateTimePattern =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(?:Z|[+-]\d{2}:\d{2})?$/;
+
+const padNumber = (value: number, length = 2) => value.toString().padStart(length, '0');
+
+const formatBusinessDateTime = (date: Date) => {
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}T${padNumber(
+    date.getHours()
+  )}:${padNumber(date.getMinutes())}:${padNumber(date.getSeconds())}.${padNumber(date.getMilliseconds(), 3)}`;
+};
+
 const parseDateTime = (value: string) => {
-  const date = new Date(value);
+  const match = businessDateTimePattern.exec(value.trim());
+  if (!match) {
+    throw new AppError(400, 'Invalid datetime', 'invalid_datetime');
+  }
+
+  const [, year, month, day, hours, minutes, seconds = '0', milliseconds = '0'] = match;
+
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours),
+    Number(minutes),
+    Number(seconds),
+    Number(milliseconds.padEnd(3, '0'))
+  );
+
   if (Number.isNaN(date.getTime())) {
     throw new AppError(400, 'Invalid datetime', 'invalid_datetime');
   }
+
   return date;
 };
 
@@ -118,6 +147,34 @@ const timeStringToDate = (value: string) => {
 };
 
 const generateCode = () => `RSV-${Date.now().toString(36).toUpperCase()}`;
+
+const serializeReservation = <T extends { start: Date; end: Date; details?: Array<{ start: Date; end: Date }> }>(reservation: T) => ({
+  ...reservation,
+  start: formatBusinessDateTime(reservation.start),
+  end: formatBusinessDateTime(reservation.end),
+  details: reservation.details?.map((detail) => ({
+    ...detail,
+    start: formatBusinessDateTime(detail.start),
+    end: formatBusinessDateTime(detail.end)
+  }))
+});
+
+const serializeAvailabilityPayload = (payload: AvailabilityPayload) => ({
+  ...payload,
+  data: payload.data.map((entry) => ({
+    ...entry,
+    slots: entry.slots.map((slot) => ({
+      ...slot,
+      start: formatBusinessDateTime(slot.start),
+      end: formatBusinessDateTime(slot.end),
+      assignments: slot.assignments?.map((assignment) => ({
+        ...assignment,
+        start: formatBusinessDateTime(assignment.start),
+        end: formatBusinessDateTime(assignment.end)
+      }))
+    }))
+  }))
+});
 
 const productInclude = {
   images: {
@@ -931,7 +988,7 @@ router.get(
       applyMinAdvance: true
     });
 
-    res.json(availability);
+    res.json(serializeAvailabilityPayload(availability));
   })
 );
 
@@ -945,7 +1002,7 @@ router.get(
       orderBy: { start: 'desc' }
     });
 
-    res.json({ data: reservations });
+    res.json({ data: reservations.map(serializeReservation) });
   })
 );
 
@@ -955,6 +1012,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = parse(
       z.object({
+        channel: reservationChannelSchema.optional(),
         notes: z.string().optional(),
         details: z
           .array(
@@ -1034,7 +1092,7 @@ router.post(
       data: {
         code: generateCode(),
         clientId: req.client!.id,
-        channel: 'WEB',
+        channel: body.channel ?? 'WEB',
         status: 'PENDIENTE_ADELANTO',
         start: reservationStart,
         end: reservationEnd,
@@ -1050,7 +1108,7 @@ router.post(
       include: { details: true }
     });
 
-    res.status(201).json({ data: reservation });
+    res.status(201).json({ data: serializeReservation(reservation) });
   })
 );
 
@@ -1176,6 +1234,14 @@ router.post(
   })
 );
 
+router.get(
+  '/services',
+  asyncHandler(async (_req, res) => {
+    const services = await prisma.service.findMany({ orderBy: { name: 'asc' } });
+    res.json({ data: services });
+  })
+);
+
 router.use(authRequired);
 
 router.get(
@@ -1250,6 +1316,7 @@ router.patch(
     const id = Number(req.params.id);
     const body = parse(
       z.object({
+        username: z.preprocess(emptyStringToUndefined, z.string().trim().min(3).optional()),
         fullName: optionalPersonNameSchema,
         active: z.boolean().optional(),
         password: z.string().min(6).optional()
@@ -1257,7 +1324,17 @@ router.patch(
       req.body
     );
 
-    const data: { fullName?: string; active?: boolean; passwordHash?: string } = {};
+    if (body.username) {
+      const existing = await prisma.user.findFirst({
+        where: { username: body.username, id: { not: id } }
+      });
+      if (existing) {
+        throw new AppError(409, 'Username already exists', 'username_exists');
+      }
+    }
+
+    const data: { username?: string; fullName?: string; active?: boolean; passwordHash?: string } = {};
+    if (body.username) data.username = body.username;
     if (body.fullName) data.fullName = body.fullName;
     if (typeof body.active === 'boolean') data.active = body.active;
     if (body.password) data.passwordHash = await hashPassword(body.password);
@@ -1387,14 +1464,6 @@ router.get(
   })
 );
 
-router.get(
-  '/services',
-  asyncHandler(async (_req, res) => {
-    const services = await prisma.service.findMany({ orderBy: { name: 'asc' } });
-    res.json({ data: services });
-  })
-);
-
 router.post(
   '/services',
   requireRoles('ADMIN'),
@@ -1457,8 +1526,16 @@ router.delete(
 router.get(
   '/staff',
   asyncHandler(async (_req, res) => {
-    const staff = await prisma.staff.findMany({ orderBy: { name: 'asc' } });
-    res.json({ data: staff });
+    const staff = await prisma.staff.findMany({
+      include: { services: true },
+      orderBy: { name: 'asc' }
+    });
+    res.json({
+      data: staff.map((member) => ({
+        ...member,
+        serviceIds: member.services.map((service) => service.serviceId)
+      }))
+    });
   })
 );
 
@@ -1523,12 +1600,16 @@ router.put(
   requireRoles('ADMIN'),
   asyncHandler(async (req, res) => {
     const staffId = Number(req.params.id);
-    const body = parse(z.object({ serviceIds: z.array(toInt).min(1) }), req.body);
+    const body = parse(z.object({ serviceIds: z.array(toInt).optional() }), req.body);
+    const serviceIds = body.serviceIds ?? [];
 
     await prisma.staffService.deleteMany({ where: { staffId } });
-    await prisma.staffService.createMany({
-      data: body.serviceIds.map((serviceId) => ({ staffId, serviceId }))
-    });
+
+    if (serviceIds.length) {
+      await prisma.staffService.createMany({
+        data: serviceIds.map((serviceId) => ({ staffId, serviceId }))
+      });
+    }
 
     res.json({ ok: true });
   })
@@ -1841,6 +1922,16 @@ router.patch(
   })
 );
 
+router.delete(
+  '/clients/:id',
+  requireRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    await prisma.client.update({ where: { id }, data: { active: false } });
+    res.status(204).send();
+  })
+);
+
 router.put(
   '/clients/:id/credentials',
   requireRoles('ADMIN'),
@@ -1896,7 +1987,7 @@ router.get(
       orderBy: { start: 'asc' }
     });
 
-    res.json({ data: reservations });
+    res.json({ data: reservations.map(serializeReservation) });
   })
 );
 
@@ -1920,7 +2011,7 @@ router.get(
       throw new AppError(404, 'Reservation not found', 'not_found');
     }
 
-    res.json({ data: reservation });
+    res.json({ data: serializeReservation(reservation) });
   })
 );
 
@@ -1930,7 +2021,7 @@ router.post(
     const body = parse(
       z.object({
         clientId: toInt,
-        channel: z.enum(['WHATSAPP', 'WEB', 'PRESENCIAL', 'REDES']).optional(),
+        channel: reservationChannelSchema.optional(),
         notes: z.string().optional(),
         details: z
           .array(
@@ -2033,7 +2124,7 @@ router.post(
       include: { details: true }
     });
 
-    res.status(201).json({ data: reservation });
+    res.status(201).json({ data: serializeReservation(reservation) });
   })
 );
 
@@ -2067,7 +2158,7 @@ router.patch(
       });
     }
 
-    res.json({ data: reservation });
+    res.json({ data: serializeReservation(reservation) });
   })
 );
 
@@ -2169,7 +2260,7 @@ router.post(
       include: { details: true }
     });
 
-    res.json({ data: reservation });
+    res.json({ data: serializeReservation(reservation) });
   })
 );
 
@@ -2193,7 +2284,7 @@ router.post(
       }
     });
 
-    res.json({ data: reservation });
+    res.json({ data: serializeReservation(reservation) });
   })
 );
 
@@ -2256,15 +2347,23 @@ router.get(
       applyMinAdvance: false
     });
 
-    res.json(availability);
+    res.json(serializeAvailabilityPayload(availability));
   })
 );
 
 router.get(
   '/promotions',
   asyncHandler(async (_req, res) => {
-    const promotions = await prisma.promotion.findMany({ orderBy: { startDate: 'desc' } });
-    res.json({ data: promotions });
+    const promotions = await prisma.promotion.findMany({
+      include: { services: true },
+      orderBy: { startDate: 'desc' }
+    });
+    res.json({
+      data: promotions.map((promotion) => ({
+        ...promotion,
+        serviceIds: promotion.services.map((service) => service.serviceId)
+      }))
+    });
   })
 );
 
@@ -2597,6 +2696,41 @@ router.post(
   })
 );
 
+router.patch(
+  '/albums/:id',
+  requireRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    const body = parse(
+      z.object({
+        clientId: toInt.optional(),
+        title: z.preprocess(emptyStringToUndefined, z.string().trim().min(3).optional()),
+        description: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+        privacy: z.enum(['INTERNO', 'PRIVADO_CLIENTE', 'PUBLICO']).optional()
+      }),
+      req.body
+    );
+
+    const album = await prisma.album.update({
+      where: { id },
+      data: {
+        clientId: body.clientId,
+        title: body.title,
+        description: body.description,
+        privacy: body.privacy
+      },
+      include: {
+        photos: {
+          where: { deleted: false },
+          orderBy: [{ isCover: 'desc' }, { order: 'asc' }, { uploadedAt: 'asc' }]
+        }
+      }
+    });
+
+    res.json({ data: album });
+  })
+);
+
 router.post(
   '/albums/:id/photos',
   asyncHandler(async (req, res) => {
@@ -2636,6 +2770,21 @@ router.delete(
   asyncHandler(async (req, res) => {
     const photoId = Number(req.params.photoId);
     await prisma.albumPhoto.update({ where: { id: photoId }, data: { deleted: true } });
+    res.status(204).send();
+  })
+);
+
+router.delete(
+  '/albums/:id',
+  requireRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.albumPhoto.deleteMany({ where: { albumId: id } });
+      await tx.album.delete({ where: { id } });
+    });
+
     res.status(204).send();
   })
 );
@@ -2786,6 +2935,16 @@ router.patch(
     });
 
     res.json({ data: product });
+  })
+);
+
+router.delete(
+  '/products/:id',
+  requireRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    await prisma.product.update({ where: { id }, data: { active: false } });
+    res.status(204).send();
   })
 );
 

@@ -15,6 +15,14 @@ import {
 } from '../bookingState';
 import { apiFetch } from '../../../lib/api';
 
+const padNumber = (value: number, length = 2) => value.toString().padStart(length, '0');
+
+const formatBusinessDateTime = (value: Date) => {
+  return `${value.getFullYear()}-${padNumber(value.getMonth() + 1)}-${padNumber(value.getDate())}T${padNumber(
+    value.getHours()
+  )}:${padNumber(value.getMinutes())}:${padNumber(value.getSeconds())}.${padNumber(value.getMilliseconds(), 3)}`;
+};
+
 export default function ReservarPaso4Page() {
   const router = useRouter();
   const [booking, setBooking] = useState<BookingState>(defaultBookingState());
@@ -99,7 +107,7 @@ export default function ReservarPaso4Page() {
               return {
                 serviceId: service.id,
                 staffId: booking.selectedSlot!.staffId!,
-                start: start.toISOString()
+                start: formatBusinessDateTime(start)
               };
             });
           })();
@@ -107,6 +115,7 @@ export default function ReservarPaso4Page() {
       await clientFetch('/client-reservations', {
         method: 'POST',
         body: JSON.stringify({
+          channel: 'WEB',
           notes: booking.notes || undefined,
           details
         })

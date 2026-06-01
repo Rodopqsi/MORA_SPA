@@ -6,11 +6,18 @@ import { normalizePersonName } from '../../lib/validation';
 
 type User = { id: number; username: string; fullName: string; active: boolean; roles: string[] };
 
+const createEmptyForm = () => ({
+  id: null as number | null,
+  username: '',
+  fullName: '',
+  password: '',
+  role: 'RECEPCION'
+});
+
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
-  const [form, setForm] = useState({ username: '', fullName: '', password: '', role: 'RECEPCION' });
-  const [roleEdit, setRoleEdit] = useState<Record<number, string>>({});
+  const [form, setForm] = useState(createEmptyForm());
   const [error, setError] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -30,39 +37,77 @@ export default function UsuariosPage() {
     loadData();
   }, []);
 
-  const handleCreate = async (event: React.FormEvent) => {
+  const resetForm = () => {
+    setForm({ ...createEmptyForm(), role: roles[0] ?? 'RECEPCION' });
+    setError('');
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     const payload = {
       username: form.username.trim(),
       fullName: form.fullName.trim(),
-      password: form.password,
+      password: form.password.trim() || undefined,
       roles: [form.role]
     };
 
     try {
-      await staffFetch('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      setForm({ username: '', fullName: '', password: '', role: 'RECEPCION' });
+      if (form.id) {
+        await staffFetch(`/users/${form.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            username: payload.username,
+            fullName: payload.fullName,
+            password: payload.password
+          })
+        });
+        await staffFetch(`/users/${form.id}/roles`, {
+          method: 'PUT',
+          body: JSON.stringify({ roles: payload.roles })
+        });
+      } else {
+        await staffFetch('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            username: payload.username,
+            fullName: payload.fullName,
+            password: form.password,
+            roles: payload.roles
+          })
+        });
+      }
+      resetForm();
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear');
     }
   };
 
-  const updateRole = async (userId: number) => {
-    const role = roleEdit[userId];
-    if (!role) return;
+  const handleEdit = (user: User) => {
+    setForm({
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      password: '',
+      role: user.roles[0] ?? roles[0] ?? 'RECEPCION'
+    });
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleDelete = async (user: User) => {
+    const confirmed = window.confirm(`Eliminar a ${user.fullName}? Quedara archivado como inactivo.`);
+    if (!confirmed) return;
+
+    setError('');
     try {
-      await staffFetch(`/users/${userId}/roles`, {
-        method: 'PUT',
-        body: JSON.stringify({ roles: [role] })
-      });
+      await staffFetch(`/users/${user.id}`, { method: 'DELETE' });
+      if (form.id === user.id) {
+        resetForm();
+      }
       loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar');
+      setError(err instanceof Error ? err.message : 'Error al eliminar');
     }
   };
 
@@ -87,7 +132,10 @@ export default function UsuariosPage() {
           <p>Gestiona roles, permisos y accesos desde un solo lugar.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          <button className="btn" onClick={() => {
+            resetForm();
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}>
             Nuevo usuario
           </button>
         </div>
@@ -96,18 +144,20 @@ export default function UsuariosPage() {
       <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
-            <div className="eyebrow">Nuevo usuario</div>
-            <h2>Crear acceso</h2>
+            <div className="eyebrow">{form.id ? 'Editar usuario' : 'Nuevo usuario'}</div>
+            <h2>{form.id ? 'Actualizar acceso' : 'Crear acceso'}</h2>
           </div>
+          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
         </div>
-        <form className="auth-form" onSubmit={handleCreate}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Usuario
-            <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            <input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
           </label>
           <label>
             Nombre completo
             <input
+              required
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: normalizePersonName(e.target.value) })}
               pattern="[A-Za-zÀ-ÿ\s]+"
@@ -116,7 +166,14 @@ export default function UsuariosPage() {
           </label>
           <label>
             Contrasena
-            <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            <input
+              type="password"
+              required={!form.id}
+              minLength={form.id ? 0 : 6}
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder={form.id ? 'Deja vacio para mantener la actual' : ''}
+            />
           </label>
           <label>
             Rol
@@ -127,7 +184,7 @@ export default function UsuariosPage() {
             </select>
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">Crear</button>
+          <button className="btn" type="submit">{form.id ? 'Actualizar' : 'Crear'}</button>
         </form>
       </section>
 
@@ -144,26 +201,17 @@ export default function UsuariosPage() {
           {users.map((user) => (
             <div key={user.id} className="table-row">
               <div className="table-title">{user.fullName}</div>
-              <div>
-                <select
-                  className="chip"
-                  value={roleEdit[user.id] ?? user.roles[0] ?? 'RECEPCION'}
-                  onChange={(e) => setRoleEdit({ ...roleEdit, [user.id]: e.target.value })}
-                >
-                  {roles.map((role) => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="table-sub">{user.roles.join(', ') || 'Sin rol'}</div>
               <div className={`status-badge ${user.active ? 'status-ok' : 'status-warn'}`}>
                 {user.active ? 'Activo' : 'Inactivo'}
               </div>
               <div className="table-sub">{user.username}</div>
               <div className="table-actions">
-                <button className="icon-btn" onClick={() => updateRole(user.id)}>OK</button>
+                <button className="icon-btn" onClick={() => handleEdit(user)}>EDIT</button>
                 <button className="icon-btn danger" onClick={() => toggleActive(user)}>
                   {user.active ? 'OFF' : 'ON'}
                 </button>
+                <button className="icon-btn danger" onClick={() => handleDelete(user)}>DEL</button>
               </div>
             </div>
           ))}

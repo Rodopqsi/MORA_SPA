@@ -10,6 +10,7 @@ datasource db {
 enum ReservationChannel {
   WHATSAPP
   WEB
+  MOVIL
   PRESENCIAL
   REDES
 }

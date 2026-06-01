@@ -196,6 +196,21 @@ export default function ProductosPage() {
     }
   };
 
+  const deleteProduct = async (product: CatalogProduct) => {
+    const confirmed = window.confirm(`Eliminar ${product.name}? Quedara archivado como no publicado.`);
+    if (!confirmed) return;
+
+    try {
+      await staffFetch(`/products/${product.id}`, { method: 'DELETE' });
+      if (form.id === product.id) {
+        setForm(createEmptyForm());
+      }
+      loadProducts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar');
+    }
+  };
+
   const updatePaymentStatus = async (saleId: number, paymentStatus: PaymentStatus) => {
     try {
       await staffFetch(`/sales/${saleId}/payment-status`, {
@@ -405,6 +420,7 @@ export default function ProductosPage() {
                       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}>Editar</button>
                     <button className="chip" type="button" onClick={() => toggleActive(item)}>{item.active ? 'Ocultar' : 'Publicar'}</button>
+                    <button className="chip" type="button" onClick={() => deleteProduct(item)}>Eliminar</button>
                     <button className="icon-btn" type="button" onClick={() => updateStock(item, -1)}>-</button>
                     <button className="icon-btn" type="button" onClick={() => updateStock(item, 1)}>+</button>
                   </div>

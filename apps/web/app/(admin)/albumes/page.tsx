@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 
+type AlbumPrivacy = 'INTERNO' | 'PRIVADO_CLIENTE' | 'PUBLICO';
+type PhotoType = 'ANTES' | 'DESPUES' | 'RESULTADO';
+
 type AlbumPhoto = {
   id: number;
   url: string;
@@ -10,24 +13,51 @@ type AlbumPhoto = {
   isCover?: boolean;
 };
 
-type Album = { id: number; title: string; clientId: number; photos?: AlbumPhoto[] };
+type Album = {
+  id: number;
+  title: string;
+  clientId: number;
+  description?: string | null;
+  privacy: AlbumPrivacy;
+  photos?: AlbumPhoto[];
+};
 type Client = { id: number; name: string };
 
 type PhotoForm = {
   url: string;
   fileName: string;
-  type: 'ANTES' | 'DESPUES' | 'RESULTADO';
+  type: PhotoType;
+};
+
+type AlbumForm = {
+  id: number | null;
+  title: string;
+  clientId: string;
+  description: string;
+  privacy: AlbumPrivacy;
 };
 
 const emptyPhoto = (): PhotoForm => ({ url: '', fileName: '', type: 'RESULTADO' });
+const createEmptyForm = (): AlbumForm => ({ id: null, title: '', clientId: '', description: '', privacy: 'INTERNO' });
+
+const buildValidPhotos = (photos: PhotoForm[]) => {
+  return photos
+    .map((photo) => ({
+      url: photo.url.trim(),
+      fileName: photo.fileName.trim(),
+      type: photo.type
+    }))
+    .filter((photo) => photo.url.length > 0);
+};
 
 export default function AlbumesPage() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [form, setForm] = useState({ title: '', clientId: '', description: '', privacy: 'INTERNO' });
+  const [form, setForm] = useState<AlbumForm>(createEmptyForm());
   const [photos, setPhotos] = useState<PhotoForm[]>([emptyPhoto()]);
   const [error, setError] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
+  const editingAlbum = albums.find((album) => album.id === form.id) ?? null;
 
   const loadData = () => {
     Promise.all([
@@ -45,37 +75,67 @@ export default function AlbumesPage() {
     loadData();
   }, []);
 
-  const handleCreate = async (event: React.FormEvent) => {
-    event.preventDefault();
-    try {
-      const validPhotos = photos
-        .map((photo, index) => ({
-          ...photo,
-          url: photo.url.trim(),
-          fileName: photo.fileName.trim(),
-          order: index + 1,
-          isCover: index === 0
-        }))
-        .filter((photo) => photo.url.length > 0);
+  const resetForm = () => {
+    setForm(createEmptyForm());
+    setPhotos([emptyPhoto()]);
+    setError('');
+  };
 
-      await staffFetch('/albums', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: form.title,
-          clientId: Number(form.clientId),
-          description: form.description || undefined,
-          privacy: form.privacy,
-          photos: validPhotos.map((photo) => ({
-            url: photo.url,
-            fileName: photo.fileName || undefined,
-            type: photo.type,
-            order: photo.order,
-            isCover: photo.isCover
-          }))
-        })
-      });
-      setForm({ title: '', clientId: '', description: '', privacy: 'INTERNO' });
-      setPhotos([emptyPhoto()]);
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+
+    try {
+      const validPhotos = buildValidPhotos(photos);
+
+      if (form.id) {
+        await staffFetch(`/albums/${form.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            title: form.title.trim(),
+            clientId: Number(form.clientId),
+            description: form.description.trim() || undefined,
+            privacy: form.privacy
+          })
+        });
+
+        if (validPhotos.length) {
+          const initialOrder = (editingAlbum?.photos?.length ?? 0) + 1;
+          await Promise.all(
+            validPhotos.map((photo, index) =>
+              staffFetch(`/albums/${form.id}/photos`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  url: photo.url,
+                  fileName: photo.fileName || undefined,
+                  type: photo.type,
+                  order: initialOrder + index,
+                  isCover: (editingAlbum?.photos?.length ?? 0) === 0 && index === 0
+                })
+              })
+            )
+          );
+        }
+      } else {
+        await staffFetch('/albums', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: form.title.trim(),
+            clientId: Number(form.clientId),
+            description: form.description.trim() || undefined,
+            privacy: form.privacy,
+            photos: validPhotos.map((photo, index) => ({
+              url: photo.url,
+              fileName: photo.fileName || undefined,
+              type: photo.type,
+              order: index + 1,
+              isCover: index === 0
+            }))
+          })
+        });
+      }
+
+      resetForm();
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -94,6 +154,48 @@ export default function AlbumesPage() {
     setPhotos((current) => (current.length === 1 ? [emptyPhoto()] : current.filter((_, currentIndex) => currentIndex !== index)));
   };
 
+  const handleEdit = (album: Album) => {
+    setForm({
+      id: album.id,
+      title: album.title,
+      clientId: String(album.clientId),
+      description: album.description ?? '',
+      privacy: album.privacy
+    });
+    setPhotos([emptyPhoto()]);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleDelete = async (album: Album) => {
+    const confirmed = window.confirm(`Eliminar el album ${album.title}? Esta accion quitara tambien sus fotos.`);
+    if (!confirmed) return;
+
+    setError('');
+    try {
+      await staffFetch(`/albums/${album.id}`, { method: 'DELETE' });
+      if (form.id === album.id) {
+        resetForm();
+      }
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar');
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: number) => {
+    if (!form.id) return;
+    const confirmed = window.confirm('Eliminar esta foto del album?');
+    if (!confirmed) return;
+
+    setError('');
+    try {
+      await staffFetch(`/albums/${form.id}/photos/${photoId}`, { method: 'DELETE' });
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar la foto');
+    }
+  };
+
   const clientName = (clientId: number) =>
     clients.find((client) => client.id === clientId)?.name ?? `Cliente #${clientId}`;
 
@@ -106,7 +208,10 @@ export default function AlbumesPage() {
           <p>Organiza antes y despues, con permisos claros.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          <button className="btn" onClick={() => {
+            resetForm();
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}>
             Nuevo album
           </button>
         </div>
@@ -115,18 +220,19 @@ export default function AlbumesPage() {
       <section className="card reveal" ref={formRef}>
         <div className="section-head">
           <div>
-            <div className="eyebrow">Nuevo album</div>
-            <h2>Registrar album</h2>
+            <div className="eyebrow">{form.id ? 'Editar album' : 'Nuevo album'}</div>
+            <h2>{form.id ? 'Actualizar album' : 'Registrar album'}</h2>
           </div>
+          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
         </div>
-        <form className="auth-form" onSubmit={handleCreate}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Titulo
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </label>
           <label>
             Cliente
-            <select value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
+            <select required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
               <option value="">Selecciona</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>{client.name}</option>
@@ -139,7 +245,7 @@ export default function AlbumesPage() {
           </label>
           <label>
             Privacidad
-            <select value={form.privacy} onChange={(e) => setForm({ ...form, privacy: e.target.value })}>
+            <select value={form.privacy} onChange={(e) => setForm({ ...form, privacy: e.target.value as AlbumPrivacy })}>
               <option value="INTERNO">INTERNO</option>
               <option value="PRIVADO_CLIENTE">PRIVADO_CLIENTE</option>
               <option value="PUBLICO">PUBLICO</option>
@@ -149,7 +255,7 @@ export default function AlbumesPage() {
             <div className="section-head" style={{ marginBottom: 12 }}>
               <div>
                 <div className="eyebrow">Imagenes</div>
-                <h2>Cargar enlaces de fotos</h2>
+                <h2>{form.id ? 'Agregar fotos nuevas' : 'Cargar enlaces de fotos'}</h2>
               </div>
               <button className="chip" type="button" onClick={addPhotoField}>Agregar foto</button>
             </div>
@@ -188,8 +294,37 @@ export default function AlbumesPage() {
               ))}
             </div>
           </div>
+          {form.id && editingAlbum && (
+            <div>
+              <div className="section-head" style={{ marginBottom: 12 }}>
+                <div>
+                  <div className="eyebrow">Fotos actuales</div>
+                  <h2>Gestiona el album existente</h2>
+                </div>
+              </div>
+              <div className="grid grid-2">
+                {(editingAlbum.photos ?? []).length === 0 && <div className="empty-state">Este album aun no tiene fotos.</div>}
+                {(editingAlbum.photos ?? []).map((photo, index) => (
+                  <div key={photo.id} className="card" style={{ padding: 16 }}>
+                    <div className="album-thumb" style={{ marginBottom: 12 }}>
+                      <img
+                        src={photo.url}
+                        alt={photo.fileName || `Foto ${index + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 20 }}
+                      />
+                    </div>
+                    <div className="service-actions">
+                      <span className="pill">{photo.fileName || `Foto ${index + 1}`}</span>
+                      {photo.isCover && <span className="pill">Portada</span>}
+                      <button className="chip" type="button" onClick={() => handleDeletePhoto(photo.id)}>Eliminar foto</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">Guardar</button>
+          <button className="btn" type="submit">{form.id ? 'Actualizar album' : 'Guardar album'}</button>
         </form>
       </section>
 
@@ -214,6 +349,12 @@ export default function AlbumesPage() {
             </div>
             <div className="album-title">{album.title}</div>
             <div className="album-sub">Cliente: {clientName(album.clientId)}</div>
+            <div className="album-sub">{album.description?.trim() || 'Sin descripcion del resultado.'}</div>
+            <div className="service-actions">
+              <span className="pill">{album.privacy}</span>
+              <button className="chip" type="button" onClick={() => handleEdit(album)}>Editar</button>
+              <button className="chip" type="button" onClick={() => handleDelete(album)}>Eliminar</button>
+            </div>
           </div>
         ))}
       </section>

@@ -1,0 +1,69 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "mobile",
+            "cwd": "apps\\mobile",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "mobile (chrome)",
+            "cwd": "apps\\mobile",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome"
+        },
+        {
+            "name": "mobile (edge)",
+            "cwd": "apps\\mobile",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "edge"
+        },
+        {
+            "name": "mobile (windows desktop)",
+            "cwd": "apps\\mobile",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "windows"
+        },
+        {
+            "name": "mobile (profile mode)",
+            "cwd": "apps\\mobile",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "mobile (release mode)",
+            "cwd": "apps\\mobile",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "proyecto_giselamora",
+            "cwd": "apps\\movil\\proyecto_giselamora",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "proyecto_giselamora (profile mode)",
+            "cwd": "apps\\movil\\proyecto_giselamora",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "proyecto_giselamora (release mode)",
+            "cwd": "apps\\movil\\proyecto_giselamora",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
