@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { CatalogProduct, getProductCover, ProductImage, productPrice } from '../../lib/shopCart';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { AdminForm } from '../../components/AdminForm';
 
 type PaymentStatus = 'PENDIENTE' | 'CONFIRMADO' | 'ANULADO';
 
@@ -103,7 +106,7 @@ const readFileAsDataUrl = (file: File) =>
         isCover: false
       });
     };
-    reader.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada.'));
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
     reader.readAsDataURL(file);
   });
 
@@ -113,6 +116,8 @@ export default function ProductosPage() {
   const [form, setForm] = useState<ProductForm>(createEmptyForm());
   const [error, setError] = useState('');
   const [loadingFiles, setLoadingFiles] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<CatalogProduct | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const loadProducts = () => {
@@ -131,40 +136,54 @@ export default function ProductosPage() {
     loadProducts();
   }, []);
 
-  const metrics = useMemo(() => {
-    const pendingOrders = sales.filter((sale) => sale.paymentStatus === 'PENDIENTE').length;
-    const featuredCount = inventory.filter((product) => product.featured).length;
-    const catalogValue = inventory.reduce((sum, product) => sum + productPrice(product.price) * product.stock, 0);
-
-    return { pendingOrders, featuredCount, catalogValue };
+  const totals = useMemo(() => {
+    const stockValue = inventory.reduce((acc, item) => acc + item.stock, 0);
+    const activeCount = inventory.filter((item) => item.active).length;
+    const pending = sales.filter((sale) => sale.paymentStatus === 'PENDIENTE').length;
+    return { stockValue, activeCount, pending };
   }, [inventory, sales]);
 
-  const handleCreate = async (event: React.FormEvent) => {
+  const resetForm = () => {
+    setForm(createEmptyForm());
+    setError('');
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
 
     const payload = {
       name: form.name.trim(),
-      description: form.description.trim(),
-      category: form.category.trim(),
-      price: Number(form.price),
-      stock: Number(form.stock),
+      description: form.description.trim() || undefined,
+      category: form.category.trim() || undefined,
+      price: Number(form.price) || 0,
+      stock: Number(form.stock) || 0,
       active: form.active,
       featured: form.featured,
-      images: ensureCover(form.images.filter((image) => image.url.trim().length > 0)).map((image) => ({
-        url: image.url.trim(),
-        fileName: image.fileName.trim(),
-        source: image.source,
-        isCover: image.isCover
-      }))
+      images: form.images
+        .filter((image) => image.url.trim().length > 0)
+        .map((image, index) => ({
+          url: image.url,
+          fileName: image.fileName || undefined,
+          source: image.source,
+          isCover: image.isCover,
+          order: index
+        }))
     };
 
     try {
-      await staffFetch(form.id ? `/products/${form.id}` : '/products', {
-        method: form.id ? 'PATCH' : 'POST',
-        body: JSON.stringify(payload)
-      });
-      setForm(createEmptyForm());
+      if (form.id) {
+        await staffFetch(`/products/${form.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await staffFetch('/products', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      }
+      resetForm();
       loadProducts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -172,11 +191,11 @@ export default function ProductosPage() {
   };
 
   const updateStock = async (product: CatalogProduct, delta: number) => {
-    const nextStock = Math.max(0, product.stock + delta);
+    const newStock = Math.max(0, product.stock + delta);
     try {
       await staffFetch(`/products/${product.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ stock: nextStock })
+        body: JSON.stringify({ stock: newStock })
       });
       loadProducts();
     } catch (err) {
@@ -196,18 +215,25 @@ export default function ProductosPage() {
     }
   };
 
-  const deleteProduct = async (product: CatalogProduct) => {
-    const confirmed = window.confirm(`Eliminar ${product.name}? Quedara archivado como no publicado.`);
-    if (!confirmed) return;
+  const deleteProduct = (product: CatalogProduct) => {
+    setConfirmDelete(product);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    setError('');
     try {
-      await staffFetch(`/products/${product.id}`, { method: 'DELETE' });
-      if (form.id === product.id) {
+      await staffFetch(`/products/${confirmDelete.id}`, { method: 'DELETE' });
+      if (form.id === confirmDelete.id) {
         setForm(createEmptyForm());
       }
       loadProducts();
+      setConfirmDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -262,141 +288,191 @@ export default function ProductosPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Inventario y ventas</div>
-          <h1>Mini ecommerce y control comercial</h1>
-          <p>Gestiona el catalogo, prepara las imagenes y confirma los pedidos que llegan desde la tienda web.</p>
+          <div className="eyebrow">Tienda y stock</div>
+          <h1>Productos disponibles y pedidos</h1>
+          <p>Administra catalogo, inventario y pagos del checkout web.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" type="button" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          <button className="btn shine-on-hover press-feedback" onClick={() => {
+            resetForm();
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}>
             Nuevo producto
-          </button>
-          <button className="btn btn-outline" type="button" onClick={() => setForm(createEmptyForm())}>
-            Limpiar formulario
           </button>
         </div>
       </header>
 
-      <section className="grid grid-3">
-        <div className="card stat-card tone-rose">
-          <div className="stat-label">Productos activos</div>
-          <div className="stat-value">{inventory.filter((product) => product.active).length}</div>
-          <div className="stat-meta">Catalogo visible en la tienda publica.</div>
+      <MoraScrollReveal as="section" className="grid grid-3" selector=".card.lift-on-hover" variant="fade-up" stagger={0.08} duration={0.6}>
+        <div className="card lift-on-hover">
+          <div className="eyebrow">Productos</div>
+          <h2>{inventory.length}</h2>
+          <p>Cargados en el catalogo.</p>
         </div>
-        <div className="card stat-card tone-sun">
-          <div className="stat-label">Pedidos pendientes</div>
-          <div className="stat-value">{metrics.pendingOrders}</div>
-          <div className="stat-meta">Ventas esperando confirmacion o anulacion.</div>
+        <div className="card lift-on-hover">
+          <div className="eyebrow">Stock total</div>
+          <h2>{totals.stockValue}</h2>
+          <p>{totals.activeCount} publicados.</p>
         </div>
-        <div className="card stat-card tone-mint">
-          <div className="stat-label">Valor estimado del stock</div>
-          <div className="stat-value">S/ {metrics.catalogValue.toFixed(2)}</div>
-          <div className="stat-meta">{metrics.featuredCount} productos marcados como destacados.</div>
+        <div className="card lift-on-hover">
+          <div className="eyebrow">Pagos pendientes</div>
+          <h2>{totals.pending}</h2>
+          <p>Pedidos por revisar.</p>
         </div>
-      </section>
+      </MoraScrollReveal>
 
-      <section className="card reveal" ref={formRef}>
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Producto ecommerce</div>
-            <h2>{form.id ? 'Editar producto' : 'Registrar producto'}</h2>
-          </div>
-          <button className="chip" type="button" onClick={() => setForm(createEmptyForm())}>Reset</button>
-        </div>
-        <form className="auth-form" onSubmit={handleCreate}>
-          <div className="grid grid-2">
+      <AdminForm
+        eyebrow={form.id ? 'Editar producto' : 'Nuevo producto'}
+        title={form.id ? 'Actualizar producto' : 'Registrar producto'}
+        onReset={form.id ? resetForm : undefined}
+        sectionRef={formRef}
+      >
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="form-row-2">
             <label>
               Nombre
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </label>
             <label>
               Categoria
-              <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Cabello, nails, barber..." />
-            </label>
-            <label>
-              Precio
-              <input type="number" min="0" step="0.01" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-            </label>
-            <label>
-              Stock
-              <input type="number" min="0" required value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+              <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
             </label>
           </div>
           <label>
             Descripcion
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Explica beneficios, rutina de uso o motivo de compra." />
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
           </label>
-
-          <div className="toggle-row">
-            <label className="checkbox-row">
-              <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-              Publicar en tienda
+          <div className="form-row-2">
+            <label>
+              Precio (S/)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+              />
             </label>
-            <label className="checkbox-row">
-              <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />
-              Destacar en inicio
+            <label>
+              Stock
+              <input
+                type="number"
+                min="0"
+                required
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              />
             </label>
           </div>
-
-          <div className="media-builder">
-            <div className="section-head">
+          <div className="form-row-2">
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => setForm({ ...form, active: e.target.checked })}
+              />
+              <span>Publicado</span>
+            </label>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+              />
+              <span>Destacado</span>
+            </label>
+          </div>
+          <div className="form-section">
+            <div className="section-head" style={{ marginBottom: 12 }}>
               <div>
                 <div className="eyebrow">Imagenes</div>
-                <h3>URL o carga local</h3>
+                <h2>Galeria del producto</h2>
               </div>
-              <button className="chip" type="button" onClick={addImageField}>Agregar URL</button>
+              <div className="chip-row">
+                <label className="chip">
+                  Subir archivos
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleLocalImages(e.target.files)}
+                    disabled={loadingFiles}
+                  />
+                </label>
+                <button className="chip" type="button" onClick={addImageField}>Agregar URL</button>
+              </div>
             </div>
-
-            <div className="image-form-grid">
+            <p className="form-hint">Marca una imagen como portada para que sea la principal en la tienda.</p>
+            <div className="grid grid-2">
               {form.images.map((image, index) => (
-                <div key={`${image.fileName}-${index}`} className="image-form-card">
-                  <div className="image-preview">
-                    {image.url ? <img src={image.url} alt={`Imagen ${index + 1}`} /> : <div className="empty-state">Vista previa</div>}
+                <div key={index} className="card" style={{ padding: 16 }}>
+                  <div className="product-admin-media" style={{ marginBottom: 12, height: 160 }}>
+                    {image.url ? <img src={image.url} alt={image.fileName || `Imagen ${index + 1}`} /> : <div className="empty-state">Sin imagen</div>}
                   </div>
                   <label>
                     URL o data URL
-                    <input value={image.url} onChange={(e) => updateImage(index, { url: e.target.value, source: 'URL' })} placeholder="https://... o /assets/..." />
+                    <input
+                      value={image.url}
+                      onChange={(e) => updateImage(index, { url: e.target.value })}
+                      placeholder="https://..."
+                    />
                   </label>
                   <label>
-                    Nombre visible
-                    <input value={image.fileName} onChange={(e) => updateImage(index, { fileName: e.target.value })} placeholder="producto-hero.jpg" />
+                    Nombre del archivo
+                    <input
+                      value={image.fileName}
+                      onChange={(e) => updateImage(index, { fileName: e.target.value })}
+                      placeholder="producto.jpg"
+                    />
                   </label>
-                  <div className="image-toolbar">
-                    <button className="chip" type="button" onClick={() => updateImage(index, { isCover: true })}>Portada</button>
-                    <span className="pill">{image.source === 'LOCAL' ? 'Local' : 'URL'}</span>
-                    <button className="chip" type="button" onClick={() => removeImage(index)}>Quitar</button>
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={image.isCover}
+                      onChange={(e) => updateImage(index, { isCover: e.target.checked })}
+                    />
+                    <span>Portada</span>
+                  </label>
+                  <div className="service-actions">
+                    <span className="pill">{image.source === 'LOCAL' ? 'Subida' : 'URL'}</span>
+                    <button className="chip chip-danger" type="button" onClick={() => removeImage(index)}>Quitar</button>
                   </div>
                 </div>
               ))}
             </div>
-
-            <label className="upload-drop">
-              <input type="file" accept="image/*" multiple onChange={(e) => handleLocalImages(e.target.files)} />
-              {loadingFiles ? 'Procesando imagenes locales...' : 'Cargar imagenes desde tu equipo'}
-            </label>
           </div>
-
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">{form.id ? 'Actualizar producto' : 'Guardar producto'}</button>
+          <div className="form-actions">
+            <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar producto' : 'Guardar producto'}</button>
+            {form.id && (
+              <button className="chip press-feedback" type="button" onClick={resetForm}>Cancelar</button>
+            )}
+          </div>
         </form>
-      </section>
+      </AdminForm>
 
       <section className="card reveal">
         <div className="section-head">
           <div>
-            <div className="eyebrow">Catalogo actual</div>
+            <div className="eyebrow">Catalogo</div>
             <h2>Inventario listo para la tienda</h2>
           </div>
-          <button className="chip" type="button" onClick={loadProducts}>Actualizar</button>
+          <button className="chip press-feedback" type="button" onClick={loadProducts}>Actualizar</button>
         </div>
-        <div className="product-admin-grid">
+        <MoraScrollReveal as="div" className="product-admin-grid" selector=".product-admin-card" variant="fade-up" stagger={0.06} duration={0.5}>
           {inventory.length === 0 && <div className="empty-state">Todavia no hay productos cargados.</div>}
           {inventory.map((item) => {
             const cover = getProductCover(item);
             return (
-              <article key={item.id} className="product-admin-card">
+              <article key={item.id} className="product-admin-card lift-on-hover">
                 <div className="product-admin-media">
                   {cover ? <img src={cover.url} alt={item.name} /> : <div className="empty-state">Sin imagen</div>}
                 </div>
@@ -415,20 +491,20 @@ export default function ProductosPage() {
                     {item.featured && <span className="pill">Destacado</span>}
                   </div>
                   <div className="table-actions">
-                    <button className="chip" type="button" onClick={() => {
+                    <button className="chip press-feedback" type="button" onClick={() => {
                       setForm(mapProductToForm(item));
                       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}>Editar</button>
-                    <button className="chip" type="button" onClick={() => toggleActive(item)}>{item.active ? 'Ocultar' : 'Publicar'}</button>
-                    <button className="chip" type="button" onClick={() => deleteProduct(item)}>Eliminar</button>
-                    <button className="icon-btn" type="button" onClick={() => updateStock(item, -1)}>-</button>
-                    <button className="icon-btn" type="button" onClick={() => updateStock(item, 1)}>+</button>
+                    <button className="chip press-feedback" type="button" onClick={() => toggleActive(item)}>{item.active ? 'Ocultar' : 'Publicar'}</button>
+                    <button className="chip chip-danger press-feedback" type="button" onClick={() => setConfirmDelete(item)}>Eliminar</button>
+                    <button className="icon-btn press-feedback" type="button" onClick={() => updateStock(item, -1)}>-</button>
+                    <button className="icon-btn press-feedback" type="button" onClick={() => updateStock(item, 1)}>+</button>
                   </div>
                 </div>
               </article>
             );
           })}
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="card reveal">
@@ -467,14 +543,29 @@ export default function ProductosPage() {
                 ))}
               </div>
               <div className="sale-order-actions">
-                <button className="chip" type="button" onClick={() => updatePaymentStatus(sale.id, 'CONFIRMADO')}>Confirmar</button>
-                <button className="chip" type="button" onClick={() => updatePaymentStatus(sale.id, 'PENDIENTE')}>Pendiente</button>
-                <button className="chip" type="button" onClick={() => updatePaymentStatus(sale.id, 'ANULADO')}>Anular</button>
+                <button className="chip press-feedback" type="button" onClick={() => updatePaymentStatus(sale.id, 'CONFIRMADO')}>Confirmar</button>
+                <button className="chip press-feedback" type="button" onClick={() => updatePaymentStatus(sale.id, 'PENDIENTE')}>Pendiente</button>
+                <button className="chip press-feedback" type="button" onClick={() => updatePaymentStatus(sale.id, 'ANULADO')}>Anular</button>
               </div>
             </article>
           ))}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        title="Eliminar producto"
+        description={
+          confirmDelete
+            ? `Eliminar "${confirmDelete.name}"? Quedara archivado como no publicado.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

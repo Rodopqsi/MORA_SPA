@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
+import MoraScrollReveal from '../../../components/MoraScrollReveal';
 import { BookingTimeline } from '../BookingTimeline';
 import {
   BookingState,
@@ -80,7 +81,7 @@ export default function ReservarPaso2Page() {
   };
 
   return (
-    <div className="booking-shell">
+    <div className="booking-shell page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Reserva online</div>
@@ -88,7 +89,7 @@ export default function ReservarPaso2Page() {
           <p>Completa cada paso para reservar tu cita.</p>
         </div>
         <div className="page-actions">
-          <div className="pill">Paso 2 de 4</div>
+          <div className="pill pulse-glow">Paso 2 de 5</div>
         </div>
       </header>
 
@@ -113,7 +114,7 @@ export default function ReservarPaso2Page() {
             No hay personal suficiente para cubrir todos los servicios elegidos. Cambia la combinacion o separa la reserva.
           </div>
         )}
-        <div className="chip-row">
+        <MoraScrollReveal as="div" className="chip-row" selector=".chip" variant="fade-up" stagger={0.05} duration={0.45}>
           <button
             className={`chip ${booking.selectedStaff === 'any' ? 'chip-active' : ''}`}
             type="button"
@@ -132,10 +133,10 @@ export default function ReservarPaso2Page() {
               {member.name}
             </button>
           ))}
-        </div>
+        </MoraScrollReveal>
         <div className="booking-nav">
-          <button className="btn btn-outline" type="button" onClick={goBack}>Atras</button>
-          <button className="btn" type="button" onClick={goNext} disabled={!hasTeamCoverage}>Continuar</button>
+          <button className="btn btn-outline press-feedback" type="button" onClick={goBack}>Atras</button>
+          <button className="btn shine-on-hover press-feedback" type="button" onClick={goNext} disabled={!hasTeamCoverage}>Continuar</button>
         </div>
       </section>
     </div>

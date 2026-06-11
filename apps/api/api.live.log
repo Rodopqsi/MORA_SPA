@@ -1,0 +1,190 @@
+﻿API listening on http://localhost:4000/api
+node.exe : [api] POST /api/client-auth/login -> 500 SyntaxError: Expected 
+property name or '}' in JSON at position 1 (line 1 column 2)
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([api] POST /api...ine 1 column 2) 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    at JSON.parse (<anonymous>)
+    at parse (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\body-parser\lib\types\json.js:92:19)
+    at D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\raw-body\index.js:238:16)
+    at done (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:519:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections 
+(node:internal/process/task_queues:90:21) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: '{phone:999000111,password:cliente123}',
+  type: 'entity.parse.failed'
+}
+[0mPATCH /api/client-profile [33m401[0m 2.333 ms - 58[0m
+[0mPATCH /api/client-profile [33m401[0m 0.964 ms - 58[0m
+[api] POST /api/client-auth/login -> 500 SyntaxError: Expected property name 
+or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at parse (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\body-parser\lib\types\json.js:92:19)
+    at D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\raw-body\index.js:238:16)
+    at done (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:519:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections 
+(node:internal/process/task_queues:90:21) {
+  expose: true,
+  statusCode: 400,
+  status: 400,
+  body: '{phone:999000111,password:cliente123}',
+  type: 'entity.parse.failed'
+}
+[0mGET /api/health [32m200[0m 0.461 ms - 15[0m
+[0mPOST /api/client-auth/login [32m200[0m 111.057 ms - 345[0m
+[0mPATCH /api/client-profile [32m200[0m 3.869 ms - 298[0m
+[0mPATCH /api/client-profile [32m200[0m 3.172 ms - 293[0m
+[0mPATCH /api/client-profile [32m200[0m 3.213 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 5.580 ms - 11[0m
+[0mPOST /api/client-reservations [33m400[0m 2.150 ms - 58[0m
+[0mPOST /api/client-reservations [32m201[0m 28.713 ms - 442[0m
+[0mGET /api/client-reservations [32m200[0m 1.979 ms - 444[0m
+[0mPOST /api/auth/login [32m200[0m 71.544 ms - 299[0m
+[0mGET /api/reservations [32m200[0m 36.792 ms - 10057[0m
+[0mPATCH /api/reservations/13 [32m200[0m 6.475 ms - 253[0m
+[0mGET /api/client-reservations [32m200[0m 3.855 ms - 436[0m
+[0mGET /api/client-albums [32m200[0m 5.196 ms - 11[0m
+[0mGET /api/client-reviews [32m200[0m 3.599 ms - 11[0m
+[0mPOST /api/auth/login [32m200[0m 63.469 ms - 299[0m
+[0mGET /api/metrics/summary [32m200[0m 105.891 ms - 5693[0m
+[0mGET /api/staff [32m200[0m 4.260 ms - 758[0m
+[0mGET /api/services [32m200[0m 4.352 ms - 1345[0m
+[0mGET /api/clients [32m200[0m 3.418 ms - 2904[0m
+[0mGET /api/products [32m200[0m 4.930 ms - 1774[0m
+[0mGET /api/promotions [32m200[0m 5.641 ms - 635[0m
+[0mPOST /api/public/orders [33m400[0m 1.085 ms - 78[0m
+[0mPOST /api/public/orders [32m201[0m 16.631 ms - 783[0m
+[0mPOST /api/auth/login [32m200[0m 70.519 ms - 299[0m
+[0mGET /api/sales [32m200[0m 7.328 ms - 1809[0m
+[0mPATCH /api/sales/2/payment-status [33m400[0m 1.397 ms - 136[0m
+[0mPOST /api/auth/login [32m200[0m 72.077 ms - 299[0m
+[0mPATCH /api/sales/2/payment-status [32m200[0m 8.820 ms - 751[0m
+[0mPOST /api/client-auth/login [32m200[0m 70.687 ms - 345[0m
+[0mGET /api/client-auth/me [32m200[0m 4.395 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 4.552 ms - 436[0m
+[0mGET /api/client-auth/me [32m200[0m 3.276 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 2.342 ms - 436[0m
+[0mGET /api/client-auth/me [32m200[0m 2.347 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 4.548 ms - 436[0m
+[0mGET /api/client-auth/me [32m200[0m 2.975 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 2.748 ms - 436[0m
+[0mGET /api/client-auth/me [32m200[0m 2.117 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 2.301 ms - 436[0m
+[0mGET /api/public/services [32m200[0m 2.760 ms - 1256[0m
+[0mGET /api/public/services [32m200[0m 2.255 ms - 1256[0m
+[0mGET /api/public/services [32m200[0m 3.291 ms - 1256[0m
+[0mGET /api/public/services [32m200[0m 1.951 ms - 1256[0m
+[0mGET /api/public/staff [32m200[0m 2.829 ms - 2096[0m
+[0mGET /api/public/staff [32m200[0m 3.622 ms - 2096[0m
+[0mGET /api/public/staff [32m200[0m 3.286 ms - 2096[0m
+[0mGET /api/public/staff [32m200[0m 2.991 ms - 2096[0m
+[0mGET /api/public/availability?date=2026-06-10&serviceIds=6&staffId=3 [32m200[0m 8.521 ms - 4951[0m
+[0mGET /api/public/availability?date=2026-06-10&serviceIds=6&staffId=3 [32m200[0m 13.182 ms - 4951[0m
+[0mGET /api/public/services [32m200[0m 58.541 ms - 1256[0m
+[0mGET /api/public/services [32m200[0m 61.755 ms - 1256[0m
+[0mPOST /api/client-reservations [32m201[0m 22.794 ms - 417[0m
+[0mGET /api/client-reservations [32m200[0m 4.453 ms - 845[0m
+[0mGET /api/public/business-config [32m200[0m 3.750 ms - 205[0m
+[0mGET /api/public/business-config [32m200[0m 1.719 ms - 205[0m
+[0mGET /api/client-reservations [32m200[0m 8.486 ms - 845[0m
+[0mPOST /api/client-reservations/14/payments [32m201[0m 23.497 ms - 163[0m
+[0mGET /api/client-auth/me [32m200[0m 9.442 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 5.320 ms - 837[0m
+[0mGET /api/client-auth/me [32m200[0m 5.502 ms - 293[0m
+[0mGET /api/client-reservations [32m200[0m 5.065 ms - 837[0m
+[0mGET /api/reservations/14 [32m200[0m 10.009 ms - 1259[0m
+[0mGET /api/reservations [32m200[0m 4.279 ms - 10822[0m
+10:11:10 p.┬ám. [tsx] change in ./apps\api\src\routes.ts Restarting...
+cAPI listening on http://localhost:4000/api
+10:11:15 p.┬ám. [tsx] change in ./apps\api\src\routes.ts Restarting...
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\express\lib\application.js:635:24)
+    at app (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\apps\api\src\index.ts:5:5)
+    at Object.<anonymous> (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\apps\api\src\index.ts:7:2)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object.transformer (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\tsx\dist\register-BOkp8V6j.cjs:9:3176)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections 
+(node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+
+Node.js v22.19.0
+c10:11:19 p.┬ám. [tsx] change in ./apps\api\src\routes.ts Rerunning...
+cAPI listening on http://localhost:4000/api
+10:11:24 p.┬ám. [tsx] change in ./apps\api\src\routes.ts Restarting...
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::4000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\express\lib\application.js:635:24)
+    at app (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\apps\api\src\index.ts:5:5)
+    at Object.<anonymous> (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\apps\api\src\index.ts:7:2)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object.transformer (D:\Desarrollo de aplicaciones Web 
+avanzado\proyecto\node_modules\tsx\dist\register-BOkp8V6j.cjs:9:3176)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections 
+(node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 4000
+}
+
+Node.js v22.19.0

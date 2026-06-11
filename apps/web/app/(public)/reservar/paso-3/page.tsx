@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
-import { clientFetch } from '../../../lib/clientApi';
 import { BookingTimeline } from '../BookingTimeline';
+import MoraScrollReveal from '../../../components/MoraScrollReveal';
 import {
   Availability,
   AvailabilityMeta,
@@ -63,7 +63,7 @@ export default function ReservarPaso3Page() {
     }
 
     setLoading(true);
-    clientFetch<{ data: Availability[]; meta: AvailabilityMeta }>(`/client-availability?${params.toString()}`)
+    apiFetch<{ data: Availability[]; meta: AvailabilityMeta }>(`/public/availability?${params.toString()}`)
       .then((res) => {
         const data = res.data ?? [];
         setMeta(res.meta ?? null);
@@ -135,7 +135,7 @@ export default function ReservarPaso3Page() {
   };
 
   return (
-    <div className="booking-shell">
+    <div className="booking-shell page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Reserva online</div>
@@ -143,7 +143,7 @@ export default function ReservarPaso3Page() {
           <p>Completa cada paso para reservar tu cita.</p>
         </div>
         <div className="page-actions">
-          <div className="pill">Paso 3 de 4</div>
+          <div className="pill pulse-glow">Paso 3 de 5</div>
         </div>
       </header>
 
@@ -180,13 +180,13 @@ export default function ReservarPaso3Page() {
           </div>
         )}
 
-        <div className="booking-slot-grid">
+        <MoraScrollReveal as="div" className="booking-slot-grid" selector=".booking-slot" variant="fade-up" stagger={0.05} duration={0.5}>
           {slots.flatMap((entry) =>
             entry.slots.map((slot) => (
               <button
                 key={slot.id}
                 type="button"
-                className={`booking-slot ${
+                className={`booking-slot lift-on-hover ${
                   booking.selectedSlot?.id === slot.id
                     ? 'active'
                     : ''
@@ -212,13 +212,13 @@ export default function ReservarPaso3Page() {
               </button>
             ))
           )}
-        </div>
+        </MoraScrollReveal>
 
         <div className="booking-nav">
-          <button className="btn btn-outline" type="button" onClick={goBack}>
+          <button className="btn btn-outline press-feedback" type="button" onClick={goBack}>
             Atras
           </button>
-          <button className="btn" type="button" onClick={goNext}>
+          <button className="btn shine-on-hover press-feedback" type="button" onClick={goNext}>
             Continuar
           </button>
         </div>

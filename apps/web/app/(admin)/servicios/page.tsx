@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import ImageUploader, { type UploaderImage } from '../../components/ImageUploader';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { AdminForm } from '../../components/AdminForm';
 
 type Service = {
   id: number;
@@ -10,20 +14,67 @@ type Service = {
   durationMin: number;
   priceBase: string;
   active: boolean;
+  coverUrl?: string | null;
+  images?: UploaderImage[];
 };
 
-const createEmptyForm = () => ({
-  id: null as number | null,
+type ServiceForm = {
+  id: number | null;
+  name: string;
+  description: string;
+  durationMin: number;
+  priceBase: number;
+  active: boolean;
+  coverUrl: string;
+  images: UploaderImage[];
+};
+
+const createEmptyForm = (): ServiceForm => ({
+  id: null,
   name: '',
   description: '',
   durationMin: 30,
-  priceBase: 0
+  priceBase: 0,
+  active: true,
+  coverUrl: '',
+  images: []
 });
+
+const normalizeServiceImages = (service: Service): UploaderImage[] => {
+  if (!service.images || service.images.length === 0) return [];
+  return service.images.map((img) => ({
+    url: img.url,
+    fileName: img.fileName,
+    source: img.source,
+    isCover: img.isCover
+  }));
+};
+
+const ensureCover = (images: UploaderImage[]): UploaderImage[] => {
+  const cleaned = images.filter((i) => i.url.trim().length > 0);
+  if (cleaned.length === 0) return [];
+  const coverIndex = cleaned.findIndex((i) => i.isCover);
+  return cleaned.map((i, idx) => ({
+    ...i,
+    isCover: coverIndex === -1 ? idx === 0 : idx === coverIndex
+  }));
+};
+
+const serviceCover = (service: Service): string | null => {
+  if (service.coverUrl) return service.coverUrl;
+  const images = service.images ?? [];
+  const cover = images.find((i) => i.isCover);
+  if (cover) return cover.url;
+  return images[0]?.url ?? null;
+};
 
 export default function ServiciosPage() {
   const [services, setServices] = useState<Service[]>([]);
-  const [form, setForm] = useState(createEmptyForm());
+  const [form, setForm] = useState<ServiceForm>(createEmptyForm());
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Service | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const loadServices = () => {
@@ -44,21 +95,36 @@ export default function ServiciosPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    setSaving(true);
 
     try {
+      const normalized = ensureCover(form.images);
+      const cover = normalized.find((i) => i.isCover);
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        durationMin: Number(form.durationMin),
+        priceBase: Number(form.priceBase),
+        active: form.active,
+        coverUrl: form.coverUrl.trim() || cover?.url || undefined,
+        images: normalized.map((img) => ({
+          url: img.url,
+          fileName: img.fileName,
+          source: img.source,
+          isCover: img.isCover
+        }))
+      };
+
       await staffFetch(form.id ? `/services/${form.id}` : '/services', {
         method: form.id ? 'PATCH' : 'POST',
-        body: JSON.stringify({
-          name: form.name.trim(),
-          description: form.description.trim() || undefined,
-          durationMin: Number(form.durationMin),
-          priceBase: Number(form.priceBase)
-        })
+        body: JSON.stringify(payload)
       });
       resetForm();
       loadServices();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -68,28 +134,34 @@ export default function ServiciosPage() {
       name: service.name,
       description: service.description ?? '',
       durationMin: service.durationMin,
-      priceBase: Number(service.priceBase)
+      priceBase: Number(service.priceBase),
+      active: service.active,
+      coverUrl: service.coverUrl ?? '',
+      images: normalizeServiceImages(service)
     });
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleDelete = async (service: Service) => {
-    const confirmed = window.confirm(`Eliminar ${service.name}? Quedara archivado como inactivo.`);
-    if (!confirmed) return;
-
+  const handleDeleteConfirm = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
     setError('');
     try {
-      await staffFetch(`/services/${service.id}`, { method: 'DELETE' });
-      if (form.id === service.id) {
+      await staffFetch(`/services/${confirmDelete.id}`, { method: 'DELETE' });
+      if (form.id === confirmDelete.id) {
         resetForm();
       }
       loadServices();
+      setConfirmDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
     }
   };
 
   const toggleActive = async (service: Service) => {
+    setError('');
     try {
       await staffFetch(`/services/${service.id}`, {
         method: 'PATCH',
@@ -102,36 +174,54 @@ export default function ServiciosPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Catalogo de servicios</div>
           <h1>Servicios que enamoran</h1>
-          <p>Duraciones, costos y especialistas alineados con tu agenda.</p>
+          <p>Duraciones, costos, imagenes y especialistas alineados con tu agenda.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => {
-            resetForm();
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}>
+          <button
+            className="btn btn-primary shine-on-hover press-feedback"
+            onClick={() => {
+              resetForm();
+              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
             Nuevo servicio
           </button>
         </div>
       </header>
 
-      <section className="card reveal" ref={formRef}>
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">{form.id ? 'Editar servicio' : 'Nuevo servicio'}</div>
-            <h2>{form.id ? 'Actualizar servicio' : 'Crear servicio'}</h2>
-          </div>
-          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
-        </div>
+      <AdminForm
+        eyebrow={form.id ? 'Editar servicio' : 'Nuevo servicio'}
+        title={form.id ? 'Actualizar servicio' : 'Crear servicio'}
+        onReset={resetForm}
+        sectionRef={formRef}
+      >
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Nombre
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </label>
+          <div className="form-row-2">
+            <label>
+              Nombre
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Corte y diseno canino"
+              />
+            </label>
+            <label>
+              Estado
+              <select
+                value={form.active ? '1' : '0'}
+                onChange={(e) => setForm({ ...form, active: e.target.value === '1' })}
+              >
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
+              </select>
+            </label>
+          </div>
           <label>
             Descripcion
             <textarea
@@ -141,58 +231,114 @@ export default function ServiciosPage() {
               placeholder="Describe el servicio, beneficios o alcance."
             />
           </label>
-          <label>
-            Duracion (min)
-            <input
-              type="number"
-              min="1"
-              value={form.durationMin}
-              onChange={(e) => setForm({ ...form, durationMin: Number(e.target.value) })}
-            />
-          </label>
-          <label>
-            Precio base
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.priceBase}
-              onChange={(e) => setForm({ ...form, priceBase: Number(e.target.value) })}
-            />
-          </label>
-          {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">{form.id ? 'Actualizar' : 'Guardar'}</button>
-        </form>
-      </section>
-
-      <section className="grid grid-2">
-        {services.map((service, index) => (
-          <div
-            key={service.id}
-            className="card service-card reveal"
-            style={{ animationDelay: `${index * 90}ms` }}
-          >
-            <div className="service-title">{service.name}</div>
-            <p>{service.description?.trim() || 'Sin descripcion registrada.'}</p>
-            <div className="service-meta">
-              <span className="pill">{service.durationMin} min</span>
-              <span className="pill">S/ {service.priceBase}</span>
-            </div>
-            <div className="service-sub">Estado: {service.active ? 'Activo' : 'Inactivo'}</div>
-            <div className="service-actions">
-              <button className="chip" onClick={() => handleEdit(service)}>
-                Editar
-              </button>
-              <button className="chip" onClick={() => toggleActive(service)}>
-                {service.active ? 'Desactivar' : 'Activar'}
-              </button>
-              <button className="chip" onClick={() => handleDelete(service)}>
-                Eliminar
-              </button>
-            </div>
+          <div className="form-row-2">
+            <label>
+              Duracion (min)
+              <input
+                type="number"
+                min="1"
+                value={form.durationMin}
+                onChange={(e) => setForm({ ...form, durationMin: Number(e.target.value) })}
+              />
+            </label>
+            <label>
+              Precio base (S/)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.priceBase}
+                onChange={(e) => setForm({ ...form, priceBase: Number(e.target.value) })}
+              />
+            </label>
           </div>
-        ))}
-      </section>
+
+          <div className="form-section">
+            <ImageUploader
+              bucket="services"
+              value={form.images}
+              onChange={(images) => setForm({ ...form, images })}
+              maxFiles={8}
+              label="Imagenes del servicio (max 8)"
+            />
+            <p className="form-hint">
+              La primera imagen marcada como <strong>portada</strong> se mostrara en el catalogo publico.
+            </p>
+          </div>
+
+          {error && <div className="auth-error">{error}</div>}
+          <div className="form-actions">
+            <button className="btn btn-primary shine-on-hover press-feedback" type="submit" disabled={saving}>
+              {saving ? 'Guardando...' : form.id ? 'Actualizar servicio' : 'Guardar servicio'}
+            </button>
+          </div>
+        </form>
+      </AdminForm>
+
+      <MoraScrollReveal as="section" className="grid grid-2" selector=".service-card" variant="fade-up" stagger={0.07} duration={0.6}>
+        {services.length === 0 && (
+          <div className="card empty-state">
+            <div className="empty-state-icon">SR</div>
+            <h3>Aun no hay servicios</h3>
+            <p>Empieza creando el primero con el boton de arriba.</p>
+          </div>
+        )}
+        {services.map((service, index) => {
+          const cover = serviceCover(service);
+          return (
+            <div
+              key={service.id}
+              className="card service-card lift-on-hover reveal"
+              style={{ animationDelay: `${index * 90}ms` }}
+            >
+              <div className="service-card-image">
+                {cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={cover} alt={service.name} />
+                ) : (
+                  <div className="service-card-placeholder">{service.name.slice(0, 2).toUpperCase()}</div>
+                )}
+              </div>
+              <div className="service-card-body">
+                <div className="service-title">{service.name}</div>
+                <p>{service.description?.trim() || 'Sin descripcion registrada.'}</p>
+                <div className="service-meta">
+                  <span className="pill">{service.durationMin} min</span>
+                  <span className="pill">S/ {service.priceBase}</span>
+                  {service.images && service.images.length > 1 && (
+                    <span className="pill pill-soft">+{service.images.length - 1} fotos</span>
+                  )}
+                </div>
+                <div className={`status-pill ${service.active ? 'status-on' : 'status-off'}`}>
+                  {service.active ? 'Activo' : 'Inactivo'}
+                </div>
+                <div className="service-actions">
+                  <button className="chip press-feedback" onClick={() => handleEdit(service)}>
+                    Editar
+                  </button>
+                  <button className="chip press-feedback" onClick={() => toggleActive(service)}>
+                    {service.active ? 'Desactivar' : 'Activar'}
+                  </button>
+                  <button className="chip chip-danger press-feedback" onClick={() => setConfirmDelete(service)}>
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </MoraScrollReveal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Eliminar servicio"
+        description={`Eliminar "${confirmDelete?.name}"? Quedara archivado como inactivo y no sera visible al cliente.`}
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

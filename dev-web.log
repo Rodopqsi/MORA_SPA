@@ -1,0 +1,203 @@
+
+> dev
+> next dev -p 3000
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1793ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.7s (460 modules)
+ GET /_next/static/webpack/f7cd97a44626e2ff.webpack.hot-update.json 404 in 2892ms
+ GET /_next/static/webpack/f7cd97a44626e2ff.webpack.hot-update.json 404 in 224ms
+ ○ Compiling /tienda ...
+ ✓ Compiled /tienda in 3s (520 modules)
+ GET /reservar/paso-1 200 in 3177ms
+ GET /tienda 200 in 3191ms
+ GET /_next/static/webpack/f7cd97a44626e2ff.webpack.hot-update.json 404 in 491ms
+ GET /_next/static/webpack/f7cd97a44626e2ff.webpack.hot-update.json 404 in 492ms
+ GET /reservar/paso-1 200 in 52ms
+ GET /tienda 200 in 54ms
+ ✓ Compiled / in 430ms (544 modules)
+ GET / 200 in 556ms
+ GET / 200 in 68ms
+ GET / 200 in 39ms
+ ✓ Compiled /middleware in 273ms (73 modules)
+ ✓ Compiled /admin/login in 301ms (550 modules)
+ GET /admin/login 200 in 398ms
+ GET /admin/login 200 in 68ms
+ GET /admin/login 200 in 88ms
+ GET /admin/login 200 in 55ms
+ GET /admin/login 200 in 72ms
+ GET /admin/login 200 in 54ms
+ GET /tienda 200 in 40ms
+ GET /reservar/paso-1 200 in 38ms
+ ✓ Compiled /reservar/paso-2 in 283ms (556 modules)
+ GET /reservar/paso-2 200 in 354ms
+ ✓ Compiled /reservar/paso-3 in 291ms (562 modules)
+ GET /reservar/paso-3 200 in 359ms
+ ✓ Compiled /reservar/paso-4 in 355ms (568 modules)
+ GET /reservar/paso-4 200 in 435ms
+ ✓ Compiled /reservar/paso-5 in 392ms (574 modules)
+ GET /reservar/paso-5 200 in 464ms
+ ✓ Compiled /login in 244ms (580 modules)
+ GET /login 200 in 309ms
+ GET /admin/login 200 in 66ms
+ GET / 200 in 73ms
+ GET / 200 in 83ms
+ GET / 200 in 35ms
+ GET / 200 in 36ms
+ GET /tienda 500 in 285ms
+ GET /tienda 500 in 85ms
+ ✓ Compiled in 292ms (553 modules)
+ GET /tienda 200 in 337ms
+ GET / 500 in 192ms
+ ✓ Compiled in 186ms (553 modules)
+ GET / 200 in 90ms
+ GET / 200 in 34ms
+ GET /tienda 200 in 47ms
+ ✓ Compiled /reservar/paso-3 in 172ms (279 modules)
+ GET /reservar/paso-3 200 in 267ms
+ ✓ Compiled /login in 84ms (283 modules)
+ GET /login 200 in 180ms
+ ✓ Compiled /admin/login in 101ms (287 modules)
+ GET /admin/login 200 in 169ms
+ ✓ Compiled /_not-found in 247ms (568 modules)
+ GET /admin/dashboard 404 in 318ms
+ ✓ Compiled in 425ms (553 modules)
+ ✓ Compiled in 112ms (278 modules)
+ GET / 200 in 106ms
+ GET /tienda 200 in 55ms
+ ✓ Compiled /login in 85ms (279 modules)
+ GET /login 200 in 201ms
+ GET /reservar/paso-1 200 in 63ms
+ ✓ Compiled /reservar/paso-2 in 126ms (283 modules)
+ GET /reservar/paso-2 200 in 198ms
+ ✓ Compiled /reservar/paso-3 in 79ms (287 modules)
+ GET /reservar/paso-3 200 in 170ms
+ ✓ Compiled /admin/login in 91ms (291 modules)
+ GET /admin/login 200 in 173ms
+ GET /admin/login 200 in 50ms
+ GET /admin/login 200 in 49ms
+ GET /admin/login 200 in 70ms
+ GET /admin/login 200 in 50ms
+ GET /admin/login 200 in 51ms
+ GET /admin/login 200 in 47ms
+ ✓ Compiled /busqueda in 379ms (593 modules)
+ GET /busqueda 200 in 438ms
+ GET /admin/login 200 in 38ms
+ GET /admin/login 200 in 54ms
+ GET /admin/login 200 in 67ms
+ GET /admin/login 200 in 55ms
+ GET /reservar/paso-1 200 in 42ms
+ GET / 200 in 85ms
+ GET /reservar/paso-1 200 in 63ms
+ GET / 200 in 59ms
+ GET /tienda 200 in 65ms
+ GET /login 200 in 72ms
+ GET /reservar/paso-1 200 in 51ms
+ GET /reservar/paso-2 200 in 83ms
+ GET /reservar/paso-3 200 in 65ms
+ GET /admin/login 200 in 62ms
+ GET /admin/login 200 in 40ms
+ GET /admin/login 200 in 35ms
+ GET /admin/login 200 in 48ms
+ GET /admin/login 200 in 42ms
+ GET /admin/login 200 in 45ms
+ GET /admin/login 200 in 58ms
+ GET /busqueda 200 in 64ms
+ GET /admin/login 200 in 35ms
+ GET /admin/login 200 in 52ms
+ GET /admin/login 200 in 34ms
+ GET /admin/login 200 in 45ms
+ GET / 200 in 48ms
+ GET /tienda 200 in 38ms
+ GET /login 200 in 58ms
+ GET /reservar/paso-1 200 in 56ms
+ GET /reservar/paso-2 200 in 56ms
+ GET /reservar/paso-3 200 in 76ms
+ GET /admin/login 200 in 51ms
+ GET /admin/login 200 in 51ms
+ GET /admin/login 200 in 68ms
+ GET /admin/login 200 in 55ms
+ GET /admin/login 200 in 38ms
+ GET /admin/login 200 in 76ms
+ GET /admin/login 200 in 55ms
+ GET /busqueda 200 in 63ms
+ GET /admin/login 200 in 55ms
+ GET /admin/login 200 in 45ms
+ GET /admin/login 200 in 42ms
+ GET /admin/login 200 in 51ms
+ GET /login 200 in 55ms
+ GET /admin/login 200 in 62ms
+ GET /admin/login 200 in 34ms
+ GET /admin/login 200 in 58ms
+ GET /admin/login 200 in 69ms
+ GET /admin/login 200 in 81ms
+ GET /admin/login 200 in 64ms
+ GET /admin/login 200 in 71ms
+ GET /admin/login 200 in 88ms
+ GET /admin/login 200 in 69ms
+ GET /admin/login 200 in 46ms
+ GET /admin/login 200 in 78ms
+ GET /admin/login 200 in 181ms
+ GET / 200 in 58ms
+ GET /admin/login 200 in 53ms
+ GET /admin/login 200 in 73ms
+ GET /admin/login 200 in 79ms
+ GET /reservar/paso-3 200 in 71ms
+ GET /admin/login 200 in 47ms
+ GET /admin/login 200 in 59ms
+ GET /reservar/paso-1 200 in 39ms
+ GET /login 200 in 64ms
+ GET /admin/login 200 in 49ms
+ GET /admin/login 200 in 61ms
+ GET /admin/login 200 in 46ms
+ GET /busqueda 200 in 70ms
+ GET /admin/login 200 in 50ms
+ GET /tienda 200 in 83ms
+ GET /reservar/paso-2 200 in 57ms
+ GET /admin/login 200 in 68ms
+ GET / 200 in 85ms
+ GET /admin/login 200 in 81ms
+ ✓ Compiled /_not-found in 278ms (596 modules)
+ GET /_next/static/chunks/app/(admin)/equipo/page.js 404 in 386ms
+ GET /admin/login 200 in 93ms
+ GET /admin/login 200 in 67ms
+ GET /admin/login 200 in 61ms
+ GET /admin/login 200 in 46ms
+ GET /admin/login 200 in 52ms
+ GET /admin/login 200 in 33ms
+ GET /admin/login 200 in 44ms
+ GET /admin/login 200 in 61ms
+ GET /admin/login 200 in 79ms
+ GET /admin/login 200 in 52ms
+ GET /admin/login 200 in 48ms
+ GET /admin/login 200 in 46ms
+ GET /admin/login 200 in 63ms
+ GET /admin/login 200 in 42ms
+ GET /admin/login 200 in 62ms
+ GET /admin/login 200 in 66ms
+ GET /admin/login 200 in 60ms
+ GET /admin/login 200 in 78ms
+ GET /admin/login 200 in 61ms
+ GET /admin/login 200 in 65ms
+ GET /admin/login 200 in 43ms
+ GET /admin/login 200 in 35ms
+ GET /admin/login 200 in 39ms
+ GET /tienda 200 in 79ms
+ GET / 200 in 48ms
+ GET / 200 in 51ms
+ ✓ Compiled in 658ms (580 modules)
+ GET / 200 in 115ms
+ GET /tienda 200 in 44ms
+ ✓ Compiled /login in 108ms (283 modules)
+ GET /login 200 in 274ms
+ GET /reservar/paso-1 200 in 105ms
+ ✓ Compiled /reservar/paso-2 in 155ms (287 modules)
+ GET /reservar/paso-2 200 in 259ms
+ ✓ Compiled /reservar/paso-3 in 107ms (291 modules)
+ GET /reservar/paso-3 200 in 214ms
+[?25h

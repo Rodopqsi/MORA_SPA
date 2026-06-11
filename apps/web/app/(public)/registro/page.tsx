@@ -47,7 +47,7 @@ export default function RegistroPage() {
   };
 
   return (
-    <div className="auth-shell">
+    <div className="auth-shell page-enter">
       <div className="auth-card">
         <h1>Crea tu cuenta</h1>
         <p>Registra tus datos y agenda con prioridad.</p>
@@ -69,7 +69,7 @@ export default function RegistroPage() {
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" disabled={loading} type="submit">
+          <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit">
             {loading ? 'Creando...' : 'Crear cuenta'}
           </button>
         </form>

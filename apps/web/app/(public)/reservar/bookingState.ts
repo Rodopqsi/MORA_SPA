@@ -52,7 +52,8 @@ export const stepItems = [
   { id: 1, label: 'Servicios' },
   { id: 2, label: 'Especialista' },
   { id: 3, label: 'Horario' },
-  { id: 4, label: 'Resumen' }
+  { id: 4, label: 'Resumen' },
+  { id: 5, label: 'Pago' }
 ];
 
 export const defaultBookingState = (): BookingState => ({

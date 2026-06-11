@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type Review = { id: number; clientId: number; rating: number; comment?: string | null; status: string; visible: boolean };
 type Client = { id: number; name: string };
@@ -49,7 +50,7 @@ export default function ResenasPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Reseñas y reputación</div>
@@ -57,7 +58,7 @@ export default function ResenasPage() {
           <p>Modera, responde y usa el feedback para mejorar.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <button className="btn shine-on-hover press-feedback" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             Nueva reseña
           </button>
         </div>
@@ -65,11 +66,11 @@ export default function ResenasPage() {
 
       {error && <div className="auth-error">{error}</div>}
 
-      <section className="grid grid-2">
+      <MoraScrollReveal as="section" className="grid grid-2" selector=".review-card" variant="fade-up" stagger={0.07} duration={0.6}>
         {reviews.map((review, index) => (
           <div
             key={review.id}
-            className="card review-card reveal"
+            className="card review-card lift-on-hover reveal"
             style={{ animationDelay: `${index * 80}ms` }}
           >
             <div className="review-header">
@@ -84,12 +85,12 @@ export default function ResenasPage() {
             </div>
             <p className="review-text">{review.comment ?? 'Sin comentario'}</p>
             <div className="service-actions">
-              <button className="chip" onClick={() => moderate(review.id, 'APROBADA')}>Aprobar</button>
-              <button className="chip" onClick={() => moderate(review.id, 'OCULTA')}>Ocultar</button>
+              <button className="chip press-feedback" onClick={() => moderate(review.id, 'APROBADA')}>Aprobar</button>
+              <button className="chip press-feedback" onClick={() => moderate(review.id, 'OCULTA')}>Ocultar</button>
             </div>
           </div>
         ))}
-      </section>
+      </MoraScrollReveal>
     </div>
   );
 }

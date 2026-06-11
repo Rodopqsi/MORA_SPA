@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { normalizePersonName } from '../../lib/validation';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { AdminForm } from '../../components/AdminForm';
 
 type User = { id: number; username: string; fullName: string; active: boolean; roles: string[] };
 
@@ -19,6 +22,8 @@ export default function UsuariosPage() {
   const [roles, setRoles] = useState<string[]>([]);
   const [form, setForm] = useState(createEmptyForm());
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const loadData = () => {
@@ -95,19 +100,21 @@ export default function UsuariosPage() {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleDelete = async (user: User) => {
-    const confirmed = window.confirm(`Eliminar a ${user.fullName}? Quedara archivado como inactivo.`);
-    if (!confirmed) return;
-
+  const handleDeleteConfirm = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
     setError('');
     try {
-      await staffFetch(`/users/${user.id}`, { method: 'DELETE' });
-      if (form.id === user.id) {
+      await staffFetch(`/users/${confirmDelete.id}`, { method: 'DELETE' });
+      if (form.id === confirmDelete.id) {
         resetForm();
       }
       loadData();
+      setConfirmDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -124,7 +131,7 @@ export default function UsuariosPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Control de usuarios</div>
@@ -132,27 +139,32 @@ export default function UsuariosPage() {
           <p>Gestiona roles, permisos y accesos desde un solo lugar.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => {
-            resetForm();
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}>
+          <button
+            className="btn shine-on-hover press-feedback"
+            onClick={() => {
+              resetForm();
+              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
             Nuevo usuario
           </button>
         </div>
       </header>
 
-      <section className="card reveal" ref={formRef}>
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">{form.id ? 'Editar usuario' : 'Nuevo usuario'}</div>
-            <h2>{form.id ? 'Actualizar acceso' : 'Crear acceso'}</h2>
-          </div>
-          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
-        </div>
+      <AdminForm
+        eyebrow={form.id ? 'Editar usuario' : 'Nuevo usuario'}
+        title={form.id ? 'Actualizar acceso' : 'Crear acceso'}
+        onReset={resetForm}
+        sectionRef={formRef}
+      >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Usuario
-            <input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            <input
+              required
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+            />
           </label>
           <label>
             Nombre completo
@@ -179,14 +191,18 @@ export default function UsuariosPage() {
             Rol
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
               {roles.map((role) => (
-                <option key={role} value={role}>{role}</option>
+                <option key={role} value={role}>
+                  {role}
+                </option>
               ))}
             </select>
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">{form.id ? 'Actualizar' : 'Crear'}</button>
+          <button className="btn shine-on-hover press-feedback" type="submit">
+            {form.id ? 'Actualizar' : 'Crear'}
+          </button>
         </form>
-      </section>
+      </AdminForm>
 
       <section className="card reveal">
         <div className="table-head">
@@ -196,7 +212,7 @@ export default function UsuariosPage() {
           <div>Permisos</div>
           <div>Acciones</div>
         </div>
-        <div className="table-body">
+        <MoraScrollReveal as="div" className="table-body" selector=".table-row" variant="fade-up" stagger={0.05} duration={0.45}>
           {users.length === 0 && <div className="table-row">Sin usuarios.</div>}
           {users.map((user) => (
             <div key={user.id} className="table-row">
@@ -207,16 +223,35 @@ export default function UsuariosPage() {
               </div>
               <div className="table-sub">{user.username}</div>
               <div className="table-actions">
-                <button className="icon-btn" onClick={() => handleEdit(user)}>EDIT</button>
-                <button className="icon-btn danger" onClick={() => toggleActive(user)}>
+                <button className="icon-btn press-feedback" onClick={() => handleEdit(user)}>
+                  EDIT
+                </button>
+                <button className="icon-btn danger press-feedback" onClick={() => toggleActive(user)}>
                   {user.active ? 'OFF' : 'ON'}
                 </button>
-                <button className="icon-btn danger" onClick={() => handleDelete(user)}>DEL</button>
+                <button className="icon-btn danger press-feedback" onClick={() => setConfirmDelete(user)}>
+                  DEL
+                </button>
               </div>
             </div>
           ))}
-        </div>
+        </MoraScrollReveal>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        title="Eliminar usuario"
+        description={
+          confirmDelete
+            ? `Eliminar a "${confirmDelete.fullName}"? Quedara archivado como inactivo.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

@@ -1,0 +1,90 @@
+﻿
+> dev
+> next dev -p 3000
+
+  Ôû▓ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ Ô£ô Starting...
+ Ô£ô Ready in 2.3s
+ Ôùï Compiling / ...
+ Ô£ô Compiled / in 3.1s (535 modules)
+ GET / 200 in 3435ms
+ Ôùï Compiling /tienda ...
+ Ô£ô Compiled /tienda in 3.3s (531 modules)
+ GET /tienda 200 in 3486ms
+ Ô£ô Compiled /middleware in 225ms (73 modules)
+ Ô£ô Compiled /login in 212ms (537 modules)
+ GET /login 200 in 291ms
+ Ô£ô Compiled /reservar/paso-1 in 268ms (547 modules)
+ GET /reservar/paso-1 200 in 344ms
+ Ô£ô Compiled /reservar/paso-2 in 280ms (553 modules)
+ GET /reservar/paso-2 200 in 360ms
+ Ô£ô Compiled /reservar/paso-3 in 344ms (559 modules)
+ GET /reservar/paso-3 200 in 434ms
+ GET / 200 in 61ms
+ GET /tienda 200 in 50ms
+ Ô£ô Compiled in 719ms (541 modules)
+node.exe :  ÔÜá Fast Refresh had to perform a full reload due to a runtime 
+error.
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( ÔÜá Fast Refre... runtime error. 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ ÔÜá Fast Refresh had to perform a full reload due to a runtime error.
+ GET /tienda 200 in 240ms
+ GET /tienda 200 in 427ms
+ Ô£ô Compiled in 244ms (541 modules)
+ ÔÜá Fast Refresh had to perform a full reload due to a runtime error.
+ ÔÜá Fast Refresh had to perform a full reload due to a runtime error.
+ GET /tienda 200 in 295ms
+ GET /tienda 200 in 184ms
+ Ô£ô Compiled in 403ms (541 modules)
+ Ô£ô Compiled in 574ms (555 modules)
+ Ô£ô Compiled in 282ms (555 modules)
+ Ô£ô Compiled in 241ms (555 modules)
+ Ô£ô Compiled in 196ms (541 modules)
+ Ô£ô Compiled in 125ms (541 modules)
+ GET /tienda 200 in 124ms
+ Ô£ô Compiled in 201ms (541 modules)
+ Ô£ô Compiled in 175ms (541 modules)
+ GET /tienda 200 in 113ms
+ GET / 200 in 61ms
+ GET /tienda 200 in 60ms
+ GET /tienda 200 in 53ms
+ Ô£ô Compiled /reservar in 425ms (550 modules)
+ Ô£ô Compiled /reservar/paso-1 in 124ms (283 modules)
+ Ô£ô Compiled /reservar/paso-2 in 87ms (287 modules)
+ Ô£ô Compiled /reservar/paso-3 in 95ms (291 modules)
+ Ô£ô Compiled /reservar/paso-4 in 252ms (570 modules)
+ Ô£ô Compiled /_not-found in 383ms (573 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 503ms
+ GET /reservar/paso-1 200 in 77ms
+ Ô£ô Compiled /login in 156ms (283 modules)
+ GET /login 200 in 356ms
+ Ô£ô Compiled /mi-cuenta in 355ms (564 modules)
+ GET /reservar/paso-1 200 in 114ms
+ GET /reservar/paso-1 200 in 52ms
+ Ô£ô Compiled /reservar/paso-2 in 83ms (287 modules)
+ Ô£ô Compiled /reservar/paso-3 in 130ms (287 modules)
+ Ô£ô Compiled /reservar/paso-4 in 163ms (291 modules)
+ Ô£ô Compiled /reservar/paso-5 in 336ms (570 modules)
+ Ô£ô Compiled in 335ms (562 modules)
+ GET /reservar/paso-5?reservationId=15 200 in 124ms
+ Ô£ô Compiled /login in 148ms (287 modules)
+ GET /login 200 in 275ms
+ Ô£ô Compiled /mi-cuenta in 110ms (287 modules)
+ Ô£ô Compiled /reservar/paso-1 in 85ms (287 modules)
+ GET /reservar/paso-1 200 in 194ms
+ GET /reservar/paso-1 200 in 73ms
+ Ô£ô Compiled /reservar/paso-2 in 122ms (291 modules)
+ Ô£ô Compiled /reservar/paso-3 in 91ms (295 modules)
+ Ô£ô Compiled /reservar/paso-4 in 88ms (299 modules)
+ Ô£ô Compiled in 311ms (562 modules)
+ Ô£ô Compiled in 191ms (562 modules)
+ GET /reservar/paso-5?reservationId=16 200 in 107ms
+ Ô£ô Compiled /mi-cuenta in 183ms (287 modules)

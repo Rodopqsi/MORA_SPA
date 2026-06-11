@@ -15,7 +15,7 @@ const adminPaths = [
   '/albumes'
 ];
 
-const clientPaths = ['/mi-cuenta', '/reservar'];
+const clientPaths = ['/mi-cuenta'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -54,7 +54,6 @@ export const config = {
     '/productos/:path*',
     '/resenas/:path*',
     '/albumes/:path*',
-    '/mi-cuenta/:path*',
-    '/reservar/:path*'
+    '/mi-cuenta/:path*'
   ]
 };

@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { addMinutes } from 'date-fns';
 import {
@@ -12,7 +12,9 @@ import {
   requireRoles,
   hashPassword,
   verifyPassword,
-  signToken
+  signToken,
+  readPagination,
+  paginatedResponse
 } from './core';
 import {
   assertWithinWorkingHours,
@@ -22,6 +24,14 @@ import {
   isWithinWorkingHours,
   overlaps
 } from './schedule';
+import {
+  upload,
+  handleUploadError,
+  publicUrlFor,
+  UPLOAD_BUCKETS,
+  resolveUploadAbsolutePath
+} from './uploads';
+import { logAudit } from './audit';
 
 const router = Router();
 
@@ -77,6 +87,8 @@ const productImageInputSchema = z.object({
   source: z.enum(['URL', 'LOCAL']).optional(),
   isCover: z.boolean().optional()
 });
+
+const serviceImageInputSchema = productImageInputSchema;
 
 const reservationStatusSchema = z.enum([
   'PENDIENTE_ADELANTO',
@@ -183,7 +195,7 @@ const productInclude = {
 } satisfies Prisma.ProductInclude;
 
 const saleInclude = {
-  client: true,
+  client: { omit: { passwordHash: true } },
   user: true,
   details: {
     orderBy: { id: 'asc' },
@@ -627,6 +639,68 @@ router.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// ----- File uploads (admin/staff) -----
+router.post(
+  '/uploads',
+  authRequired,
+  upload.array('files', 8),
+  handleUploadError,
+  asyncHandler(async (req, res) => {
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+    if (files.length === 0) {
+      throw new AppError(400, 'No se enviaron archivos. Usa el campo "files".', 'no_files');
+    }
+    const rawBucket = (req.query.bucket as string | undefined) ?? (req.body?.bucket as string | undefined) ?? 'misc';
+    const bucket = (UPLOAD_BUCKETS as readonly string[]).includes(rawBucket) ? rawBucket : 'misc';
+
+    const data = files.map((file) => ({
+      url: publicUrlFor(bucket as (typeof UPLOAD_BUCKETS)[number], file.filename),
+      fileName: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype
+    }));
+
+    if (req.user) {
+      await logAudit({
+        entity: bucket === 'staff' ? 'STAFF' : bucket === 'clients' ? 'CLIENT' : bucket === 'services' ? 'SERVICE' : 'PRODUCT',
+        entityId: 0,
+        action: 'UPLOAD',
+        detail: `${data.length} archivo(s) -> ${bucket}`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
+
+    res.status(201).json({ data });
+  })
+);
+
+// Helper to remove a previously uploaded file (used by client to clean up)
+router.delete(
+  '/uploads',
+  authRequired,
+  requireRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const url = (req.query.url as string | undefined) ?? (req.body?.url as string | undefined);
+    if (!url) {
+      throw new AppError(400, 'Se requiere el parametro "url".', 'url_required');
+    }
+    const absolute = resolveUploadAbsolutePath(url);
+    if (!absolute) {
+      // External URL or unsupported scheme - silently succeed
+      res.json({ ok: true, removed: false, reason: 'external_url' });
+      return;
+    }
+    const fs = await import('fs/promises');
+    try {
+      await fs.unlink(absolute);
+      res.json({ ok: true, removed: true });
+    } catch (err) {
+      res.json({ ok: true, removed: false, reason: 'not_found' });
+    }
+  })
+);
+
 router.post(
   '/auth/login',
   asyncHandler(async (req, res) => {
@@ -847,7 +921,10 @@ router.get(
   '/client-auth/me',
   clientAuthRequired,
   asyncHandler(async (req, res) => {
-    const client = await prisma.client.findUnique({ where: { id: req.client!.id } });
+    const client = await prisma.client.findUnique({
+      where: { id: req.client!.id },
+      omit: { passwordHash: true }
+    });
     if (!client || !client.active) {
       throw new AppError(404, 'Client not found', 'not_found');
     }
@@ -859,7 +936,10 @@ router.get(
   '/client-profile',
   clientAuthRequired,
   asyncHandler(async (req, res) => {
-    const client = await prisma.client.findUnique({ where: { id: req.client!.id } });
+    const client = await prisma.client.findUnique({
+      where: { id: req.client!.id },
+      omit: { passwordHash: true }
+    });
     if (!client || !client.active) {
       throw new AppError(404, 'Client not found', 'not_found');
     }
@@ -912,7 +992,8 @@ router.patch(
         email: body.email,
         whatsapp: body.whatsapp,
         birthDate: body.birthDate ? parseDate(body.birthDate) : undefined
-      }
+      },
+      omit: { passwordHash: true }
     });
 
     res.json({ data: client });
@@ -924,6 +1005,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const services = await prisma.service.findMany({
       where: { active: true },
+      include: { images: { orderBy: { order: 'asc' } } },
       orderBy: { name: 'asc' }
     });
     res.json({ data: services });
@@ -958,38 +1040,45 @@ router.get(
   })
 );
 
+const availabilityHandler = async (req: Request, res: Response) => {
+  const date = req.query.date ? parseDate(String(req.query.date)) : null;
+  if (!date) {
+    throw new AppError(400, 'date is required', 'missing_date');
+  }
+
+  const serviceIds = String(req.query.serviceIds ?? '')
+    .split(',')
+    .map((value) => Number(value))
+    .filter((value) => !Number.isNaN(value) && value > 0);
+
+  if (serviceIds.length === 0) {
+    throw new AppError(400, 'serviceIds is required', 'missing_service_ids');
+  }
+
+  const staffId = req.query.staffId ? Number(req.query.staffId) : undefined;
+  const step = req.query.step ? Number(req.query.step) : 10;
+
+  const availability = await getAvailabilityPayload({
+    date,
+    serviceIds,
+    staffId,
+    step,
+    activeOnly: true,
+    applyMinAdvance: true
+  });
+
+  res.json(serializeAvailabilityPayload(availability));
+};
+
+router.get(
+  '/public/availability',
+  asyncHandler(availabilityHandler)
+);
+
 router.get(
   '/client-availability',
   clientAuthRequired,
-  asyncHandler(async (req, res) => {
-    const date = req.query.date ? parseDate(String(req.query.date)) : null;
-    if (!date) {
-      throw new AppError(400, 'date is required', 'missing_date');
-    }
-
-    const serviceIds = String(req.query.serviceIds ?? '')
-      .split(',')
-      .map((value) => Number(value))
-      .filter((value) => !Number.isNaN(value) && value > 0);
-
-    if (serviceIds.length === 0) {
-      throw new AppError(400, 'serviceIds is required', 'missing_service_ids');
-    }
-
-    const staffId = req.query.staffId ? Number(req.query.staffId) : undefined;
-    const step = req.query.step ? Number(req.query.step) : 10;
-
-    const availability = await getAvailabilityPayload({
-      date,
-      serviceIds,
-      staffId,
-      step,
-      activeOnly: true,
-      applyMinAdvance: true
-    });
-
-    res.json(serializeAvailabilityPayload(availability));
-  })
+  asyncHandler(availabilityHandler)
 );
 
 router.get(
@@ -1113,6 +1202,197 @@ router.post(
 );
 
 router.get(
+  '/public/business-config',
+  asyncHandler(async (_req, res) => {
+    const config = await prisma.businessConfig.findFirst();
+    res.json({ data: config ?? null });
+  })
+);
+
+// Proxy hacia Culqi para tokenizar la tarjeta del cliente.
+// El navegador NO puede llamar directo a secure.culqi.com por CORS, asi que
+// recibimos los datos de la tarjeta aqui y los reenviamos con la public key
+// desde el servidor. Esto evita exponer claves sensibles y resuelve el
+// error "token invalidado" que veian los clientes.
+router.post(
+  '/public/culqi/token',
+  asyncHandler(async (req, res) => {
+    const body = parse(
+      z.object({
+        card_number: z.string().trim().min(12).max(19),
+        cvv: z.string().trim().min(3).max(4),
+        expiration_month: z.string().trim().min(1).max(2),
+        expiration_year: z.string().trim().min(2).max(4),
+        email: z.string().trim().email().optional()
+      }),
+      req.body
+    );
+
+    const publicKey = process.env.CULQI_PUBLIC_KEY;
+    if (!publicKey) {
+      throw new AppError(500, 'Pasarela de pago no configurada', 'gateway_not_configured');
+    }
+
+    const culqiResp = await fetch('https://secure.culqi.com/v2/tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${publicKey}`
+      },
+      body: JSON.stringify({
+        card_number: body.card_number.replace(/\s+/g, ''),
+        cvv: body.cvv,
+        expiration_month: body.expiration_month.padStart(2, '0'),
+        expiration_year: body.expiration_year,
+        email: body.email
+      })
+    });
+
+    const culqiJson: any = await culqiResp.json().catch(() => ({}));
+
+    if (!culqiResp.ok || !culqiJson?.id) {
+      // Devolvemos el mensaje user_message de Culqi tal cual (ya viene en espanol
+      // cuando aplica) para que el cliente vea el motivo real del rechazo.
+      const message =
+        culqiJson?.user_message ||
+        culqiJson?.merchant_message ||
+        culqiJson?.error_message ||
+        'No se pudo generar el token de la tarjeta';
+      throw new AppError(400, message, 'culqi_token_failed');
+    }
+
+    res.json({ data: { id: culqiJson.id, brand: culqiJson?.brand ?? null } });
+  })
+);
+
+router.post(
+  '/client-reservations/:id/payments',
+  clientAuthRequired,
+  asyncHandler(async (req, res) => {
+    const reservationId = Number(req.params.id);
+    const body = parse(
+      z.object({
+        type: z.enum(['ADELANTO', 'SALDO', 'TOTAL']),
+        method: z.enum(['EFECTIVO', 'YAPE', 'PASARELA']),
+        amount: toNumber,
+        reference: z.preprocess(emptyStringToUndefined, z.string().optional()),
+        status: z.enum(['CONFIRMADO', 'ANULADO', 'PENDIENTE']).optional()
+      }),
+      req.body
+    );
+
+    const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!reservation) {
+      throw new AppError(404, 'Reservation not found', 'not_found');
+    }
+    if (reservation.clientId !== req.client!.id) {
+      throw new AppError(400, 'Client mismatch', 'invalid_client');
+    }
+
+    // Handle gateway payments (Culqi)
+    if (body.method === 'PASARELA') {
+      try {
+        const culqiSecret = process.env.CULQI_SECRET_KEY;
+        if (!culqiSecret) {
+          throw new AppError(500, 'Payment gateway not configured', 'gateway_not_configured');
+        }
+
+        const sourceId = body.reference;
+        if (!sourceId) {
+          // indicate client should provide a token
+          return res.status(201).json({ data: null, meta: { requiresGateway: true } });
+        }
+
+        const amountCents = Math.round(Number(body.amount) * 100);
+
+        const chargePayload = {
+          amount: amountCents,
+          currency_code: 'PEN',
+          email: req.client!.email ?? req.client!.phone ?? 'no-reply@example.com',
+          source_id: sourceId,
+          capture: true,
+          description: `Reservation #${reservationId}`
+        } as Record<string, unknown>;
+
+        const resp = await fetch('https://api.culqi.com/v2/charges', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${culqiSecret}`
+          },
+          body: JSON.stringify(chargePayload)
+        });
+
+        const result = await resp.json();
+
+        if (!resp.ok) {
+          // create pending payment record
+          const pending = await prisma.payment.create({
+            data: {
+              reservationId,
+              type: body.type,
+              method: body.method,
+              amount: body.amount,
+              reference: body.reference,
+              status: 'PENDIENTE'
+            }
+          });
+
+          return res.status(201).json({ data: pending, meta: { requiresGateway: true, gateway: { ok: false, error: result } } });
+        }
+
+        const chargeId = (result && (result.id || result.data?.id)) ?? null;
+
+        const payment = await prisma.payment.create({
+          data: {
+            reservationId,
+            type: body.type,
+            method: 'PASARELA',
+            amount: body.amount,
+            reference: String(chargeId ?? body.reference),
+            status: 'CONFIRMADO'
+          }
+        });
+
+        // update reservation status when advance is paid
+        await prisma.reservation.update({
+          where: { id: reservationId },
+          data: {
+            status: 'CONFIRMADA',
+            history: { create: { action: 'PAYMENT_CLIENT', detail: `Pago via pasarela ${chargeId}` } }
+          }
+        });
+
+        return res.status(201).json({ data: payment, meta: { requiresGateway: false, gateway: { ok: true, result } } });
+      } catch (err) {
+        return res.status(201).json({ data: null, meta: { requiresGateway: true, gateway: { ok: false, error: String(err) } } });
+      }
+    }
+
+    // Non-gateway payments
+    const payment = await prisma.payment.create({
+      data: {
+        reservationId,
+        type: body.type,
+        method: body.method,
+        amount: body.amount,
+        reference: body.reference,
+        status: body.status ?? 'CONFIRMADO'
+      }
+    });
+
+    if ((body.method === 'YAPE' || body.method === 'EFECTIVO') && (body.status ?? 'CONFIRMADO') === 'CONFIRMADO') {
+      await prisma.reservation.update({
+        where: { id: reservationId },
+        data: { status: 'CONFIRMADA', history: { create: { action: 'PAYMENT_CLIENT', detail: `Pago ${body.method}` } } }
+      });
+    }
+
+    res.status(201).json({ data: payment });
+  })
+);
+
+router.get(
   '/client-albums',
   clientAuthRequired,
   asyncHandler(async (req, res) => {
@@ -1225,20 +1505,95 @@ router.post(
       publicOnly: true
     });
 
-    res.status(201).json({
-      data: sale,
-      meta: {
-        requiresGateway: body.method === 'PASARELA'
+      // If payment method requires gateway, attempt server-side charge using Culqi
+      if (body.method === 'PASARELA') {
+        try {
+          const culqiSecret = process.env.CULQI_SECRET_KEY;
+          if (!culqiSecret) {
+            throw new AppError(500, 'Payment gateway not configured', 'gateway_not_configured');
+          }
+
+          // Expect client to send a token id in paymentReference when using PASARELA
+          const sourceId = body.paymentReference;
+          if (!sourceId) {
+            // Return sale and indicate gateway required
+            return res.status(201).json({ data: sale, meta: { requiresGateway: true } });
+          }
+
+          const amountCents = Math.round(Number(sale.total) * 100);
+
+          const chargePayload = {
+            amount: amountCents,
+            currency_code: 'PEN',
+            email: sale.customerEmail ?? sale.customerPhone ?? 'no-reply@example.com',
+            source_id: sourceId,
+            capture: true,
+            description: `Sale #${sale.id}`
+          } as Record<string, unknown>;
+
+          const resp = await fetch('https://api.culqi.com/v2/charges', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${culqiSecret}`
+            },
+            body: JSON.stringify(chargePayload)
+          });
+
+          const result = await resp.json();
+
+          if (!resp.ok) {
+            // mark sale as PENDIENTE and return gateway error
+            await prisma.productSale.update({ where: { id: sale.id }, data: { paymentStatus: 'PENDIENTE' } });
+            return res.status(201).json({ data: sale, meta: { requiresGateway: true, gateway: { ok: false, error: result } } });
+          }
+
+          // On success, save payment reference and mark as CONFIRMADO
+          const chargeId = (result && (result.id || result.data?.id)) ?? null;
+          if (chargeId) {
+            await prisma.productSale.update({ where: { id: sale.id }, data: { paymentStatus: 'CONFIRMADO', paymentReference: String(chargeId) } });
+          }
+
+          const updated = await prisma.productSale.findUnique({ where: { id: sale.id }, include: saleInclude });
+          return res.status(201).json({ data: updated ?? sale, meta: { requiresGateway: false, gateway: { ok: true, result } } });
+        } catch (err) {
+          // If gateway call failed unexpectedly, return sale and error meta
+          return res.status(201).json({ data: sale, meta: { requiresGateway: true, gateway: { ok: false, error: String(err) } } });
+        }
       }
-    });
+
+      res.status(201).json({
+        data: sale,
+        meta: {
+          requiresGateway: false
+        }
+      });
   })
 );
 
 router.get(
   '/services',
-  asyncHandler(async (_req, res) => {
-    const services = await prisma.service.findMany({ orderBy: { name: 'asc' } });
-    res.json({ data: services });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.ServiceWhereInput = params.q
+      ? {
+          OR: [
+            { name: { contains: params.q, mode: 'insensitive' } },
+            { description: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [services, total] = await Promise.all([
+      prisma.service.findMany({
+        where,
+        include: { images: { orderBy: { order: 'asc' } } },
+        orderBy: { name: 'asc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.service.count({ where })
+    ]);
+    res.json(paginatedResponse(services, params, total));
   })
 );
 
@@ -1265,21 +1620,40 @@ router.post(
 router.get(
   '/users',
   requireRoles('ADMIN'),
-  asyncHandler(async (_req, res) => {
-    const users = await prisma.user.findMany({
-      include: { roles: { include: { role: true } } },
-      orderBy: { createdAt: 'desc' }
-    });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.UserWhereInput = params.q
+      ? {
+          OR: [
+            { username: { contains: params.q, mode: 'insensitive' } },
+            { fullName: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        include: { roles: { include: { role: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.user.count({ where })
+    ]);
 
-    res.json({
-      data: users.map((user) => ({
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        active: user.active,
-        roles: user.roles.map((item) => item.role.name)
-      }))
-    });
+    res.json(
+      paginatedResponse(
+        users.map((user) => ({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          active: user.active,
+          roles: user.roles.map((item) => item.role.name)
+        })),
+        params,
+        total
+      )
+    );
   })
 );
 
@@ -1426,31 +1800,100 @@ router.get(
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    const reservationCount = await prisma.reservation.count({
-      where: { start: { gte: start, lte: end } }
-    });
+    const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+    const monthEnd = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const upcoming = await prisma.reservation.findMany({
-      where: {
-        start: { gte: start, lte: end },
-        status: { in: ['PENDIENTE_ADELANTO', 'CONFIRMADA', 'EN_PROCESO'] }
-      },
-      include: { client: true, details: { include: { service: true, staff: true } } },
-      orderBy: { start: 'asc' },
-      take: 5
-    });
+    const [
+      reservationCount,
+      upcoming,
+      revenue,
+      advances,
+      staffOnDuty,
+      advancesPending,
+      newClientsThisMonth,
+      lowStockProducts,
+      topServicesRaw,
+      monthReservationTotal,
+      monthNoShowTotal
+    ] = await Promise.all([
+      prisma.reservation.count({
+        where: { start: { gte: start, lte: end } }
+      }),
+      prisma.reservation.findMany({
+        where: {
+          start: { gte: start, lte: end },
+          status: { in: ['PENDIENTE_ADELANTO', 'CONFIRMADA', 'EN_PROCESO'] }
+        },
+        include: { client: { omit: { passwordHash: true } }, details: { include: { service: true, staff: true } } },
+        orderBy: { start: 'asc' },
+        take: 5
+      }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { date: { gte: start, lte: end }, status: 'CONFIRMADO' }
+      }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { date: { gte: start, lte: end }, status: 'CONFIRMADO', type: 'ADELANTO' }
+      }),
+      prisma.staff.count({ where: { active: true } }),
+      // Adelantos pendientes: pagos ADELANTO confirmados en reservas aún no completadas
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'CONFIRMADO',
+          type: 'ADELANTO',
+          reservation: { status: { in: ['PENDIENTE_ADELANTO', 'CONFIRMADA', 'EN_PROCESO'] } }
+        }
+      }),
+      // Clientes nuevos este mes
+      prisma.client.count({
+        where: { createdAt: { gte: monthStart, lte: monthEnd } }
+      }),
+      // Stock bajo (menos de 5 unidades y activo)
+      prisma.product.findMany({
+        where: { active: true, stock: { lt: 5 } },
+        orderBy: { stock: 'asc' },
+        select: { id: true, name: true, stock: true }
+      }),
+      // Top 5 servicios más reservados este mes
+      prisma.reservationDetail.groupBy({
+        by: ['serviceId'],
+        where: {
+          reservation: { start: { gte: monthStart, lte: monthEnd } }
+        },
+        _count: { _all: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 5
+      }),
+      // Total de reservas del mes (para calcular no-show rate)
+      prisma.reservation.count({
+        where: { start: { gte: monthStart, lte: monthEnd } }
+      }),
+      // Reservas con no-show este mes
+      prisma.reservation.count({
+        where: { start: { gte: monthStart, lte: monthEnd }, status: 'NO_SHOW' }
+      })
+    ]);
 
-    const revenue = await prisma.payment.aggregate({
-      _sum: { amount: true },
-      where: { date: { gte: start, lte: end }, status: 'CONFIRMADO' }
-    });
+    // Enriquecer top services con nombre del servicio
+    const topServiceIds = topServicesRaw.map((item) => item.serviceId);
+    const topServiceNames = topServiceIds.length
+      ? await prisma.service.findMany({
+          where: { id: { in: topServiceIds } },
+          select: { id: true, name: true }
+        })
+      : [];
+    const serviceNameMap = new Map(topServiceNames.map((s) => [s.id, s.name]));
+    const topServices = topServicesRaw.map((item) => ({
+      serviceId: item.serviceId,
+      name: serviceNameMap.get(item.serviceId) ?? `Servicio #${item.serviceId}`,
+      count: item._count._all
+    }));
 
-    const advances = await prisma.payment.aggregate({
-      _sum: { amount: true },
-      where: { date: { gte: start, lte: end }, status: 'CONFIRMADO', type: 'ADELANTO' }
-    });
-
-    const staffOnDuty = await prisma.staff.count({ where: { active: true } });
+    const noShowRate = monthReservationTotal > 0
+      ? Math.round((monthNoShowTotal / monthReservationTotal) * 1000) / 10
+      : 0;
 
     res.json({
       data: {
@@ -1458,9 +1901,83 @@ router.get(
         revenue: revenue._sum.amount ?? 0,
         advances: advances._sum.amount ?? 0,
         staffOnDuty,
-        upcoming
+        upcoming,
+        // Nuevos KPIs
+        advancesPending: advancesPending._sum.amount ?? 0,
+        newClientsThisMonth,
+        lowStockProducts,
+        lowStockCount: lowStockProducts.length,
+        topServices,
+        noShowRate,
+        monthReservationTotal,
+        monthNoShowTotal
       }
     });
+  })
+);
+
+router.get(
+  '/admin/audit',
+  requireRoles('ADMIN'),
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.AuditLogWhereInput = {};
+
+    const entityEnum = z.enum(['SERVICE', 'STAFF', 'CLIENT', 'PRODUCT', 'PROMOTION', 'RESERVATION', 'USER']);
+    const actionEnum = z.enum(['CREATED', 'UPDATED', 'DELETED', 'TOGGLED', 'STATUS_CHANGED', 'LOGIN', 'UPLOAD']);
+
+    if (typeof req.query.entity === 'string' && req.query.entity.length > 0) {
+      const parsed = entityEnum.safeParse(req.query.entity);
+      if (parsed.success) {
+        where.entity = parsed.data;
+      }
+    }
+
+    if (typeof req.query.action === 'string' && req.query.action.length > 0) {
+      const parsed = actionEnum.safeParse(req.query.action);
+      if (parsed.success) {
+        where.action = parsed.data;
+      }
+    }
+
+    if (req.query.userId !== undefined) {
+      const userId = Number(req.query.userId);
+      if (Number.isFinite(userId) && userId > 0) {
+        where.userId = userId;
+      }
+    }
+
+    if (req.query.userKind === 'staff' || req.query.userKind === 'client') {
+      where.userKind = req.query.userKind;
+    }
+
+    const range: { gte?: Date; lte?: Date } = {};
+    if (typeof req.query.from === 'string' && req.query.from.length > 0) {
+      const d = new Date(req.query.from);
+      if (!Number.isNaN(d.getTime())) range.gte = d;
+    }
+    if (typeof req.query.to === 'string' && req.query.to.length > 0) {
+      const d = new Date(req.query.to);
+      if (!Number.isNaN(d.getTime())) range.lte = d;
+    }
+    if (range.gte || range.lte) {
+      where.createdAt = range;
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          user: { select: { id: true, username: true, fullName: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.auditLog.count({ where })
+    ]);
+
+    res.json(paginatedResponse(logs, params, total));
   })
 );
 
@@ -1474,10 +1991,14 @@ router.post(
         description: z.string().optional(),
         durationMin: toInt,
         priceBase: toNumber,
-        active: z.boolean().optional()
+        active: z.boolean().optional(),
+        coverUrl: z.preprocess(emptyStringToUndefined, z.string().optional()),
+        images: z.array(serviceImageInputSchema).max(8).optional()
       }),
       req.body
     );
+
+    const images = normalizeProductImages(body.images ?? []);
 
     const service = await prisma.service.create({
       data: {
@@ -1485,9 +2006,32 @@ router.post(
         description: body.description,
         durationMin: body.durationMin,
         priceBase: body.priceBase,
-        active: body.active ?? true
-      }
+        active: body.active ?? true,
+        coverUrl: body.coverUrl ?? images.find((i) => i.isCover)?.url ?? null,
+        images: {
+          create: images.map((image) => ({
+            url: image.url,
+            fileName: image.fileName,
+            source: image.source,
+            order: image.order,
+            isCover: image.isCover
+          }))
+        }
+      },
+      include: { images: { orderBy: { order: 'asc' } } }
     });
+
+    if (req.user) {
+      await logAudit({
+        entity: 'SERVICE',
+        entityId: service.id,
+        action: 'CREATED',
+        detail: `Servicio "${service.name}" creado (${images.length} imagen(es))`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
+
     res.status(201).json({ data: service });
   })
 );
@@ -1503,12 +2047,68 @@ router.patch(
         description: z.string().optional(),
         durationMin: toInt.optional(),
         priceBase: toNumber.optional(),
-        active: z.boolean().optional()
+        active: z.boolean().optional(),
+        coverUrl: z.preprocess(emptyStringToUndefined, z.string().nullable().optional()),
+        images: z.array(serviceImageInputSchema).max(8).optional()
       }),
       req.body
     );
 
-    const service = await prisma.service.update({ where: { id }, data: body });
+    const data: {
+      name?: string;
+      description?: string;
+      durationMin?: number;
+      priceBase?: number;
+      active?: boolean;
+      coverUrl?: string | null;
+    } = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.description !== undefined) data.description = body.description;
+    if (body.durationMin !== undefined) data.durationMin = body.durationMin;
+    if (body.priceBase !== undefined) data.priceBase = body.priceBase;
+    if (body.active !== undefined) data.active = body.active;
+    if (body.coverUrl !== undefined) data.coverUrl = body.coverUrl;
+
+    const service = await prisma.$transaction(async (txClient) => {
+      if (body.images) {
+        const normalized = normalizeProductImages(body.images);
+        await txClient.serviceImage.deleteMany({ where: { serviceId: id } });
+        if (normalized.length > 0) {
+          await txClient.serviceImage.createMany({
+            data: normalized.map((image) => ({
+              serviceId: id,
+              url: image.url,
+              fileName: image.fileName,
+              source: image.source,
+              order: image.order,
+              isCover: image.isCover
+            }))
+          });
+        }
+        // Auto-fill coverUrl from cover image if coverUrl is not provided
+        if (body.coverUrl === undefined) {
+          const cover = normalized.find((i) => i.isCover);
+          if (cover) data.coverUrl = cover.url;
+        }
+      }
+      return txClient.service.update({
+        where: { id },
+        data,
+        include: { images: { orderBy: { order: 'asc' } } }
+      });
+    });
+
+    if (req.user) {
+      await logAudit({
+        entity: 'SERVICE',
+        entityId: id,
+        action: 'UPDATED',
+        detail: `Servicio "${service.name}" actualizado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
+
     res.json({ data: service });
   })
 );
@@ -1518,24 +2118,54 @@ router.delete(
   requireRoles('ADMIN'),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
+    const existing = await prisma.service.findUnique({ where: { id } });
     await prisma.service.update({ where: { id }, data: { active: false } });
+    if (req.user && existing) {
+      await logAudit({
+        entity: 'SERVICE',
+        entityId: id,
+        action: 'TOGGLED',
+        detail: `Servicio "${existing.name}" desactivado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
     res.status(204).send();
   })
 );
 
 router.get(
   '/staff',
-  asyncHandler(async (_req, res) => {
-    const staff = await prisma.staff.findMany({
-      include: { services: true },
-      orderBy: { name: 'asc' }
-    });
-    res.json({
-      data: staff.map((member) => ({
-        ...member,
-        serviceIds: member.services.map((service) => service.serviceId)
-      }))
-    });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.StaffWhereInput = params.q
+      ? {
+          OR: [
+            { name: { contains: params.q, mode: 'insensitive' } },
+            { role: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [staff, total] = await Promise.all([
+      prisma.staff.findMany({
+        where,
+        include: { services: true },
+        orderBy: { name: 'asc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.staff.count({ where })
+    ]);
+    res.json(
+      paginatedResponse(
+        staff.map((member) => ({
+          ...member,
+          serviceIds: member.services.map((service) => service.serviceId)
+        })),
+        params,
+        total
+      )
+    );
   })
 );
 
@@ -1548,6 +2178,7 @@ router.post(
         name: personNameSchema,
         role: z.string().optional(),
         phone: optionalPhoneSchema,
+        avatarUrl: z.preprocess(emptyStringToUndefined, z.string().optional()),
         active: z.boolean().optional()
       }),
       req.body
@@ -1558,9 +2189,20 @@ router.post(
         name: body.name,
         role: body.role,
         phone: body.phone,
+        avatarUrl: body.avatarUrl ?? null,
         active: body.active ?? true
       }
     });
+    if (req.user) {
+      await logAudit({
+        entity: 'STAFF',
+        entityId: staff.id,
+        action: 'CREATED',
+        detail: `Staff "${staff.name}" creado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
     res.status(201).json({ data: staff });
   })
 );
@@ -1575,12 +2217,30 @@ router.patch(
         name: optionalPersonNameSchema,
         role: z.string().optional(),
         phone: optionalPhoneSchema,
+        avatarUrl: z.preprocess(emptyStringToUndefined, z.string().nullable().optional()),
         active: z.boolean().optional()
       }),
       req.body
     );
 
-    const staff = await prisma.staff.update({ where: { id }, data: body });
+    const data: { name?: string; role?: string; phone?: string; avatarUrl?: string | null; active?: boolean } = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.role !== undefined) data.role = body.role;
+    if (body.phone !== undefined) data.phone = body.phone;
+    if (body.avatarUrl !== undefined) data.avatarUrl = body.avatarUrl;
+    if (body.active !== undefined) data.active = body.active;
+
+    const staff = await prisma.staff.update({ where: { id }, data });
+    if (req.user) {
+      await logAudit({
+        entity: 'STAFF',
+        entityId: id,
+        action: 'UPDATED',
+        detail: `Staff "${staff.name}" actualizado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
     res.json({ data: staff });
   })
 );
@@ -1590,7 +2250,18 @@ router.delete(
   requireRoles('ADMIN'),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
+    const existing = await prisma.staff.findUnique({ where: { id } });
     await prisma.staff.update({ where: { id }, data: { active: false } });
+    if (req.user && existing) {
+      await logAudit({
+        entity: 'STAFF',
+        entityId: id,
+        action: 'TOGGLED',
+        detail: `Staff "${existing.name}" desactivado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
     res.status(204).send();
   })
 );
@@ -1814,9 +2485,27 @@ router.post(
 
 router.get(
   '/clients',
-  asyncHandler(async (_req, res) => {
-    const clients = await prisma.client.findMany({ orderBy: { createdAt: 'desc' } });
-    res.json({ data: clients });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.ClientWhereInput = params.q
+      ? {
+          OR: [
+            { name: { contains: params.q, mode: 'insensitive' } },
+            { phone: { contains: params.q, mode: 'insensitive' } },
+            { email: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.client.count({ where })
+    ]);
+    res.json(paginatedResponse(clients, params, total));
   })
 );
 
@@ -1833,6 +2522,7 @@ router.post(
         whatsapp: z.string().optional(),
         birthDate: z.string().optional(),
         referredById: toInt.optional(),
+        avatarUrl: z.preprocess(emptyStringToUndefined, z.string().optional()),
         active: z.boolean().optional()
       }),
       req.body
@@ -1859,9 +2549,21 @@ router.post(
         whatsapp: body.whatsapp,
         birthDate: body.birthDate ? parseDate(body.birthDate) : undefined,
         referredById: body.referredById,
+        avatarUrl: body.avatarUrl ?? null,
         active: body.active ?? true
       }
     });
+
+    if (req.user) {
+      await logAudit({
+        entity: 'CLIENT',
+        entityId: client.id,
+        action: 'CREATED',
+        detail: `Cliente "${client.name}" creado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
 
     res.status(201).json({ data: client });
   })
@@ -1881,6 +2583,7 @@ router.patch(
         whatsapp: z.string().optional(),
         birthDate: z.string().optional(),
         referredById: toInt.optional(),
+        avatarUrl: z.preprocess(emptyStringToUndefined, z.string().nullable().optional()),
         active: z.boolean().optional()
       }),
       req.body
@@ -1903,20 +2606,41 @@ router.patch(
       }
     }
 
-    const client = await prisma.client.update({
-      where: { id },
-      data: {
-        docType: body.docType,
-        docNumber: body.docNumber,
-        email: body.email,
-        name: body.name,
-        phone: body.phone,
-        whatsapp: body.whatsapp,
-        birthDate: body.birthDate ? parseDate(body.birthDate) : undefined,
-        referredById: body.referredById,
-        active: body.active
-      }
-    });
+    const data: {
+      docType?: string;
+      docNumber?: string;
+      email?: string;
+      name?: string;
+      phone?: string;
+      whatsapp?: string;
+      birthDate?: Date;
+      referredById?: number;
+      avatarUrl?: string | null;
+      active?: boolean;
+    } = {};
+    if (body.docType !== undefined) data.docType = body.docType;
+    if (body.docNumber !== undefined) data.docNumber = body.docNumber;
+    if (body.email !== undefined) data.email = body.email;
+    if (body.name !== undefined) data.name = body.name;
+    if (body.phone !== undefined) data.phone = body.phone;
+    if (body.whatsapp !== undefined) data.whatsapp = body.whatsapp;
+    if (body.birthDate !== undefined) data.birthDate = parseDate(body.birthDate);
+    if (body.referredById !== undefined) data.referredById = body.referredById;
+    if (body.avatarUrl !== undefined) data.avatarUrl = body.avatarUrl;
+    if (body.active !== undefined) data.active = body.active;
+
+    const client = await prisma.client.update({ where: { id }, data });
+
+    if (req.user) {
+      await logAudit({
+        entity: 'CLIENT',
+        entityId: id,
+        action: 'UPDATED',
+        detail: `Cliente "${client.name}" actualizado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
 
     res.json({ data: client });
   })
@@ -1927,7 +2651,18 @@ router.delete(
   requireRoles('ADMIN'),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
+    const existing = await prisma.client.findUnique({ where: { id } });
     await prisma.client.update({ where: { id }, data: { active: false } });
+    if (req.user && existing) {
+      await logAudit({
+        entity: 'CLIENT',
+        entityId: id,
+        action: 'TOGGLED',
+        detail: `Cliente "${existing.name}" desactivado`,
+        userId: req.user.id,
+        userKind: 'staff'
+      });
+    }
     res.status(204).send();
   })
 );
@@ -1969,6 +2704,7 @@ router.put(
 router.get(
   '/reservations',
   asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
     const status = req.query.status ? parse(reservationStatusSchema, req.query.status) : undefined;
     const from = req.query.from ? parseDate(String(req.query.from)) : undefined;
     const to = req.query.to ? toDateEnd(parseDate(String(req.query.to))) : undefined;
@@ -1980,14 +2716,32 @@ router.get(
     if (from || to) {
       where.start = { gte: from, lte: to };
     }
+    if (params.q) {
+      where.OR = [
+        { code: { contains: params.q, mode: 'insensitive' } },
+        { client: { name: { contains: params.q, mode: 'insensitive' } } },
+        { client: { phone: { contains: params.q, mode: 'insensitive' } } }
+      ];
+    }
 
-    const reservations = await prisma.reservation.findMany({
-      where,
-      include: { details: true, client: true },
-      orderBy: { start: 'asc' }
-    });
+    const [reservations, total] = await Promise.all([
+      prisma.reservation.findMany({
+        where,
+        include: { details: true, client: { omit: { passwordHash: true } } },
+        orderBy: { start: 'asc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.reservation.count({ where })
+    ]);
 
-    res.json({ data: reservations.map(serializeReservation) });
+    res.json(
+      paginatedResponse(
+        reservations.map(serializeReservation),
+        params,
+        total
+      )
+    );
   })
 );
 
@@ -1998,7 +2752,7 @@ router.get(
     const reservation = await prisma.reservation.findUnique({
       where: { id },
       include: {
-        client: true,
+        client: { omit: { passwordHash: true } },
         details: true,
         history: true,
         payments: true,
@@ -2353,17 +3107,35 @@ router.get(
 
 router.get(
   '/promotions',
-  asyncHandler(async (_req, res) => {
-    const promotions = await prisma.promotion.findMany({
-      include: { services: true },
-      orderBy: { startDate: 'desc' }
-    });
-    res.json({
-      data: promotions.map((promotion) => ({
-        ...promotion,
-        serviceIds: promotion.services.map((service) => service.serviceId)
-      }))
-    });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.PromotionWhereInput = params.q
+      ? {
+          OR: [
+            { name: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [promotions, total] = await Promise.all([
+      prisma.promotion.findMany({
+        where,
+        include: { services: true },
+        orderBy: { startDate: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.promotion.count({ where })
+    ]);
+    res.json(
+      paginatedResponse(
+        promotions.map((promotion) => ({
+          ...promotion,
+          serviceIds: promotion.services.map((service) => service.serviceId)
+        })),
+        params,
+        total
+      )
+    );
   })
 );
 
@@ -2461,9 +3233,27 @@ router.delete(
 
 router.get(
   '/packages',
-  asyncHandler(async (_req, res) => {
-    const packages = await prisma.package.findMany({ include: { services: true } });
-    res.json({ data: packages });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.PackageWhereInput = params.q
+      ? {
+          OR: [
+            { name: { contains: params.q, mode: 'insensitive' } },
+            { description: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [packages, total] = await Promise.all([
+      prisma.package.findMany({
+        where,
+        include: { services: true },
+        orderBy: { name: 'asc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.package.count({ where })
+    ]);
+    res.json(paginatedResponse(packages, params, total));
   })
 );
 
@@ -2550,10 +3340,22 @@ router.delete(
 router.get(
   '/reviews',
   asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
     const status = req.query.status ? parse(reviewStatusSchema, req.query.status) : undefined;
-    const where: Prisma.ReviewWhereInput = status ? { status } : {};
-    const reviews = await prisma.review.findMany({ where, orderBy: { createdAt: 'desc' } });
-    res.json({ data: reviews });
+    const where: Prisma.ReviewWhereInput = { ...(status ? { status } : {}) };
+    if (params.q) {
+      where.comment = { contains: params.q, mode: 'insensitive' };
+    }
+    const [reviews, total] = await Promise.all([
+      prisma.review.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.review.count({ where })
+    ]);
+    res.json(paginatedResponse(reviews, params, total));
   })
 );
 
@@ -2621,18 +3423,31 @@ router.patch(
 router.get(
   '/albums',
   asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
     const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
-    const where = clientId ? { clientId } : {};
-    const albums = await prisma.album.findMany({
-      where,
-      include: {
-        photos: {
-          where: { deleted: false },
-          orderBy: [{ isCover: 'desc' }, { order: 'asc' }, { uploadedAt: 'asc' }]
-        }
-      }
-    });
-    res.json({ data: albums });
+    const where: Prisma.AlbumWhereInput = { ...(clientId ? { clientId } : {}) };
+    if (params.q) {
+      where.OR = [
+        { title: { contains: params.q, mode: 'insensitive' } },
+        { description: { contains: params.q, mode: 'insensitive' } }
+      ];
+    }
+    const [albums, total] = await Promise.all([
+      prisma.album.findMany({
+        where,
+        include: {
+          photos: {
+            where: { deleted: false },
+            orderBy: [{ isCover: 'desc' }, { order: 'asc' }, { uploadedAt: 'asc' }]
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.album.count({ where })
+    ]);
+    res.json(paginatedResponse(albums, params, total));
   })
 );
 
@@ -2822,12 +3637,28 @@ router.post(
 
 router.get(
   '/products',
-  asyncHandler(async (_req, res) => {
-    const products = await prisma.product.findMany({
-      include: productInclude,
-      orderBy: [{ featured: 'desc' }, { name: 'asc' }]
-    });
-    res.json({ data: products });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.ProductWhereInput = params.q
+      ? {
+          OR: [
+            { name: { contains: params.q, mode: 'insensitive' } },
+            { description: { contains: params.q, mode: 'insensitive' } },
+            { category: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: productInclude,
+        orderBy: [{ featured: 'desc' }, { name: 'asc' }],
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.product.count({ where })
+    ]);
+    res.json(paginatedResponse(products, params, total));
   })
 );
 
@@ -2950,14 +3781,28 @@ router.delete(
 
 router.get(
   '/sales',
-  asyncHandler(async (_req, res) => {
-    const sales = await prisma.productSale.findMany({
-      include: saleInclude,
-      orderBy: { date: 'desc' },
-      take: 50
-    });
-
-    res.json({ data: sales });
+  asyncHandler(async (req, res) => {
+    const params = readPagination(req.query);
+    const where: Prisma.ProductSaleWhereInput = params.q
+      ? {
+          OR: [
+            { customerName: { contains: params.q, mode: 'insensitive' } },
+            { customerPhone: { contains: params.q, mode: 'insensitive' } },
+            { paymentReference: { contains: params.q, mode: 'insensitive' } }
+          ]
+        }
+      : {};
+    const [sales, total] = await Promise.all([
+      prisma.productSale.findMany({
+        where,
+        include: saleInclude,
+        orderBy: { date: 'desc' },
+        skip: (params.page - 1) * params.pageSize,
+        take: params.pageSize
+      }),
+      prisma.productSale.count({ where })
+    ]);
+    res.json(paginatedResponse(sales, params, total));
   })
 );
 

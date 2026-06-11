@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const search = useSearchParams();
   const { setStaffToken } = useAuth();
   const [form, setForm] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const sessionExpired = search.get('expired') === '1';
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -43,6 +45,11 @@ export default function AdminLoginPage() {
       <div className="auth-card">
         <h1>Ingreso administrativo</h1>
         <p>Acceso exclusivo para el equipo Mora.</p>
+        {sessionExpired && (
+          <div className="auth-warning" role="alert">
+            Tu sesion expiro por inactividad. Ingresa de nuevo para continuar.
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
             Usuario

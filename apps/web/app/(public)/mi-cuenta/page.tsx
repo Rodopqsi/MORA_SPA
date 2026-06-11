@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { clientFetch } from '../../lib/clientApi';
 import { useAuth } from '../../context/AuthContext';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type ClientProfile = {
   name?: string;
@@ -18,16 +19,13 @@ type Reservation = {
   details: { serviceId: number }[];
 };
 
-const formatReservationDate = (value: string) => {
+const formatLongDate = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'Fecha pendiente';
-  }
-
+  if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat('es-PE', {
+    weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
     hour: 'numeric',
     minute: '2-digit'
   }).format(date);
@@ -35,59 +33,20 @@ const formatReservationDate = (value: string) => {
 
 const formatShortDate = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '--';
-  }
-
-  return new Intl.DateTimeFormat('es-PE', {
-    day: 'numeric',
-    month: 'short'
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short' }).format(date);
 };
 
-const formatShortTime = (value: string) => {
+const formatTime = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'Hora pendiente';
-  }
-
-  return new Intl.DateTimeFormat('es-PE', {
-    hour: 'numeric',
-    minute: '2-digit'
-  }).format(date);
-};
-
-const normalizeStatusLabel = (status: string) =>
-  status.toLowerCase().replace(/_/g, ' ');
-
-const reservationStatusClass = (status: string) => {
-  const normalized = status.toUpperCase();
-
-  if (normalized.includes('CONFIRM') || normalized.includes('COMPLET')) {
-    return 'account-status-ok';
-  }
-
-  if (normalized.includes('PEND') || normalized.includes('PROCES')) {
-    return 'account-status-pending';
-  }
-
-  if (normalized.includes('ANUL') || normalized.includes('CANCEL')) {
-    return 'account-status-muted';
-  }
-
-  return 'account-status-neutral';
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('es-PE', { hour: 'numeric', minute: '2-digit' }).format(date);
 };
 
 const buildInitials = (name?: string) => {
   const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
-  if (parts.length === 0) {
-    return 'CU';
-  }
-
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
+  if (parts.length === 0) return '·';
+  return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 };
 
 export default function MiCuentaPage() {
@@ -99,18 +58,16 @@ export default function MiCuentaPage() {
 
   useEffect(() => {
     setLoading(true);
-
     Promise.all([
-      clientFetch<{ data?: ClientProfile }>(`/client-auth/me`),
-      clientFetch<{ data: Reservation[] }>(`/client-reservations`)
+      clientFetch<{ data?: ClientProfile }>('/client-auth/me'),
+      clientFetch<{ data: Reservation[] }>('/client-reservations')
     ])
       .then(([profileRes, reservationsRes]) => {
-        const profilePayload = profileRes.data ?? (profileRes as unknown as ClientProfile);
-        setProfile(profilePayload);
+        setProfile(profileRes.data ?? (profileRes as unknown as ClientProfile));
         setReservations(reservationsRes.data ?? []);
         setError('');
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la informacion.'))
+      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la información.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -119,187 +76,122 @@ export default function MiCuentaPage() {
     window.location.href = '/login';
   };
 
-  const sortedReservations = [...reservations].sort(
-    (left, right) => new Date(right.start).getTime() - new Date(left.start).getTime()
+  const sorted = useMemo(
+    () =>
+      [...reservations].sort(
+        (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()
+      ),
+    [reservations]
   );
 
-  const nextReservation = [...reservations]
-    .filter((item) => new Date(item.start).getTime() >= Date.now() && !/ANUL|CANCEL/i.test(item.status))
-    .sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime())[0] ?? null;
+  const next = useMemo(
+    () =>
+      [...reservations]
+        .filter(
+          (r) => new Date(r.start).getTime() >= Date.now() && !/ANUL|CANCEL/i.test(r.status)
+        )
+        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0] ?? null,
+    [reservations]
+  );
 
-  const contactChannels = [profile?.phone, profile?.email].filter(Boolean).length;
   const initials = buildInitials(profile?.name);
+  const firstName = profile?.name?.split(' ')[0] ?? '';
 
   return (
-    <div className="account-page">
-      <section className="card reveal account-hero">
-        <div className="account-hero-main">
-          <div className="account-avatar">{initials}</div>
-
-          <div className="account-hero-copy">
-            <div className="eyebrow">Mi cuenta</div>
-            <h1>Hola, {profile?.name ?? 'clienta'}</h1>
-            <p>
-              {loading
-                ? 'Sincronizando tu informacion y tus reservas.'
-                : 'Consulta tus datos, revisa tu historial y vuelve a reservar sin friccion.'}
-            </p>
-
-            <div className="account-kpi-row">
-              <div className="account-kpi">
-                <span>Reservas</span>
-                <strong>{loading ? '--' : sortedReservations.length}</strong>
-                <small>
-                  {sortedReservations.length > 0 ? 'Historial disponible' : 'Tu primera cita aparecera aqui'}
-                </small>
-              </div>
-
-              <div className="account-kpi">
-                <span>Proxima cita</span>
-                <strong>{nextReservation ? formatShortDate(nextReservation.start) : 'Libre'}</strong>
-                <small>{nextReservation ? formatShortTime(nextReservation.start) : 'Sin visita programada'}</small>
-              </div>
-
-              <div className="account-kpi">
-                <span>Contacto</span>
-                <strong>{loading ? '--' : `${contactChannels}/2`}</strong>
-                <small>Canales listos para recordatorios</small>
-              </div>
-            </div>
+    <div className="account account-minimal page-enter">
+      <header className="account-min-head">
+        <div className="account-min-id">
+          <span className="account-min-avatar scale-in" aria-hidden>{initials}</span>
+          <div className="account-min-id-text">
+            <span className="account-min-eyebrow">Mi cuenta</span>
+            <h1>{firstName ? `Hola, ${firstName}` : 'Tu cuenta'}</h1>
           </div>
         </div>
 
-        <div className="account-hero-actions">
-          <Link className="btn" href="/reservar">
-            Nueva reserva
-          </Link>
-          <Link className="btn btn-outline" href="/tienda">
-            Ver productos
-          </Link>
-          <button className="account-logout" type="button" onClick={handleLogout}>
-            Cerrar sesion
+        <div className="account-min-actions">
+          <Link className="btn btn-sm shine-on-hover press-feedback" href="/reservar">Reservar</Link>
+          <button type="button" className="account-min-logout press-feedback" onClick={handleLogout}>
+            Salir
           </button>
         </div>
+      </header>
+
+      {error && <p className="account-min-error">{error}</p>}
+
+      <section className="account-min-summary">
+        <div className="account-min-summary-item">
+          <span>Email</span>
+          <strong>{profile?.email ?? '—'}</strong>
+        </div>
+        <span className="account-min-divider" aria-hidden />
+        <div className="account-min-summary-item">
+          <span>Teléfono</span>
+          <strong>{profile?.phone ?? '—'}</strong>
+        </div>
+        <span className="account-min-divider" aria-hidden />
+        <div className="account-min-summary-item">
+          <span>Reservas</span>
+          <strong>{loading ? '—' : sorted.length}</strong>
+        </div>
       </section>
 
-      {error && <div className="card account-banner-error">{error}</div>}
-
-      <section className="grid grid-2 account-overview">
-        <article className="card reveal account-panel">
-          <div className="account-panel-head">
-            <div>
-              <div className="eyebrow">Perfil</div>
-              <h2>Datos de contacto</h2>
-            </div>
-            <span className="pill">Cuenta lista</span>
-          </div>
-
-          <div className="account-contact-grid">
-            <div className="account-contact-item">
-              <span className="account-contact-label">Nombre</span>
-              <strong>{profile?.name ?? 'No disponible'}</strong>
-              <span>Identidad con la que registras tus reservas.</span>
-            </div>
-
-            <div className="account-contact-item">
-              <span className="account-contact-label">Telefono</span>
-              <strong>{profile?.phone ?? 'No registrado'}</strong>
-              <span>Canal principal para recordatorios y confirmaciones.</span>
-            </div>
-
-            <div className="account-contact-item">
-              <span className="account-contact-label">Email</span>
-              <strong>{profile?.email ?? 'No registrado'}</strong>
-              <span>Recibe seguimiento y futuras novedades de tu cuenta.</span>
-            </div>
-          </div>
-        </article>
-
-        <article className="card reveal account-panel">
-          <div className="account-panel-head">
-            <div>
-              <div className="eyebrow">Acceso rapido</div>
-              <h2>Promociones y siguientes pasos</h2>
-            </div>
-          </div>
-
-          <div className="account-highlight-card">
-            <strong>{nextReservation ? 'Tu siguiente visita ya esta registrada' : 'Todavia no tienes una cita activa'}</strong>
-            <p>
-              {nextReservation
-                ? `Te esperamos el ${formatReservationDate(nextReservation.start)}.`
-                : 'Agenda cuando quieras y consulta las promos activas antes de confirmar tu siguiente visita.'}
-            </p>
-          </div>
-
-          <div className="account-chip-row">
-            <Link className="chip" href="/#promos">
-              Ver promociones
-            </Link>
-            <Link className="chip" href="/servicios">
-              Servicios
-            </Link>
-            <Link className="chip" href="/tienda">
-              Productos
-            </Link>
-          </div>
-        </article>
+      <section className="account-min-next">
+        <div className="account-min-next-label">Próxima cita</div>
+        <div className="account-min-next-value">
+          {loading ? (
+            <span className="account-min-muted">Cargando…</span>
+          ) : next ? (
+            <>
+              <span className="account-min-date">{formatShortDate(next.start)}</span>
+              <span className="account-min-sep">·</span>
+              <span>{formatTime(next.start)}</span>
+            </>
+          ) : (
+            <span className="account-min-muted">Sin cita activa</span>
+          )}
+        </div>
+        {next && (
+          <div className="account-min-next-full">{formatLongDate(next.start)}</div>
+        )}
       </section>
 
-      <section className="card reveal account-history">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Mis reservas</div>
-            <h2>Historial reciente</h2>
-            <p className="account-section-copy">
-              {nextReservation
-                ? `Proxima visita: ${formatReservationDate(nextReservation.start)}.`
-                : 'Aun no tienes reservas registradas; cuando agendes una cita apareceran aqui con fecha y estado.'}
-            </p>
-          </div>
-          <Link className="chip" href="/reservar">
-            Nueva reserva
-          </Link>
+      <section className="account-min-history">
+        <div className="account-min-history-head">
+          <h2>Historial</h2>
+          <span className="account-min-muted">{sorted.length} reservas</span>
         </div>
 
         {loading ? (
-          <div className="account-empty-state">
-            <strong>Cargando tu historial...</strong>
-            <p>Estamos trayendo tus reservas y tus datos de contacto.</p>
-          </div>
-        ) : sortedReservations.length === 0 ? (
-          <div className="account-empty-state">
-            <strong>Aun no tienes reservas.</strong>
-            <p>Reserva tu primera cita y desde aqui podras seguir fecha, estado y proximos movimientos.</p>
-            <Link className="btn" href="/reservar">
-              Reservar ahora
-            </Link>
+          <p className="account-min-muted">Cargando…</p>
+        ) : sorted.length === 0 ? (
+          <div className="account-min-empty">
+            <p>Aún no tienes reservas.</p>
+            <Link className="btn btn-sm" href="/reservar">Reservar ahora</Link>
           </div>
         ) : (
-          <div className="account-reservation-list">
-            {sortedReservations.map((item) => (
-              <article key={item.id} className="account-reservation-item">
-                <div className="account-reservation-main">
-                  <div className="account-reservation-title-row">
-                    <strong>Reserva #{item.id}</strong>
-                    <span className={`account-status ${reservationStatusClass(item.status)}`}>
-                      {normalizeStatusLabel(item.status)}
-                    </span>
-                  </div>
-                  <p>{formatReservationDate(item.start)}</p>
-                </div>
-
-                <div className="account-reservation-meta">
-                  <span className="pill">
-                    {item.details.length} servicio{item.details.length === 1 ? '' : 's'}
-                  </span>
-                  <span className="account-reservation-time">{formatShortTime(item.start)}</span>
-                </div>
-              </article>
+          <MoraScrollReveal as="ul" className="account-min-list" selector=".account-min-list-item" variant="fade-up" stagger={0.07} duration={0.6}>
+            {sorted.slice(0, 5).map((r) => (
+              <li key={r.id} className="account-min-list-item lift-on-hover">
+                <span className="account-min-list-date">{formatShortDate(r.start)}</span>
+                <span className="account-min-list-time">{formatTime(r.start)}</span>
+                <span className="account-min-list-status">{r.status.replace(/_/g, ' ').toLowerCase()}</span>
+              </li>
             ))}
-          </div>
+          </MoraScrollReveal>
+        )}
+
+        {sorted.length > 5 && (
+          <p className="account-min-muted account-min-more">+ {sorted.length - 5} más</p>
         )}
       </section>
+
+      <nav className="account-min-links" aria-label="Enlaces rápidos">
+        <Link className="link-underline" href="/#promos">Promociones</Link>
+        <span aria-hidden>·</span>
+        <Link className="link-underline" href="/servicios">Servicios</Link>
+        <span aria-hidden>·</span>
+        <Link className="link-underline" href="/tienda">Tienda</Link>
+      </nav>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api';
 import { clientFetch } from '../../lib/clientApi';
 import { useAuth } from '../../context/AuthContext';
 import { normalizePersonName, normalizePhone } from '../../lib/validation';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
 import {
   cartCount,
   cartSubtotal,
@@ -74,6 +75,10 @@ export default function TiendaPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<OrderResponse | null>(null);
   const [checkout, setCheckout] = useState<CheckoutForm>(defaultCheckoutForm);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardExpMonth, setCardExpMonth] = useState('');
+  const [cardExpYear, setCardExpYear] = useState('');
 
   useEffect(() => {
     refresh();
@@ -210,6 +215,47 @@ export default function TiendaPage() {
     setCheckoutError('');
 
     try {
+      // If using PASARELA, create token first
+      if (checkout.method === 'PASARELA') {
+        if (!cardNumber || !cardCvv || !cardExpMonth || !cardExpYear) {
+          setCheckoutError('Ingresa los datos de tarjeta para procesar el pago.');
+          setSubmitting(false);
+          return;
+        }
+
+        try {
+          const publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY;
+          if (!publicKey) throw new Error('Pasarela no configurada');
+
+          const tokenResp = await fetch('https://secure.culqi.com/v2/tokens', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${publicKey}`
+            },
+            body: JSON.stringify({
+              card_number: cardNumber.replace(/\s+/g, ''),
+              cvv: cardCvv,
+              expiration_month: cardExpMonth,
+              expiration_year: cardExpYear,
+              email: checkout.customerEmail || undefined
+            })
+          });
+
+          const tokenJson = await tokenResp.json();
+          if (!tokenResp.ok || !tokenJson.id) {
+            throw new Error(tokenJson?.user_message || 'No se pudo generar token');
+          }
+
+          // Attach token id as paymentReference
+          setCheckout((c) => ({ ...c, paymentReference: tokenJson.id }));
+        } catch (err) {
+          setCheckoutError(err instanceof Error ? err.message : 'Error al tokenizar tarjeta');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const response = await apiFetch<OrderResponse>('/public/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -244,7 +290,7 @@ export default function TiendaPage() {
 
   return (
     <>
-      <div className="shop-page reveal">
+      <div className="shop-page page-enter">
         {catalogError && (
           <section className="card shop-message-card">
             <div>
@@ -285,10 +331,10 @@ export default function TiendaPage() {
             <span className="pill">{availableProducts} con stock disponible</span>
           </div>
 
-          <div className="shop-product-grid">
+          <MoraScrollReveal key={loading ? 'shop-loading' : 'shop-ready'} as="div" className="shop-product-grid" selector=".shop-product-card" variant="fade-up" stagger={0.08} duration={0.7}>
             {loading &&
               Array.from({ length: 4 }, (_, index) => (
-                <div key={index} className="shop-skeleton-card" aria-hidden="true">
+                <div key={index} className="shop-skeleton-card shimmer" aria-hidden="true">
                   <div className="shop-skeleton-media" />
                   <div className="shop-skeleton-body">
                     <div className="shop-skeleton-line short" />
@@ -311,7 +357,7 @@ export default function TiendaPage() {
                 const soldOut = product.stock <= 0;
 
                 return (
-                  <article key={product.id} className="shop-product-card">
+                  <article key={product.id} className="shop-product-card lift-on-hover">
                     <div className="shop-product-media">
                       {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
                       {product.featured && <span className="shop-ribbon">Destacado</span>}
@@ -329,7 +375,7 @@ export default function TiendaPage() {
                         <span className={`status-badge ${soldOut ? 'status-warn' : 'status-ok'}`}>
                           {soldOut ? 'Sin stock' : `${product.stock} disponibles`}
                         </span>
-                        <button className="btn" type="button" onClick={() => addToCart(product)} disabled={soldOut}>
+                        <button className="btn shine-on-hover press-feedback" type="button" onClick={() => addToCart(product)} disabled={soldOut}>
                           {soldOut ? 'Agotado' : 'Agregar al carrito'}
                         </button>
                       </div>
@@ -337,14 +383,14 @@ export default function TiendaPage() {
                   </article>
                 );
               })}
-          </div>
+          </MoraScrollReveal>
           </section>
         </div>
       </div>
 
       <button
         type="button"
-        className="shop-floating-cart"
+        className={`shop-floating-cart ${totalItems > 0 ? 'has-items' : ''}`}
         onClick={() => setCartOpen((current) => !current)}
         aria-controls="shop-cart-panel"
         aria-expanded={cartOpen}
@@ -362,6 +408,11 @@ export default function TiendaPage() {
           <span>Carrito</span>
           <strong>S/ {subtotal.toFixed(2)}</strong>
         </span>
+        <span className="shop-floating-cart-chevron" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
       </button>
 
       <aside
@@ -370,14 +421,26 @@ export default function TiendaPage() {
         aria-hidden={!cartOpen}
       >
         <div className="shop-drawer-head">
-          <div>
-            <div className="eyebrow">Carrito</div>
-            <h2>{totalItems} items</h2>
+          <div className="shop-drawer-title">
+            <div className="shop-drawer-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="19" r="1.6" />
+                <circle cx="18" cy="19" r="1.6" />
+                <path d="M3 4h2.2l2.3 9.4a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H7.1" />
+              </svg>
+            </div>
+            <div>
+              <div className="eyebrow">Carrito</div>
+              <h2>{totalItems} {totalItems === 1 ? 'producto' : 'productos'}</h2>
+            </div>
           </div>
           <div className="shop-drawer-actions">
             {!isClientAuthed && <Link href="/login" className="chip">Ingresar</Link>}
-            <button type="button" className="icon-btn" onClick={() => setCartOpen(false)} aria-label="Cerrar carrito">
-              x
+            <button type="button" className="icon-btn shop-drawer-close" onClick={() => setCartOpen(false)} aria-label="Cerrar carrito">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           </div>
         </div>
@@ -385,13 +448,20 @@ export default function TiendaPage() {
         <div className="shop-drawer-body">
           {success && (
             <div className="shop-drawer-status">
-              <div className="eyebrow">Pedido registrado</div>
-              <strong>Orden #{success.data.id}</strong>
-              <p>
-                Total S/ {Number(success.data.total).toFixed(2)}. {success.meta?.requiresGateway
-                  ? 'La pasarela sigue como placeholder y puede conectarse despues.'
-                  : 'El pedido ya puede confirmarse desde el panel.'}
-              </p>
+              <div className="shop-status-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <div className="shop-status-content">
+                <div className="eyebrow">Pedido registrado</div>
+                <strong>Orden #{success.data.id}</strong>
+                <p>
+                  Total S/ {Number(success.data.total).toFixed(2)}. {success.meta?.requiresGateway
+                    ? 'La pasarela sigue como placeholder y puede conectarse despues.'
+                    : 'El pedido ya puede confirmarse desde el panel.'}
+                </p>
+              </div>
             </div>
           )}
 
@@ -399,34 +469,91 @@ export default function TiendaPage() {
 
           {cart.length === 0 ? (
             <div className="empty-state shop-cart-empty">
-              <strong>Tu carrito aun esta vacio.</strong>
-              <span>Agrega productos del catalogo para habilitar el checkout.</span>
+              <div className="shop-cart-empty-art" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="24" cy="54" r="3" />
+                  <circle cx="48" cy="54" r="3" />
+                  <path d="M6 10h6l5 24a3 3 0 0 0 3 2.4h26a3 3 0 0 0 2.9-2.2L54 18H18" />
+                  <path d="M30 6c0-1 1-2 2-2s2 1 2 2" stroke="currentColor" strokeOpacity="0.45" />
+                  <path d="M40 8c0-1 1-2 2-2s2 1 2 2" stroke="currentColor" strokeOpacity="0.45" />
+                </svg>
+              </div>
+              <strong>Tu carrito aun esta vacio</strong>
+              <span>Explora el catalogo y suma tus productos favoritos para iniciar el checkout.</span>
             </div>
           ) : (
             <>
               <div className="shop-cart-list">
-                {cart.map((item) => (
-                  <div key={item.productId} className="shop-cart-item">
-                    <div className="shop-cart-item-main">
-                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <div className="avatar">PD</div>}
-                      <div>
-                        <div className="list-title">{item.name}</div>
-                        <div className="list-sub">S/ {item.price.toFixed(2)} c/u</div>
+                {cart.map((item) => {
+                  const lineTotal = item.price * item.quantity;
+                  const atMax = item.quantity >= (item.stock ?? Infinity);
+                  return (
+                    <div key={item.productId} className="shop-cart-item">
+                      <div className="shop-cart-item-media">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} />
+                        ) : (
+                          <div className="avatar" aria-hidden="true">PD</div>
+                        )}
+                      </div>
+                      <div className="shop-cart-item-body">
+                        <div className="shop-cart-item-head">
+                          <div className="list-title">{item.name}</div>
+                          <button
+                            type="button"
+                            className="shop-cart-remove"
+                            onClick={() => setCart((current) => removeCartItem(current, item.productId))}
+                            aria-label={`Quitar ${item.name}`}
+                            title="Quitar"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6l-1.4 14.1a2 2 0 0 1-2 1.9H8.4a2 2 0 0 1-2-1.9L5 6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="shop-cart-item-sub">S/ {item.price.toFixed(2)} c/u</div>
+                        <div className="shop-cart-item-foot">
+                          <div className="shop-qty" role="group" aria-label={`Cantidad de ${item.name}`}>
+                            <button
+                              type="button"
+                              className="shop-qty-btn"
+                              onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity - 1))}
+                              aria-label="Disminuir cantidad"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                              </svg>
+                            </button>
+                            <span className="shop-qty-value" aria-live="polite">{item.quantity}</span>
+                            <button
+                              type="button"
+                              className="shop-qty-btn"
+                              onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity + 1))}
+                              disabled={atMax}
+                              aria-label="Aumentar cantidad"
+                              title={atMax ? 'Stock maximo alcanzado' : 'Aumentar cantidad'}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="shop-cart-line-total">S/ {lineTotal.toFixed(2)}</div>
+                        </div>
                       </div>
                     </div>
-                    <div className="shop-cart-controls">
-                      <button type="button" className="icon-btn" onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity - 1))}>-</button>
-                      <span className="pill">{item.quantity}</span>
-                      <button type="button" className="icon-btn" onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity + 1))}>+</button>
-                      <button type="button" className="chip" onClick={() => setCart((current) => removeCartItem(current, item.productId))}>Quitar</button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="shop-total-row">
-                <span>Subtotal</span>
-                <strong>S/ {subtotal.toFixed(2)}</strong>
+                <span className="shop-total-label">Subtotal</span>
+                <strong className="shop-total-amount">S/ {subtotal.toFixed(2)}</strong>
               </div>
 
               <form className="auth-form shop-checkout-form" onSubmit={handleCheckout}>
@@ -459,14 +586,58 @@ export default function TiendaPage() {
                     onChange={(event) => setCheckout({ ...checkout, customerEmail: event.target.value })}
                   />
                 </label>
-                <label>
-                  Metodo de pago
-                  <select value={checkout.method} onChange={(event) => setCheckout({ ...checkout, method: event.target.value as CheckoutForm['method'] })}>
-                    <option value="PASARELA">Tarjeta / Pasarela</option>
-                    <option value="YAPE">Yape</option>
-                    <option value="EFECTIVO">Pago al recoger</option>
-                  </select>
-                </label>
+                <div className="shop-payment-methods" role="radiogroup" aria-label="Metodo de pago">
+                  {(['PASARELA', 'YAPE', 'EFECTIVO'] as const).map((method) => {
+                    const labels: Record<CheckoutForm['method'], { title: string; sub: string; icon: string }> = {
+                      PASARELA: { title: 'Tarjeta', sub: 'Pasarela online', icon: '\u{1F4B3}' },
+                      YAPE: { title: 'Yape', sub: 'Comprobante digital', icon: '\u{1F4F1}' },
+                      EFECTIVO: { title: 'Efectivo', sub: 'Pago al recoger', icon: '\u{1F4B5}' }
+                    };
+                    const active = checkout.method === method;
+                    return (
+                      <button
+                        key={method}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        className={`shop-payment-pill ${active ? 'active' : ''}`}
+                        onClick={() => setCheckout({ ...checkout, method })}
+                      >
+                        <span className="shop-payment-icon" aria-hidden="true">{labels[method].icon}</span>
+                        <span className="shop-payment-text">
+                          <strong>{labels[method].title}</strong>
+                          <span>{labels[method].sub}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {checkout.method === 'PASARELA' && (
+                  <div className="card-fields">
+                    <label>
+                      Numero de tarjeta
+                      <input
+                        required
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value)}
+                        inputMode="numeric"
+                        placeholder="4111 1111 1111 1111"
+                      />
+                    </label>
+                    <label>
+                      CVV
+                      <input required value={cardCvv} onChange={(e) => setCardCvv(e.target.value)} inputMode="numeric" placeholder="123" />
+                    </label>
+                    <label>
+                      Mes
+                      <input required value={cardExpMonth} onChange={(e) => setCardExpMonth(e.target.value)} inputMode="numeric" placeholder="MM" />
+                    </label>
+                    <label>
+                      Año
+                      <input required value={cardExpYear} onChange={(e) => setCardExpYear(e.target.value)} inputMode="numeric" placeholder="YYYY" />
+                    </label>
+                  </div>
+                )}
                 <label>
                   Referencia o comprobante
                   <input

@@ -22,4 +22,11 @@ class AppConfig {
     }
     return base;
   }
+
+  static String get culqiPublicKey {
+    const fromEnv = String.fromEnvironment('CULQI_PUBLIC_KEY', defaultValue: '');
+    if (fromEnv.isNotEmpty) return fromEnv;
+    // Test key fallback
+    return 'pk_test_njPMs7nqVsZ80xEl';
+  }
 }

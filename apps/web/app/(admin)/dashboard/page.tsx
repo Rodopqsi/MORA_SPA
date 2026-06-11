@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type Upcoming = {
   id: number;
@@ -40,12 +41,12 @@ export default function DashboardPage() {
   const upcoming = summary?.upcoming ?? [];
 
   return (
-    <div className="page-stack">
-      <section className="grid grid-4">
+    <div className="page-stack page-enter">
+      <MoraScrollReveal as="section" className="grid grid-4" selector=".stat-card" variant="fade-up" stagger={0.07} duration={0.6}>
         {stats.map((stat, index) => (
           <div
             key={stat.label}
-            className={`card stat-card reveal tone-${stat.tone}`}
+            className={`card stat-card lift-on-hover reveal tone-${stat.tone}`}
             style={{ animationDelay: `${index * 80}ms` }}
           >
             <div className="stat-label">{stat.label}</div>
@@ -53,7 +54,7 @@ export default function DashboardPage() {
             <div className="stat-meta">{stat.meta}</div>
           </div>
         ))}
-      </section>
+      </MoraScrollReveal>
 
       {error && <div className="card">{error}</div>}
 
@@ -64,9 +65,9 @@ export default function DashboardPage() {
               <div className="eyebrow">Proximas citas</div>
               <h2>Confirma o reagenda con un toque</h2>
             </div>
-            <Link className="chip" href="/agenda">Ver agenda completa</Link>
+            <Link className="chip press-feedback" href="/agenda">Ver agenda completa</Link>
           </div>
-          <div className="list">
+          <MoraScrollReveal as="div" className="list" selector=".list-item" variant="fade-up" stagger={0.06} duration={0.5}>
             {upcoming.length === 0 && <div className="list-item">No hay citas cercanas.</div>}
             {upcoming.map((item) => (
               <div key={item.id} className="list-item">
@@ -85,7 +86,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </MoraScrollReveal>
         </div>
 
         <div className="card reveal">
@@ -94,9 +95,9 @@ export default function DashboardPage() {
               <div className="eyebrow">Equipo de hoy</div>
               <h2>Disponibilidad en tiempo real</h2>
             </div>
-            <Link className="chip" href="/equipo">Ver equipo completo</Link>
+            <Link className="chip press-feedback" href="/equipo">Ver equipo completo</Link>
           </div>
-          <div className="list">
+          <MoraScrollReveal as="div" className="list" selector=".list-item" variant="fade-up" stagger={0.06} duration={0.5}>
             <div className="list-item">
               <div className="avatar">EQ</div>
               <div className="list-main">
@@ -105,7 +106,7 @@ export default function DashboardPage() {
               </div>
               <div className="pill">{summary?.staffOnDuty ?? 0} personas</div>
             </div>
-          </div>
+          </MoraScrollReveal>
         </div>
       </section>
     </div>

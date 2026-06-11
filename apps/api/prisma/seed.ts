@@ -306,6 +306,47 @@ async function main() {
     });
   }
 
+  const starterClients = [
+    { name: 'Cliente Demo', phone: '999000111', email: 'cliente-demo@moraspa.local' },
+    { name: 'Maria Lopez', phone: '999000222', email: 'maria.lopez@moraspa.local' }
+  ] as const;
+  const clientDefaultPassword = process.env.CLIENT_SEED_PASSWORD ?? 'cliente123';
+  const clientPasswordHash = await bcrypt.hash(clientDefaultPassword, 10);
+
+  for (const seedClient of starterClients) {
+    const existingByPhone = await prisma.client.findUnique({ where: { phone: seedClient.phone } });
+    if (existingByPhone) {
+      if (!existingByPhone.passwordHash) {
+        await prisma.client.update({
+          where: { id: existingByPhone.id },
+          data: { passwordHash: clientPasswordHash }
+        });
+      }
+      continue;
+    }
+    if (seedClient.email) {
+      const existingByEmail = await prisma.client.findUnique({ where: { email: seedClient.email } });
+      if (existingByEmail) {
+        if (!existingByEmail.passwordHash) {
+          await prisma.client.update({
+            where: { id: existingByEmail.id },
+            data: { passwordHash: clientPasswordHash }
+          });
+        }
+        continue;
+      }
+    }
+    await prisma.client.create({
+      data: {
+        name: seedClient.name,
+        phone: seedClient.phone,
+        email: seedClient.email,
+        passwordHash: clientPasswordHash,
+        active: true
+      }
+    });
+  }
+
   for (const product of starterProducts) {
     const existing = await prisma.product.findFirst({ where: { name: product.name } });
     const record = existing

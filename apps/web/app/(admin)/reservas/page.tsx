@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { AdminForm } from '../../components/AdminForm';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type Reservation = {
   id: number;
@@ -180,7 +182,7 @@ export default function ReservasPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Gestion de reservas</div>
@@ -189,7 +191,7 @@ export default function ReservasPage() {
         </div>
         <div className="page-actions">
           <button
-            className="btn"
+            className="btn shine-on-hover press-feedback"
             onClick={() => {
               resetCreateForm();
               setShowCreate(true);
@@ -202,17 +204,16 @@ export default function ReservasPage() {
       </header>
 
       {showCreate && (
-        <section className="card reveal" ref={formRef}>
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">{editingReservationId ? 'Editar reserva' : 'Crear reserva'}</div>
-              <h2>{editingReservationId ? 'Reprogramar cita' : 'Agenda manual'}</h2>
-            </div>
-            <button className="chip" type="button" onClick={() => {
-              resetCreateForm();
-              setShowCreate(false);
-            }}>Cerrar</button>
-          </div>
+        <AdminForm
+          eyebrow={editingReservationId ? 'Editar reserva' : 'Crear reserva'}
+          title={editingReservationId ? 'Reprogramar cita' : 'Agenda manual'}
+          onReset={() => {
+            resetCreateForm();
+            setShowCreate(false);
+          }}
+          resetLabel="Cerrar"
+          sectionRef={formRef}
+        >
           <form className="auth-form" onSubmit={handleSubmit}>
             <label>
               Cliente
@@ -261,9 +262,9 @@ export default function ReservasPage() {
             </label>
             {editingReservationId && <div className="pill">El cliente se mantiene; este formulario reprograma servicio, staff y horario.</div>}
             {error && <div className="auth-error">{error}</div>}
-            <button className="btn" type="submit">{editingReservationId ? 'Guardar cambios' : 'Crear reserva'}</button>
+            <button className="btn shine-on-hover press-feedback" type="submit">{editingReservationId ? 'Guardar cambios' : 'Crear reserva'}</button>
           </form>
-        </section>
+        </AdminForm>
       )}
 
       <div className="toolbar">
@@ -303,7 +304,7 @@ export default function ReservasPage() {
           <div>Estado</div>
           <div>Acciones</div>
         </div>
-        <div className="table-body">
+        <MoraScrollReveal as="div" className="table-body" selector=".table-row" variant="fade-up" stagger={0.05} duration={0.45}>
           {filteredReservations.length === 0 && <div className="table-row">Sin reservas para esta fecha.</div>}
           {filteredReservations.map((item) => {
             const detail = item.details[0];
@@ -337,15 +338,15 @@ export default function ReservasPage() {
                   </select>
                 </div>
                 <div className="table-actions">
-                  <button className="chip" onClick={() => handleEditReservation(item)}>Editar</button>
-                  <button className="chip" onClick={() => updateStatus(item.id, 'CONFIRMADA')}>Aceptar</button>
-                  <button className="chip" onClick={() => updateStatus(item.id, 'EN_PROCESO')}>En proceso</button>
-                  <button className="chip danger" onClick={() => cancelReservation(item.id)}>Cancelar</button>
+                  <button className="chip press-feedback" onClick={() => handleEditReservation(item)}>Editar</button>
+                  <button className="chip press-feedback" onClick={() => updateStatus(item.id, 'CONFIRMADA')}>Aceptar</button>
+                  <button className="chip press-feedback" onClick={() => updateStatus(item.id, 'EN_PROCESO')}>En proceso</button>
+                  <button className="chip danger press-feedback" onClick={() => cancelReservation(item.id)}>Cancelar</button>
                 </div>
               </div>
             );
           })}
-        </div>
+        </MoraScrollReveal>
       </section>
     </div>
   );

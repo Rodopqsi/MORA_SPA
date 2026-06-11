@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../lib/api';
 import { CatalogProduct, getProductCover } from '../lib/shopCart';
+import { ensureGsapRegistered, gsap, MoraDuration, MoraEase, prefersReducedMotion } from '../lib/gsap';
+import { MoraScrollReveal } from '../components/MoraScrollReveal';
+import { MoraHero } from '../components/MoraHero';
 
 type Service = {
   id: number;
@@ -67,13 +70,52 @@ export default function PublicHomePage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
 
+  const heroBgRef = useRef<HTMLImageElement | null>(null);
+
   useEffect(() => {
+    ensureGsapRegistered();
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === heroSlides.length - 1 ? 0 : prev + 1));
     }, 6500);
 
     return () => clearInterval(timer);
   }, []);
+
+  // Smooth cross-fade + content shift when the slide changes.
+  useEffect(() => {
+    ensureGsapRegistered();
+    const bg = heroBgRef.current;
+    const content = document.querySelector<HTMLDivElement>('.hero-floating-content');
+    if (!bg && !content) return;
+
+    if (prefersReducedMotion()) return;
+
+    if (bg) {
+      gsap.fromTo(
+        bg,
+        { autoAlpha: 0, scale: 1.04 },
+        { autoAlpha: 1, scale: 1, duration: MoraDuration.medium, ease: MoraEase.out, overwrite: 'auto' }
+      );
+    }
+
+    if (content) {
+      const targets = content.querySelectorAll(
+        '.hero-badge, .hero-floating-content h1, .hero-floating-content p, .hero-button-stack .btn'
+      );
+      gsap.fromTo(
+        targets,
+        { y: 16, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: MoraDuration.base,
+          ease: MoraEase.out,
+          stagger: 0.07,
+          overwrite: 'auto',
+        }
+      );
+    }
+  }, [currentSlide]);
 
   useEffect(() => {
     Promise.all([
@@ -102,20 +144,37 @@ export default function PublicHomePage() {
   );
 
   return (
-    <div className="public-page reveal">
+    <div className="public-page page-enter">
       <section className="hero-immersive">
-        <img src={heroSlides[currentSlide].image} alt="Mora Spa" className="hero-bg-media" />
+        <img
+          key={currentSlide}
+          ref={heroBgRef}
+          src={heroSlides[currentSlide].image}
+          alt="Mora Spa"
+          className="hero-bg-media"
+        />
         <div className="hero-overlay" />
 
-        <div className="hero-floating-content">
-          <span className="hero-badge hero-badge-accent">{heroSlides[currentSlide].badge}</span>
-          <h1>{heroSlides[currentSlide].title}</h1>
-          <p>{heroSlides[currentSlide].subtitle}</p>
+        <MoraHero
+          className="hero-floating-content"
+          titleSelector="[data-hero-line]"
+          subtitleSelector="[data-hero-subtitle]"
+          ctaSelector="[data-hero-cta]"
+          floatingSelector="[data-hero-floating]"
+        >
+          <span
+            data-hero-floating
+            className="hero-badge hero-badge-accent"
+          >
+            {heroSlides[currentSlide].badge}
+          </span>
+          <h1 data-hero-line>{heroSlides[currentSlide].title}</h1>
+          <p data-hero-subtitle>{heroSlides[currentSlide].subtitle}</p>
           <div className="hero-button-stack">
-            <Link href="/reservar" className="btn hero-btn-primary">Reservar ahora</Link>
-            <Link href="/registro" className="btn hero-btn-secondary">Crear cuenta</Link>
+            <Link data-hero-cta href="/reservar" className="btn hero-btn-primary shine-on-hover">Reservar ahora</Link>
+            <Link data-hero-cta href="/registro" className="btn hero-btn-secondary">Crear cuenta</Link>
           </div>
-        </div>
+        </MoraHero>
 
         <div className="hero-carousel-dots">
           {heroSlides.map((_, index) => (
@@ -139,10 +198,10 @@ export default function PublicHomePage() {
           <Link href="/reservar" className="section-link-more">Ver agenda</Link>
         </div>
 
-        <div className="showcase-evolution-grid">
+        <MoraScrollReveal selector=".premium-service-box" className="showcase-evolution-grid" stagger={0.08}>
           {services.length === 0 && <div className="list-sub">Todavia no hay servicios publicados.</div>}
           {services.slice(0, 6).map((service, index) => (
-            <div key={service.id} className="premium-service-box">
+            <div key={service.id} className="premium-service-box lift-on-hover">
               <div className="service-box-visual">
                 <img src={serviceImages[index % serviceImages.length]} alt={service.name} />
                 <div className="service-box-overlay">
@@ -161,7 +220,7 @@ export default function PublicHomePage() {
               </div>
             </div>
           ))}
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="public-section" id="productos">
@@ -172,11 +231,11 @@ export default function PublicHomePage() {
           </div>
           <Link href="/tienda" className="section-link-more">Ir a tienda</Link>
         </div>
-        <div className="shop-feature-grid">
+        <MoraScrollReveal selector=".shop-feature-card" className="shop-feature-grid" stagger={0.09}>
           {products.filter((product) => product.featured).slice(0, 4).map((product) => {
             const cover = getProductCover(product);
             return (
-              <article key={product.id} className="shop-feature-card">
+              <article key={product.id} className="shop-feature-card lift-on-hover">
                 <div className="shop-feature-media">
                   {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
                 </div>
@@ -197,7 +256,7 @@ export default function PublicHomePage() {
           {products.filter((product) => product.featured).length === 0 && (
             <div className="empty-state">Los productos destacados apareceran aqui cuando el catalogo este listo.</div>
           )}
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="public-section" id="promos">
@@ -208,7 +267,7 @@ export default function PublicHomePage() {
           </div>
           <Link href="/reservar" className="section-link-more">Aplicar promo</Link>
         </div>
-        <div className="promo-evolution-banner">
+        <MoraScrollReveal selector=".promo-pill" className="promo-evolution-banner" stagger={0.09} variant="fade-right">
           <div>
             <h3>Beneficios listos para tu proxima visita</h3>
             <p>Revisa las promos activas en web y reserva con la combinacion que mejor encaje con tu rutina.</p>
@@ -224,7 +283,7 @@ export default function PublicHomePage() {
               </div>
             ))}
           </div>
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="public-section" id="equipo">
@@ -235,10 +294,10 @@ export default function PublicHomePage() {
           </div>
           <Link href="/reservar" className="section-link-more">Agendar con el equipo</Link>
         </div>
-        <div className="staff-grid">
+        <MoraScrollReveal selector=".staff-card" className="staff-grid" stagger={0.1}>
           {staff.length === 0 && <div className="list-sub">Nuestro equipo aparecera aqui cuando la agenda este habilitada.</div>}
           {staff.slice(0, 4).map((member, index) => (
-            <div key={member.id} className="staff-card">
+            <div key={member.id} className="staff-card lift-on-hover">
               <img src={galleryImages[index % galleryImages.length]} alt={member.name} />
               <div className="staff-card-body">
                 <div className="staff-name">{member.name}</div>
@@ -251,7 +310,7 @@ export default function PublicHomePage() {
               </div>
             </div>
           ))}
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="public-section" id="galeria">
@@ -262,13 +321,13 @@ export default function PublicHomePage() {
           </div>
           <Link href="/reservar" className="section-link-more">Quiero este look</Link>
         </div>
-        <div className="gallery-grid">
+        <MoraScrollReveal selector=".gallery-tile" className="gallery-grid" stagger={0.07} variant="scale">
           {galleryImages.map((image) => (
-            <div key={image} className="gallery-tile">
+            <div key={image} className="gallery-tile lift-on-hover">
               <img src={image} alt="Resultado Mora Spa" />
             </div>
           ))}
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="public-section">
@@ -279,14 +338,14 @@ export default function PublicHomePage() {
           </div>
           <Link href="/reservar" className="section-link-more">Reservar ahora</Link>
         </div>
-        <div className="testimonial-grid">
+        <MoraScrollReveal selector=".testimonial-card" className="testimonial-grid" stagger={0.1}>
           {experienceHighlights.map((item) => (
-            <div key={item.title} className="testimonial-card">
+            <div key={item.title} className="testimonial-card lift-on-hover">
               <p>{item.text}</p>
               <div className="testimonial-author">{item.title}</div>
             </div>
           ))}
-        </div>
+        </MoraScrollReveal>
       </section>
 
       <section className="loyalty-dark-panel" id="fidelidad">
@@ -295,11 +354,11 @@ export default function PublicHomePage() {
           <h2>Reserva, vuelve y mantén tu historial siempre a mano</h2>
           <p>Crea tu cuenta para revisar citas, acceder a promociones web y reservar otra vez en pocos pasos.</p>
           <div className="cta-row">
-            <Link href="/reservar" className="btn">Reservar</Link>
+            <Link href="/reservar" className="btn shine-on-hover pulse-glow">Reservar</Link>
             <Link href="/registro" className="btn btn-outline">Crear cuenta</Link>
           </div>
         </div>
-        <div className="cta-features">
+        <MoraScrollReveal selector=".perk-item" className="cta-features" stagger={0.12} variant="fade-up">
           <div className="perk-item">
             <h4>Agenda mas rapido</h4>
             <p>Tu cuenta conserva sesion, historial y reservas para que reagendar sea un proceso corto.</p>
@@ -308,7 +367,7 @@ export default function PublicHomePage() {
             <h4>Promos visibles</h4>
             <p>Cuando activemos nuevas campañas, las veras desde web y podras aplicarlas al reservar.</p>
           </div>
-        </div>
+        </MoraScrollReveal>
       </section>
     </div>
   );

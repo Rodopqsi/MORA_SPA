@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import '../app/theme.dart';
+import '../app/animations.dart';
 import '../core/config/app_config.dart';
 import '../core/models.dart';
 import '../core/network/api_client.dart';
@@ -42,17 +45,22 @@ class _RootScreenState extends State<RootScreen> {
       appBar: AppBar(
         title: Text(titles[_selectedIndex]),
         actions: [
-          IconButton(
-            tooltip: 'Mi cuenta',
-            onPressed: () => _jumpTo(3),
-            icon: const Icon(Icons.person_rounded),
+          MoraPress(
+            onTap: () => _jumpTo(3),
+            borderRadius: BorderRadius.circular(20),
+            child: const Padding(
+              padding: EdgeInsets.all(10),
+              child: Icon(Icons.person_rounded),
+            ),
           ),
         ],
       ),
       body: SafeArea(
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: pages,
+        child: MoraPageEnter(
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: pages,
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
@@ -1724,6 +1732,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   late final TextEditingController _emailController;
   final TextEditingController _referenceController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _cardNumberController = TextEditingController();
+  final TextEditingController _cardCvvController = TextEditingController();
+  final TextEditingController _cardMonthController = TextEditingController();
+  final TextEditingController _cardYearController = TextEditingController();
   String _method = 'EFECTIVO';
   bool _submitting = false;
 
@@ -1743,6 +1755,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     _emailController.dispose();
     _referenceController.dispose();
     _notesController.dispose();
+    _cardNumberController.dispose();
+    _cardCvvController.dispose();
+    _cardMonthController.dispose();
+    _cardYearController.dispose();
     super.dispose();
   }
 
@@ -1760,6 +1776,36 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
 
     setState(() => _submitting = true);
     try {
+      // If using PASARELA, and no reference provided, tokenize card first
+      if (_method == 'PASARELA' && _referenceController.text.trim().isEmpty) {
+        try {
+          final publicKey = AppConfig.culqiPublicKey;
+          final tokenResp = await http.post(
+            Uri.parse('https://secure.culqi.com/v2/tokens'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $publicKey',
+            },
+            body: jsonEncode({
+              'card_number': _cardNumberController.text.replaceAll(RegExp(r"\s+"), ''),
+              'cvv': _cardCvvController.text,
+              'expiration_month': _cardMonthController.text,
+              'expiration_year': _cardYearController.text,
+              'email': _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+            }),
+          );
+
+          if (tokenResp.statusCode >= 200 && tokenResp.statusCode < 300) {
+            final map = jsonDecode(tokenResp.body) as Map<String, dynamic>;
+            if (map['id'] != null) {
+              _referenceController.text = map['id'] as String;
+            }
+          }
+        } catch (_) {
+          // ignore, backend will indicate requiresGateway
+        }
+      }
+
       final sale = await widget.repository.createPublicOrder(
         customerName: _nameController.text.trim(),
         customerPhone: _phoneController.text.trim(),
@@ -1894,6 +1940,28 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 const SizedBox(height: 12),
                 TextField(controller: _notesController, maxLines: 3, decoration: const InputDecoration(labelText: 'Notas del pedido')),
                 if (_method == 'PASARELA') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _cardNumberController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Numero de tarjeta'),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(controller: _cardCvvController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'CVV')),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(controller: _cardMonthController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'MM')),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(controller: _cardYearController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'YYYY')),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   const _EmptyInfoCard(
                     title: 'Orden registrada como pendiente',

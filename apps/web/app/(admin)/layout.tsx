@@ -2,6 +2,7 @@ import Link from 'next/link';
 import SideNav from '../components/SideNav';
 import AdminSearch from '../components/AdminSearch';
 import AdminLogoutButton from '../components/AdminLogoutButton';
+import AdminUserChip from '../components/AdminUserChip';
 
 export const metadata = {
   title: 'Mora Spa Admin',
@@ -20,13 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link className="btn btn-outline" href="/agenda">Ver agenda</Link>
             <Link className="btn" href="/reservas">Nueva reserva</Link>
             <AdminLogoutButton />
-            <div className="user-chip">
-              <div className="user-avatar">GM</div>
-              <div>
-                <div className="user-name">Gisela Mora</div>
-                <div className="user-role">Administradora</div>
-              </div>
-            </div>
+            <AdminUserChip />
           </div>
         </header>
         <main className="content">{children}</main>

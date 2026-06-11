@@ -1,0 +1,1 @@
+{"error":{"message":"Invalid enum value. Expected 'CONFIRMADO' | 'ANULADO' | 'PENDIENTE', received 'PAGADO'","code":"validation_error"}}

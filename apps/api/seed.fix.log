@@ -1,0 +1,4 @@
+﻿Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+
+The seed command has been executed.

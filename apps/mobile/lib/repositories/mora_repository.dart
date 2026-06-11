@@ -1,5 +1,6 @@
 import '../core/models.dart';
 import '../core/network/api_client.dart';
+import '../core/config/app_config.dart';
 import '../state/app_state.dart';
 
 class MoraRepository {
@@ -228,6 +229,18 @@ class MoraRepository {
     String? notes,
     required List<CartEntry> items,
   }) async {
+    // If using PASARELA and no paymentReference provided, attempt client-side tokenization
+    if (method == 'PASARELA' && (paymentReference == null || paymentReference.isEmpty)) {
+      try {
+        final publicKey = AppConfig.culqiPublicKey;
+        final tokenResp = await _tokenizeCard(publicKey);
+        if (tokenResp != null && tokenResp['id'] != null) {
+          paymentReference = tokenResp['id'] as String;
+        }
+      } catch (_) {
+        // ignore tokenization failures; server will return requiresGateway
+      }
+    }
     final response = await apiClient.post(
       '/public/orders',
       body: {
@@ -244,6 +257,12 @@ class MoraRepository {
     );
 
     return SaleRecord.fromJson(_unwrapMap(response));
+  }
+
+  Future<Map<String, dynamic>?> _tokenizeCard(String publicKey) async {
+    // Mobile flow does not collect card details in repository; tokenization
+    // should be performed in UI and passed as paymentReference. Return null.
+    return null;
   }
 
   Future<StaffSession> loginStaff({

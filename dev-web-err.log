@@ -1,0 +1,732 @@
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ ./app/(public)/tienda/page.tsx
+Attempted import error: '../../components/MoraScrollReveal' does not contain a default export (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/tienda/page.tsx
+
+./app/(public)/tienda/page.tsx
+Attempted import error: '../../components/MoraScrollReveal' does not contain a default export (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/tienda/page.tsx
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at TiendaPage (webpack-internal:///(ssr)/./app/(public)/tienda/page.tsx:39:102)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+ ⨯ Internal error: Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:46775)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42922)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:46505)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:45321)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ac (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11400)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:14707)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+digest: "3741624097"
+ ⚠ ./app/(public)/reservar/paso-3/page.tsx
+Attempted import error: '../../../components/MoraScrollReveal' does not contain a default export (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/reservar/paso-3/page.tsx
+
+./app/(public)/tienda/page.tsx
+Attempted import error: '../../components/MoraScrollReveal' does not contain a default export (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/tienda/page.tsx
+
+./app/(public)/tienda/page.tsx
+Attempted import error: '../../components/MoraScrollReveal' does not contain a default export (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/tienda/page.tsx
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at TiendaPage (webpack-internal:///(ssr)/./app/(public)/tienda/page.tsx:39:102)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+ ⨯ Internal error: Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:46775)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42922)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:46505)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:45321)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ac (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11400)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:14707)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+digest: "3741624097"
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ ./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+
+./app/(public)/page.tsx
+Attempted import error: 'MoraScrollReveal' is not exported from '../components/MoraScrollReveal' (imported as 'MoraScrollReveal').
+
+Import trace for requested module:
+./app/(public)/page.tsx
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at PublicHomePage (webpack-internal:///(ssr)/./app/(public)/page.tsx:66:92)
+    at ClientPageRoot (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/client-page.js:14:11)
+    at Lazy
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at main
+    at div
+    at InnerLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:242:11)
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at NotFoundErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:347:11)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at Lazy
+    at OuterLayoutRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/layout-router.js:367:11)
+    at Lazy
+    at AuthProvider (webpack-internal:///(ssr)/./app/context/AuthContext.tsx:15:25)
+    at Lazy
+    at body
+    at html
+    at RedirectErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:73:9)
+    at RedirectBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/redirect-boundary.js:81:11)
+    at ReactDevOverlay (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:322:11)
+    at Router (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:202:11)
+    at ErrorBoundaryHandler (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:112:9)
+    at ErrorBoundary (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/error-boundary.js:158:11)
+    at AppRouter (webpack-internal:///(ssr)/../../node_modules/next/dist/client/components/app-router.js:564:13)
+    at Lazy
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at r4 (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:18826)
+    at ServerInsertedHTMLProvider (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:39:24256)
+ ⨯ Internal error: Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:46775)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42336
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:42822)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:46505)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aj (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:53793)
+    at aC (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:52874)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:50095)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:45321)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ac (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11400)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:14707)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ac (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11400)
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:14707)
+    at a_ (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:49776)
+    at ab (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:11808)
+    at D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16871
+    at aw (D:\Desarrollo de aplicaciones Web avanzado\proyecto\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:35:16908)
+digest: "571297262"
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.

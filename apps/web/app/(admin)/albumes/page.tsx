@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
+import { AdminForm } from '../../components/AdminForm';
 
 type AlbumPrivacy = 'INTERNO' | 'PRIVADO_CLIENTE' | 'PUBLICO';
 type PhotoType = 'ANTES' | 'DESPUES' | 'RESULTADO';
@@ -56,6 +59,9 @@ export default function AlbumesPage() {
   const [form, setForm] = useState<AlbumForm>(createEmptyForm());
   const [photos, setPhotos] = useState<PhotoForm[]>([emptyPhoto()]);
   const [error, setError] = useState('');
+  const [confirmDeleteAlbum, setConfirmDeleteAlbum] = useState<Album | null>(null);
+  const [confirmDeletePhotoId, setConfirmDeletePhotoId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const editingAlbum = albums.find((album) => album.id === form.id) ?? null;
 
@@ -166,33 +172,45 @@ export default function AlbumesPage() {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleDelete = async (album: Album) => {
-    const confirmed = window.confirm(`Eliminar el album ${album.title}? Esta accion quitara tambien sus fotos.`);
-    if (!confirmed) return;
+  const handleDelete = (album: Album) => {
+    setConfirmDeleteAlbum(album);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteAlbum) return;
+    setDeleting(true);
     setError('');
     try {
-      await staffFetch(`/albums/${album.id}`, { method: 'DELETE' });
-      if (form.id === album.id) {
+      await staffFetch(`/albums/${confirmDeleteAlbum.id}`, { method: 'DELETE' });
+      if (form.id === confirmDeleteAlbum.id) {
         resetForm();
       }
       loadData();
+      setConfirmDeleteAlbum(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const handleDeletePhoto = async (photoId: number) => {
+  const handleDeletePhoto = (photoId: number) => {
     if (!form.id) return;
-    const confirmed = window.confirm('Eliminar esta foto del album?');
-    if (!confirmed) return;
+    setConfirmDeletePhotoId(photoId);
+  };
 
+  const handleDeletePhotoConfirm = async () => {
+    if (!form.id || confirmDeletePhotoId === null) return;
+    setDeleting(true);
     setError('');
     try {
-      await staffFetch(`/albums/${form.id}/photos/${photoId}`, { method: 'DELETE' });
+      await staffFetch(`/albums/${form.id}/photos/${confirmDeletePhotoId}`, { method: 'DELETE' });
       loadData();
+      setConfirmDeletePhotoId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar la foto');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -200,7 +218,7 @@ export default function AlbumesPage() {
     clients.find((client) => client.id === clientId)?.name ?? `Cliente #${clientId}`;
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Albumes y recuerdos</div>
@@ -208,7 +226,7 @@ export default function AlbumesPage() {
           <p>Organiza antes y despues, con permisos claros.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => {
+          <button className="btn shine-on-hover press-feedback" onClick={() => {
             resetForm();
             formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}>
@@ -217,14 +235,12 @@ export default function AlbumesPage() {
         </div>
       </header>
 
-      <section className="card reveal" ref={formRef}>
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">{form.id ? 'Editar album' : 'Nuevo album'}</div>
-            <h2>{form.id ? 'Actualizar album' : 'Registrar album'}</h2>
-          </div>
-          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
-        </div>
+      <AdminForm
+        eyebrow={form.id ? 'Editar album' : 'Nuevo album'}
+        title={form.id ? 'Actualizar album' : 'Registrar album'}
+        onReset={resetForm}
+        sectionRef={formRef}
+      >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Titulo
@@ -316,7 +332,7 @@ export default function AlbumesPage() {
                     <div className="service-actions">
                       <span className="pill">{photo.fileName || `Foto ${index + 1}`}</span>
                       {photo.isCover && <span className="pill">Portada</span>}
-                      <button className="chip" type="button" onClick={() => handleDeletePhoto(photo.id)}>Eliminar foto</button>
+                      <button className="chip chip-danger" type="button" onClick={() => handleDeletePhoto(photo.id)}>Eliminar foto</button>
                     </div>
                   </div>
                 ))}
@@ -324,15 +340,15 @@ export default function AlbumesPage() {
             </div>
           )}
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">{form.id ? 'Actualizar album' : 'Guardar album'}</button>
+          <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar album' : 'Guardar album'}</button>
         </form>
-      </section>
+      </AdminForm>
 
-      <section className="grid grid-4">
+      <MoraScrollReveal as="section" className="grid grid-4" selector=".album-card" variant="fade-up" stagger={0.06} duration={0.55}>
         {albums.map((album, index) => (
           <div
             key={album.id}
-            className="card album-card reveal"
+            className="card album-card lift-on-hover reveal"
             style={{ animationDelay: `${index * 80}ms` }}
           >
             <div className="album-thumb">
@@ -352,12 +368,38 @@ export default function AlbumesPage() {
             <div className="album-sub">{album.description?.trim() || 'Sin descripcion del resultado.'}</div>
             <div className="service-actions">
               <span className="pill">{album.privacy}</span>
-              <button className="chip" type="button" onClick={() => handleEdit(album)}>Editar</button>
-              <button className="chip" type="button" onClick={() => handleDelete(album)}>Eliminar</button>
+              <button className="chip press-feedback" type="button" onClick={() => handleEdit(album)}>Editar</button>
+              <button className="chip chip-danger press-feedback" type="button" onClick={() => handleDelete(album)}>Eliminar</button>
             </div>
           </div>
         ))}
-      </section>
+      </MoraScrollReveal>
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteAlbum)}
+        title="Eliminar album"
+        description={
+          confirmDeleteAlbum
+            ? `Eliminar el album "${confirmDeleteAlbum.title}"? Esta accion quitara tambien sus fotos.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDeleteAlbum(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeletePhotoId !== null}
+        title="Eliminar foto"
+        description="Eliminar esta foto del album? Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeletePhotoConfirm}
+        onCancel={() => setConfirmDeletePhotoId(null)}
+      />
     </div>
   );
 }

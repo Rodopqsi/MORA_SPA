@@ -43,16 +43,15 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <footer className="public-footer">
         <div className="public-footer-top">
           <div className="public-footer-brand-block">
-            <span className="public-footer-kicker">Mora signature</span>
             <div className="public-footer-brand-mark">
               <div className="brand-badge public-footer-brand-badge">GM</div>
               <div>
                 <div className="public-footer-brand-title">Gisela Mora</div>
-                <div className="public-footer-brand-subtitle">SPA - BARBER</div>
+                <div className="public-footer-brand-subtitle">SPA &middot; BARBER</div>
               </div>
             </div>
             <p>
-              Especialistas en color, barberia, nails y reservas digitales con disponibilidad real, seguimiento claro y una experiencia que se siente premium desde la primera visita.
+              Especialistas en color, barberia, nails y reservas digitales con disponibilidad real y seguimiento claro.
             </p>
           </div>
 
@@ -68,30 +67,29 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
 
           <div className="public-footer-social" aria-label="Presencia social Mora">
-            <span className="public-footer-social-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <a href="#" className="public-footer-social-link" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="5" />
                 <circle cx="12" cy="12" r="4" />
                 <circle cx="17.4" cy="6.6" r="1" fill="currentColor" stroke="none" />
               </svg>
-            </span>
-            <span className="public-footer-social-badge" aria-hidden="true">
+            </a>
+            <a href="#" className="public-footer-social-link" aria-label="Facebook">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.2-1.6 1.5-1.6H16V4.8c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.9V11H8v3h2.1v7h3.4Z" />
               </svg>
-            </span>
-            <span className="public-footer-social-badge" aria-hidden="true">
+            </a>
+            <a href="#" className="public-footer-social-link" aria-label="TikTok">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16.6 5.8a4.7 4.7 0 0 1-3.1-1.4v9.2a4.6 4.6 0 1 1-4.6-4.6c.4 0 .8.1 1.2.2v2.5a2.3 2.3 0 1 0 1.1 1.9V3.8h2.4c.2 1 .8 1.9 1.6 2.5.8.6 1.8 1 2.8 1.1v2.4c-.5 0-.9-.1-1.4-.2Z" />
               </svg>
-            </span>
+            </a>
           </div>
         </div>
 
         <div className="public-footer-bottom">
           <div className="public-footer-powered">
-            <span>Agenda, tienda y seguimiento</span>
-            <strong>Mora Peluqueria & Spa</strong>
+            <span>Mora Peluqueria &amp; Spa &middot; Agenda, tienda y seguimiento</span>
           </div>
 
           <nav className="public-footer-links" aria-label="Enlaces del sitio">

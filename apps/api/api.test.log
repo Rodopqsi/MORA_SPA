@@ -1,0 +1,15 @@
+﻿API listening on http://localhost:4000/api
+node.exe : [auth] err class: TokenExpiredError isTokenExpired= true 
+isJsonWebToken= true message= jwt expired
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([auth] err clas...ge= jwt expired 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[0mGET /api/clients [33m401[0m 5.634 ms - 60[0m
+[auth] err class: JsonWebTokenError isTokenExpired= false isJsonWebToken= true 
+message= invalid signature
+[0mGET /api/clients [33m401[0m 2.258 ms - 60[0m
+[0mGET /api/clients [33m401[0m 0.478 ms - 58[0m

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../app/animations.dart';
 import '../app/theme.dart';
 import '../core/config/app_config.dart';
 import '../core/models.dart';
@@ -113,18 +114,24 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
         title: const Text('Consola admin'),
         actions: [
           if (appState.isStaffAuthenticated)
-            IconButton(
-              tooltip: 'Cerrar sesion',
-              onPressed: () {
+            MoraPress(
+              onTap: () {
                 context.read<AppState>().clearStaffSession();
                 setState(() => _future = null);
               },
-              icon: const Icon(Icons.logout_rounded),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Tooltip(
+                  message: 'Cerrar sesion',
+                  child: Icon(Icons.logout_rounded, color: MoraColors.ink),
+                ),
+              ),
             ),
         ],
       ),
       body: SafeArea(
-        child: !appState.isStaffAuthenticated
+        child: MoraPageEnter(
+          child: !appState.isStaffAuthenticated
             ? _buildLoginView()
             : FutureBuilder<AdminSnapshot>(
                 future: _future,
@@ -180,79 +187,84 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                                   message: 'No hay reservas para administrar ahora mismo.',
                                 )
                               : Column(
-                                  children: data.reservations.map((reservation) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: sectionDecoration(color: MoraColors.cream),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
+                                  children: [
+                                    for (var i = 0; i < data.reservations.length; i++)
+                                      MoraStaggerIn(
+                                        key: ValueKey('reservation-${data.reservations[i].id}'),
+                                        index: i,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(bottom: 12),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: sectionDecoration(color: MoraColors.cream),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    '${reservation.code} · ${reservation.clientName}',
-                                                    style: Theme.of(context).textTheme.titleMedium,
-                                                  ),
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        '${data.reservations[i].code} · ${data.reservations[i].clientName}',
+                                                        style: Theme.of(context).textTheme.titleMedium,
+                                                      ),
+                                                    ),
+                                                    _MiniStatusChip(label: formatStatusLabel(data.reservations[i].status), status: data.reservations[i].status),
+                                                  ],
                                                 ),
-                                                _MiniStatusChip(label: formatStatusLabel(reservation.status), status: reservation.status),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(formatDateTime(reservation.start)),
-                                            const SizedBox(height: 10),
-                                            DropdownButtonFormField<String>(
-                                              initialValue: reservation.status,
-                                              decoration: const InputDecoration(labelText: 'Estado de la reserva'),
-                                              items: _reservationStatuses
-                                                  .map((status) => DropdownMenuItem<String>(value: status, child: Text(formatStatusLabel(status))))
-                                                  .toList(growable: false),
-                                              onChanged: (value) {
-                                                if (value == null || value == reservation.status) {
-                                                  return;
-                                                }
-                                                _withRefresh(
-                                                  () => widget.repository.updateReservationStatus(reservation.id, status: value),
-                                                  'Estado de reserva actualizado.',
-                                                );
-                                              },
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    reservation.details.isEmpty
-                                                        ? 'Sin detalle'
-                                                        : reservation.details
-                                                            .map((detail) => detail.serviceName.isEmpty ? 'Servicio ${detail.serviceId}' : detail.serviceName)
-                                                            .join(' · '),
-                                                    style: Theme.of(context).textTheme.bodySmall,
-                                                  ),
-                                                ),
-                                                TextButton.icon(
-                                                  onPressed: () async {
-                                                    final confirm = await _confirm(context, 'Cancelar esta reserva?');
-                                                    if (confirm != true) {
+                                                const SizedBox(height: 8),
+                                                Text(formatDateTime(data.reservations[i].start)),
+                                                const SizedBox(height: 10),
+                                                DropdownButtonFormField<String>(
+                                                  initialValue: data.reservations[i].status,
+                                                  decoration: const InputDecoration(labelText: 'Estado de la reserva'),
+                                                  items: _reservationStatuses
+                                                      .map((status) => DropdownMenuItem<String>(value: status, child: Text(formatStatusLabel(status))))
+                                                      .toList(growable: false),
+                                                  onChanged: (value) {
+                                                    if (value == null || value == data.reservations[i].status) {
                                                       return;
                                                     }
-                                                    await _withRefresh(
-                                                      () => widget.repository.cancelReservation(reservation.id, reason: 'Cancelada desde consola movil'),
-                                                      'Reserva cancelada.',
+                                                    _withRefresh(
+                                                      () => widget.repository.updateReservationStatus(data.reservations[i].id, status: value),
+                                                      'Estado de reserva actualizado.',
                                                     );
                                                   },
-                                                  icon: const Icon(Icons.cancel_rounded),
-                                                  label: const Text('Cancelar'),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        data.reservations[i].details.isEmpty
+                                                            ? 'Sin detalle'
+                                                            : data.reservations[i].details
+                                                                .map((detail) => detail.serviceName.isEmpty ? 'Servicio ${detail.serviceId}' : detail.serviceName)
+                                                                .join(' · '),
+                                                        style: Theme.of(context).textTheme.bodySmall,
+                                                      ),
+                                                    ),
+                                                    TextButton.icon(
+                                                      onPressed: () async {
+                                                        final confirm = await _confirm(context, 'Cancelar esta reserva?');
+                                                        if (confirm != true) {
+                                                          return;
+                                                        }
+                                                        await _withRefresh(
+                                                          () => widget.repository.cancelReservation(data.reservations[i].id, reason: 'Cancelada desde consola movil'),
+                                                          'Reserva cancelada.',
+                                                        );
+                                                      },
+                                                      icon: const Icon(Icons.cancel_rounded),
+                                                      label: const Text('Cancelar'),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ),
-                                    );
-                                  }).toList(growable: false),
+                                  ],
                                 ),
                         ),
                         const SizedBox(height: 20),
@@ -281,79 +293,84 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                             label: const Text('Nuevo'),
                           ),
                           child: Column(
-                            children: data.services.map((service) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: sectionDecoration(color: Colors.white),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
+                            children: [
+                              for (var i = 0; i < data.services.length; i++)
+                                MoraStaggerIn(
+                                  key: ValueKey('service-${data.services[i].id}'),
+                                  index: i,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: sectionDecoration(color: Colors.white),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Expanded(child: Text(service.name, style: Theme.of(context).textTheme.titleMedium)),
-                                          _MiniStatusChip(label: service.active ? 'Activo' : 'Inactivo', status: service.active ? 'CONFIRMADA' : 'CANCELADA'),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(service.description.isEmpty ? 'Sin descripcion.' : service.description),
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          _MiniPill(label: '${service.durationMin} min'),
-                                          _MiniPill(label: formatCurrency(service.priceBase)),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final payload = await _showServiceDialog(context, current: service);
-                                              if (payload == null) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.updateService(
-                                                  service.id,
-                                                  name: payload['name'] as String,
-                                                  description: payload['description'] as String?,
-                                                  durationMin: payload['durationMin'] as int,
-                                                  priceBase: payload['priceBase'] as double,
-                                                  active: payload['active'] as bool,
-                                                ),
-                                                'Servicio actualizado.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.edit_rounded),
-                                            label: const Text('Editar'),
+                                          Row(
+                                            children: [
+                                              Expanded(child: Text(data.services[i].name, style: Theme.of(context).textTheme.titleMedium)),
+                                              _MiniStatusChip(label: data.services[i].active ? 'Activo' : 'Inactivo', status: data.services[i].active ? 'CONFIRMADA' : 'CANCELADA'),
+                                            ],
                                           ),
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final confirm = await _confirm(context, 'Desactivar ${service.name}?');
-                                              if (confirm != true) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.deleteService(service.id),
-                                                'Servicio desactivado.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.delete_outline_rounded),
-                                            label: const Text('Eliminar'),
+                                          const SizedBox(height: 6),
+                                          Text(data.services[i].description.isEmpty ? 'Sin descripcion.' : data.services[i].description),
+                                          const SizedBox(height: 10),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              _MiniPill(label: '${data.services[i].durationMin} min'),
+                                              _MiniPill(label: formatCurrency(data.services[i].priceBase)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              TextButton.icon(
+                                                onPressed: () async {
+                                                  final payload = await _showServiceDialog(context, current: data.services[i]);
+                                                  if (payload == null) {
+                                                    return;
+                                                  }
+                                                  await _withRefresh(
+                                                    () => widget.repository.updateService(
+                                                      data.services[i].id,
+                                                      name: payload['name'] as String,
+                                                      description: payload['description'] as String?,
+                                                      durationMin: payload['durationMin'] as int,
+                                                      priceBase: payload['priceBase'] as double,
+                                                      active: payload['active'] as bool,
+                                                    ),
+                                                    'Servicio actualizado.',
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.edit_rounded),
+                                                label: const Text('Editar'),
+                                              ),
+                                              TextButton.icon(
+                                                onPressed: () async {
+                                                  final confirm = await _confirm(context, 'Desactivar ${data.services[i].name}?');
+                                                  if (confirm != true) {
+                                                    return;
+                                                  }
+                                                  await _withRefresh(
+                                                    () => widget.repository.deleteService(data.services[i].id),
+                                                    'Servicio desactivado.',
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.delete_outline_rounded),
+                                                label: const Text('Eliminar'),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              );
-                            }).toList(growable: false),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -382,80 +399,88 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                             label: const Text('Nuevo'),
                           ),
                           child: Column(
-                            children: data.staff.map((member) {
-                              final assignedServices = member.serviceIds
-                                  .map((id) => serviceNameById[id])
-                                  .whereType<String>()
-                                  .toList(growable: false);
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: sectionDecoration(color: MoraColors.cream),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(child: Text(member.name, style: Theme.of(context).textTheme.titleMedium)),
-                                          _MiniStatusChip(label: member.active ? 'Activo' : 'Inactivo', status: member.active ? 'CONFIRMADA' : 'CANCELADA'),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(member.role.isEmpty ? 'Sin rol definido' : member.role),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        assignedServices.isEmpty ? 'Sin servicios asignados.' : assignedServices.join(' · '),
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final payload = await _showStaffDialog(context, current: member, services: data.services);
-                                              if (payload == null) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.saveStaff(
-                                                  id: member.id,
-                                                  name: payload['name'] as String,
-                                                  role: payload['role'] as String?,
-                                                  phone: payload['phone'] as String?,
-                                                  active: payload['active'] as bool,
-                                                  serviceIds: payload['serviceIds'] as List<int>,
-                                                ),
-                                                'Staff actualizado.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.edit_rounded),
-                                            label: const Text('Editar'),
+                            children: [
+                              for (var i = 0; i < data.staff.length; i++)
+                                MoraStaggerIn(
+                                  key: ValueKey('staff-${data.staff[i].id}'),
+                                  index: i,
+                                  child: Builder(
+                                    builder: (context) {
+                                      final assignedServices = data.staff[i].serviceIds
+                                          .map((id) => serviceNameById[id])
+                                          .whereType<String>()
+                                          .toList(growable: false);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: sectionDecoration(color: MoraColors.cream),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(child: Text(data.staff[i].name, style: Theme.of(context).textTheme.titleMedium)),
+                                                  _MiniStatusChip(label: data.staff[i].active ? 'Activo' : 'Inactivo', status: data.staff[i].active ? 'CONFIRMADA' : 'CANCELADA'),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(data.staff[i].role.isEmpty ? 'Sin rol definido' : data.staff[i].role),
+                                              const SizedBox(height: 10),
+                                              Text(
+                                                assignedServices.isEmpty ? 'Sin servicios asignados.' : assignedServices.join(' · '),
+                                                style: Theme.of(context).textTheme.bodySmall,
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Wrap(
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                children: [
+                                                  TextButton.icon(
+                                                    onPressed: () async {
+                                                      final payload = await _showStaffDialog(context, current: data.staff[i], services: data.services);
+                                                      if (payload == null) {
+                                                        return;
+                                                      }
+                                                      await _withRefresh(
+                                                        () => widget.repository.saveStaff(
+                                                          id: data.staff[i].id,
+                                                          name: payload['name'] as String,
+                                                          role: payload['role'] as String?,
+                                                          phone: payload['phone'] as String?,
+                                                          active: payload['active'] as bool,
+                                                          serviceIds: payload['serviceIds'] as List<int>,
+                                                        ),
+                                                        'Staff actualizado.',
+                                                      );
+                                                    },
+                                                    icon: const Icon(Icons.edit_rounded),
+                                                    label: const Text('Editar'),
+                                                  ),
+                                                  TextButton.icon(
+                                                    onPressed: () async {
+                                                      final confirm = await _confirm(context, 'Desactivar ${data.staff[i].name}?');
+                                                      if (confirm != true) {
+                                                        return;
+                                                      }
+                                                      await _withRefresh(
+                                                        () => widget.repository.deleteStaff(data.staff[i].id),
+                                                        'Staff desactivado.',
+                                                      );
+                                                    },
+                                                    icon: const Icon(Icons.delete_outline_rounded),
+                                                    label: const Text('Eliminar'),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final confirm = await _confirm(context, 'Desactivar ${member.name}?');
-                                              if (confirm != true) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.deleteStaff(member.id),
-                                                'Staff desactivado.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.delete_outline_rounded),
-                                            label: const Text('Eliminar'),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            }).toList(growable: false),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -487,80 +512,89 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                             label: const Text('Nueva'),
                           ),
                           child: Column(
-                            children: data.promotions.map((promotion) {
-                              final labels = promotion.serviceIds.map((id) => serviceNameById[id]).whereType<String>().toList(growable: false);
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: sectionDecoration(color: Colors.white),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(child: Text(promotion.name, style: Theme.of(context).textTheme.titleMedium)),
-                                          _MiniStatusChip(label: promotion.active ? 'Activa' : 'Inactiva', status: promotion.active ? 'CONFIRMADA' : 'CANCELADA'),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text('${promotion.type} · ${promotion.value > 0 ? formatCurrency(promotion.value) : 'Configurada'}'),
-                                      const SizedBox(height: 8),
-                                      Text('${formatDate(promotion.startDate)} - ${formatDate(promotion.endDate)}', style: Theme.of(context).textTheme.bodySmall),
-                                      if (labels.isNotEmpty) ...[
-                                        const SizedBox(height: 8),
-                                        Text(labels.join(' · '), style: Theme.of(context).textTheme.bodySmall),
-                                      ],
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final payload = await _showPromotionDialog(context, current: promotion, services: data.services);
-                                              if (payload == null) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.savePromotion(
-                                                  id: promotion.id,
-                                                  name: payload['name'] as String,
-                                                  type: payload['type'] as String,
-                                                  value: payload['value'] as double?,
-                                                  startDate: payload['startDate'] as String,
-                                                  endDate: payload['endDate'] as String,
-                                                  channel: payload['channel'] as String?,
-                                                  active: payload['active'] as bool,
-                                                  serviceIds: payload['serviceIds'] as List<int>,
-                                                ),
-                                                'Promocion actualizada.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.edit_rounded),
-                                            label: const Text('Editar'),
+                            children: [
+                              for (var i = 0; i < data.promotions.length; i++)
+                                MoraStaggerIn(
+                                  key: ValueKey('promotion-${data.promotions[i].id}'),
+                                  index: i,
+                                  child: Builder(
+                                    builder: (context) {
+                                      final labels = data.promotions[i].serviceIds.map((id) => serviceNameById[id]).whereType<String>().toList(growable: false);
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: sectionDecoration(color: Colors.white),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(child: Text(data.promotions[i].name, style: Theme.of(context).textTheme.titleMedium)),
+                                                  _MiniStatusChip(label: data.promotions[i].active ? 'Activa' : 'Inactiva', status: data.promotions[i].active ? 'CONFIRMADA' : 'CANCELADA'),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text('${data.promotions[i].type} · ${data.promotions[i].value > 0 ? formatCurrency(data.promotions[i].value) : 'Configurada'}'),
+                                              const SizedBox(height: 8),
+                                              Text('${formatDate(data.promotions[i].startDate)} - ${formatDate(data.promotions[i].endDate)}', style: Theme.of(context).textTheme.bodySmall),
+                                              if (labels.isNotEmpty) ...[
+                                                const SizedBox(height: 8),
+                                                Text(labels.join(' · '), style: Theme.of(context).textTheme.bodySmall),
+                                              ],
+                                              const SizedBox(height: 10),
+                                              Wrap(
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                children: [
+                                                  TextButton.icon(
+                                                    onPressed: () async {
+                                                      final payload = await _showPromotionDialog(context, current: data.promotions[i], services: data.services);
+                                                      if (payload == null) {
+                                                        return;
+                                                      }
+                                                      await _withRefresh(
+                                                        () => widget.repository.savePromotion(
+                                                          id: data.promotions[i].id,
+                                                          name: payload['name'] as String,
+                                                          type: payload['type'] as String,
+                                                          value: payload['value'] as double?,
+                                                          startDate: payload['startDate'] as String,
+                                                          endDate: payload['endDate'] as String,
+                                                          channel: payload['channel'] as String?,
+                                                          active: payload['active'] as bool,
+                                                          serviceIds: payload['serviceIds'] as List<int>,
+                                                        ),
+                                                        'Promocion actualizada.',
+                                                      );
+                                                    },
+                                                    icon: const Icon(Icons.edit_rounded),
+                                                    label: const Text('Editar'),
+                                                  ),
+                                                  TextButton.icon(
+                                                    onPressed: () async {
+                                                      final confirm = await _confirm(context, 'Desactivar ${data.promotions[i].name}?');
+                                                      if (confirm != true) {
+                                                        return;
+                                                      }
+                                                      await _withRefresh(
+                                                        () => widget.repository.deletePromotion(data.promotions[i].id),
+                                                        'Promocion desactivada.',
+                                                      );
+                                                    },
+                                                    icon: const Icon(Icons.delete_outline_rounded),
+                                                    label: const Text('Eliminar'),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final confirm = await _confirm(context, 'Desactivar ${promotion.name}?');
-                                              if (confirm != true) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.deletePromotion(promotion.id),
-                                                'Promocion desactivada.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.delete_outline_rounded),
-                                            label: const Text('Eliminar'),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            }).toList(growable: false),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -592,84 +626,89 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                             label: const Text('Nuevo'),
                           ),
                           child: Column(
-                            children: data.products.map((product) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: sectionDecoration(color: MoraColors.cream),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      SizedBox(width: 94, child: _AdminImagePreview(imageUrl: product.coverUrl, height: 94)),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
+                            children: [
+                              for (var i = 0; i < data.products.length; i++)
+                                MoraStaggerIn(
+                                  key: ValueKey('product-${data.products[i].id}'),
+                                  index: i,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: sectionDecoration(color: MoraColors.cream),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(width: 94, child: _AdminImagePreview(imageUrl: data.products[i].coverUrl, height: 94)),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Expanded(child: Text(product.name, style: Theme.of(context).textTheme.titleMedium)),
-                                                _MiniStatusChip(label: product.active ? 'Activo' : 'Inactivo', status: product.active ? 'CONFIRMADA' : 'CANCELADA'),
+                                                Row(
+                                                  children: [
+                                                    Expanded(child: Text(data.products[i].name, style: Theme.of(context).textTheme.titleMedium)),
+                                                    _MiniStatusChip(label: data.products[i].active ? 'Activo' : 'Inactivo', status: data.products[i].active ? 'CONFIRMADA' : 'CANCELADA'),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(formatCurrency(data.products[i].price)),
+                                                const SizedBox(height: 8),
+                                                Text('Stock ${data.products[i].stock} · ${data.products[i].category.isEmpty ? 'Sin categoria' : data.products[i].category}', style: Theme.of(context).textTheme.bodySmall),
+                                                const SizedBox(height: 10),
+                                                Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  children: [
+                                                    TextButton.icon(
+                                                      onPressed: () async {
+                                                        final payload = await _showProductDialog(context, current: data.products[i]);
+                                                        if (payload == null) {
+                                                          return;
+                                                        }
+                                                        await _withRefresh(
+                                                          () => widget.repository.saveProduct(
+                                                            id: data.products[i].id,
+                                                            name: payload['name'] as String,
+                                                            description: payload['description'] as String?,
+                                                            category: payload['category'] as String?,
+                                                            price: payload['price'] as double,
+                                                            stock: payload['stock'] as int,
+                                                            active: payload['active'] as bool,
+                                                            featured: payload['featured'] as bool,
+                                                            imageUrls: payload['imageUrls'] as List<String>,
+                                                          ),
+                                                          'Producto actualizado.',
+                                                        );
+                                                      },
+                                                      icon: const Icon(Icons.edit_rounded),
+                                                      label: const Text('Editar'),
+                                                    ),
+                                                    TextButton.icon(
+                                                      onPressed: () async {
+                                                        final confirm = await _confirm(context, 'Desactivar ${data.products[i].name}?');
+                                                        if (confirm != true) {
+                                                          return;
+                                                        }
+                                                        await _withRefresh(
+                                                          () => widget.repository.deleteProduct(data.products[i].id),
+                                                          'Producto desactivado.',
+                                                        );
+                                                      },
+                                                      icon: const Icon(Icons.delete_outline_rounded),
+                                                      label: const Text('Eliminar'),
+                                                    ),
+                                                  ],
+                                                ),
                                               ],
                                             ),
-                                            const SizedBox(height: 8),
-                                            Text(formatCurrency(product.price)),
-                                            const SizedBox(height: 8),
-                                            Text('Stock ${product.stock} · ${product.category.isEmpty ? 'Sin categoria' : product.category}', style: Theme.of(context).textTheme.bodySmall),
-                                            const SizedBox(height: 10),
-                                            Wrap(
-                                              spacing: 8,
-                                              runSpacing: 8,
-                                              children: [
-                                                TextButton.icon(
-                                                  onPressed: () async {
-                                                    final payload = await _showProductDialog(context, current: product);
-                                                    if (payload == null) {
-                                                      return;
-                                                    }
-                                                    await _withRefresh(
-                                                      () => widget.repository.saveProduct(
-                                                        id: product.id,
-                                                        name: payload['name'] as String,
-                                                        description: payload['description'] as String?,
-                                                        category: payload['category'] as String?,
-                                                        price: payload['price'] as double,
-                                                        stock: payload['stock'] as int,
-                                                        active: payload['active'] as bool,
-                                                        featured: payload['featured'] as bool,
-                                                        imageUrls: payload['imageUrls'] as List<String>,
-                                                      ),
-                                                      'Producto actualizado.',
-                                                    );
-                                                  },
-                                                  icon: const Icon(Icons.edit_rounded),
-                                                  label: const Text('Editar'),
-                                                ),
-                                                TextButton.icon(
-                                                  onPressed: () async {
-                                                    final confirm = await _confirm(context, 'Desactivar ${product.name}?');
-                                                    if (confirm != true) {
-                                                      return;
-                                                    }
-                                                    await _withRefresh(
-                                                      () => widget.repository.deleteProduct(product.id),
-                                                      'Producto desactivado.',
-                                                    );
-                                                  },
-                                                  icon: const Icon(Icons.delete_outline_rounded),
-                                                  label: const Text('Eliminar'),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              );
-                            }).toList(growable: false),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -680,45 +719,50 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                           child: data.sales.isEmpty
                               ? const _AdminEmptyCard(title: 'Sin ventas', message: 'Aun no hay pedidos registrados.')
                               : Column(
-                                  children: data.sales.map((sale) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: sectionDecoration(color: Colors.white),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
+                                  children: [
+                                    for (var i = 0; i < data.sales.length; i++)
+                                      MoraStaggerIn(
+                                        key: ValueKey('sale-${data.sales[i].id}'),
+                                        index: i,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(bottom: 12),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: sectionDecoration(color: Colors.white),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Expanded(child: Text('Venta #${sale.id}', style: Theme.of(context).textTheme.titleMedium)),
-                                                _MiniStatusChip(label: formatStatusLabel(sale.paymentStatus), status: sale.paymentStatus),
+                                                Row(
+                                                  children: [
+                                                    Expanded(child: Text('Venta #${data.sales[i].id}', style: Theme.of(context).textTheme.titleMedium)),
+                                                    _MiniStatusChip(label: formatStatusLabel(data.sales[i].paymentStatus), status: data.sales[i].paymentStatus),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text('${data.sales[i].customerName.isEmpty ? 'Cliente' : data.sales[i].customerName} · ${formatCurrency(data.sales[i].total)}'),
+                                                const SizedBox(height: 10),
+                                                DropdownButtonFormField<String>(
+                                                  initialValue: data.sales[i].paymentStatus,
+                                                  decoration: const InputDecoration(labelText: 'Estado de pago'),
+                                                  items: _paymentStatuses
+                                                      .map((status) => DropdownMenuItem<String>(value: status, child: Text(formatStatusLabel(status))))
+                                                      .toList(growable: false),
+                                                  onChanged: (value) {
+                                                    if (value == null || value == data.sales[i].paymentStatus) {
+                                                      return;
+                                                    }
+                                                    _withRefresh(
+                                                      () => widget.repository.updateSalePaymentStatus(data.sales[i].id, paymentStatus: value),
+                                                      'Estado de venta actualizado.',
+                                                    );
+                                                  },
+                                                ),
                                               ],
                                             ),
-                                            const SizedBox(height: 8),
-                                            Text('${sale.customerName.isEmpty ? 'Cliente' : sale.customerName} · ${formatCurrency(sale.total)}'),
-                                            const SizedBox(height: 10),
-                                            DropdownButtonFormField<String>(
-                                              initialValue: sale.paymentStatus,
-                                              decoration: const InputDecoration(labelText: 'Estado de pago'),
-                                              items: _paymentStatuses
-                                                  .map((status) => DropdownMenuItem<String>(value: status, child: Text(formatStatusLabel(status))))
-                                                  .toList(growable: false),
-                                              onChanged: (value) {
-                                                if (value == null || value == sale.paymentStatus) {
-                                                  return;
-                                                }
-                                                _withRefresh(
-                                                  () => widget.repository.updateSalePaymentStatus(sale.id, paymentStatus: value),
-                                                  'Estado de venta actualizado.',
-                                                );
-                                              },
-                                            ),
-                                          ],
+                                          ),
                                         ),
                                       ),
-                                    );
-                                  }).toList(growable: false),
+                                  ],
                                 ),
                         ),
                         const SizedBox(height: 20),
@@ -750,77 +794,82 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                             label: const Text('Nuevo'),
                           ),
                           child: Column(
-                            children: data.clients.map((client) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: sectionDecoration(color: MoraColors.cream),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
+                            children: [
+                              for (var i = 0; i < data.clients.length; i++)
+                                MoraStaggerIn(
+                                  key: ValueKey('client-${data.clients[i].id}'),
+                                  index: i,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: sectionDecoration(color: MoraColors.cream),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Expanded(child: Text(client.name, style: Theme.of(context).textTheme.titleMedium)),
-                                          _MiniStatusChip(label: client.active ? 'Activo' : 'Inactivo', status: client.active ? 'CONFIRMADA' : 'CANCELADA'),
+                                          Row(
+                                            children: [
+                                              Expanded(child: Text(data.clients[i].name, style: Theme.of(context).textTheme.titleMedium)),
+                                              _MiniStatusChip(label: data.clients[i].active ? 'Activo' : 'Inactivo', status: data.clients[i].active ? 'CONFIRMADA' : 'CANCELADA'),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(data.clients[i].phone),
+                                          if (data.clients[i].email.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(data.clients[i].email, style: Theme.of(context).textTheme.bodySmall),
+                                          ],
+                                          const SizedBox(height: 10),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              TextButton.icon(
+                                                onPressed: () async {
+                                                  final payload = await _showClientDialog(context, current: data.clients[i]);
+                                                  if (payload == null) {
+                                                    return;
+                                                  }
+                                                  await _withRefresh(
+                                                    () => widget.repository.updateClient(
+                                                      data.clients[i].id,
+                                                      name: payload['name'] as String,
+                                                      phone: payload['phone'] as String,
+                                                      email: payload['email'] as String?,
+                                                      whatsapp: payload['whatsapp'] as String?,
+                                                      birthDate: payload['birthDate'] as String?,
+                                                      docType: payload['docType'] as String?,
+                                                      docNumber: payload['docNumber'] as String?,
+                                                      active: payload['active'] as bool,
+                                                    ),
+                                                    'Cliente actualizado.',
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.edit_rounded),
+                                                label: const Text('Editar'),
+                                              ),
+                                              TextButton.icon(
+                                                onPressed: () async {
+                                                  final confirm = await _confirm(context, 'Desactivar ${data.clients[i].name}?');
+                                                  if (confirm != true) {
+                                                    return;
+                                                  }
+                                                  await _withRefresh(
+                                                    () => widget.repository.deleteClient(data.clients[i].id),
+                                                    'Cliente desactivado.',
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.delete_outline_rounded),
+                                                label: const Text('Eliminar'),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(client.phone),
-                                      if (client.email.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(client.email, style: Theme.of(context).textTheme.bodySmall),
-                                      ],
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final payload = await _showClientDialog(context, current: client);
-                                              if (payload == null) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.updateClient(
-                                                  client.id,
-                                                  name: payload['name'] as String,
-                                                  phone: payload['phone'] as String,
-                                                  email: payload['email'] as String?,
-                                                  whatsapp: payload['whatsapp'] as String?,
-                                                  birthDate: payload['birthDate'] as String?,
-                                                  docType: payload['docType'] as String?,
-                                                  docNumber: payload['docNumber'] as String?,
-                                                  active: payload['active'] as bool,
-                                                ),
-                                                'Cliente actualizado.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.edit_rounded),
-                                            label: const Text('Editar'),
-                                          ),
-                                          TextButton.icon(
-                                            onPressed: () async {
-                                              final confirm = await _confirm(context, 'Desactivar ${client.name}?');
-                                              if (confirm != true) {
-                                                return;
-                                              }
-                                              await _withRefresh(
-                                                () => widget.repository.deleteClient(client.id),
-                                                'Cliente desactivado.',
-                                              );
-                                            },
-                                            icon: const Icon(Icons.delete_outline_rounded),
-                                            label: const Text('Eliminar'),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              );
-                            }).toList(growable: false),
+                            ],
                           ),
                         ),
                       ],
@@ -828,6 +877,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                   );
                 },
               ),
+        ),
       ),
     );
   }
@@ -836,38 +886,44 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       children: [
-        _AdminHero(
-          title: 'Acceso staff desde Flutter',
-          subtitle:
-              'Esta consola usa el mismo flujo de autenticacion del panel web. Inicia sesion con tus credenciales de usuario interno.',
-          metrics: const [
-            _AdminMetric(label: 'Modo', value: 'Operativo'),
-            _AdminMetric(label: 'Fuente', value: 'API real'),
-          ],
+        MoraStaggerIn(
+          index: 0,
+          child: _AdminHero(
+            title: 'Acceso staff desde Flutter',
+            subtitle:
+                'Esta consola usa el mismo flujo de autenticacion del panel web. Inicia sesion con tus credenciales de usuario interno.',
+            metrics: const [
+              _AdminMetric(label: 'Modo', value: 'Operativo'),
+              _AdminMetric(label: 'Fuente', value: 'API real'),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
-        _AdminSection(
-          eyebrow: 'Login',
-          title: 'Entrar al panel movil',
-          subtitle: 'Se usara el token staff para cargar modulos administrativos.',
-          child: Column(
-            children: [
-              TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Usuario')),
-              const SizedBox(height: 12),
-              TextField(controller: _passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Contrasena')),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _loggingIn ? null : _login,
-                icon: _loggingIn
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.admin_panel_settings_rounded),
-                label: Text(_loggingIn ? 'Ingresando...' : 'Entrar'),
-              ),
-            ],
+        MoraStaggerIn(
+          index: 1,
+          child: _AdminSection(
+            eyebrow: 'Login',
+            title: 'Entrar al panel movil',
+            subtitle: 'Se usara el token staff para cargar modulos administrativos.',
+            child: Column(
+              children: [
+                TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Usuario')),
+                const SizedBox(height: 12),
+                TextField(controller: _passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Contrasena')),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _loggingIn ? null : _login,
+                  icon: _loggingIn
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.admin_panel_settings_rounded),
+                  label: Text(_loggingIn ? 'Ingresando...' : 'Entrar'),
+                ),
+              ],
+            ),
           ),
         ),
       ],

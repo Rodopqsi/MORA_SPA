@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type Client = {
   id: number;
@@ -109,7 +110,7 @@ export default function BusquedaAdminPage() {
   const totalResults = filteredClients.length + filteredServices.length + filteredReservations.length;
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Busqueda global</div>
@@ -135,9 +136,9 @@ export default function BusquedaAdminPage() {
               <div className="eyebrow">Clientes</div>
               <h2>Coincidencias en clientes</h2>
             </div>
-            <Link className="chip" href="/clientes">Ver modulo</Link>
+            <Link className="chip press-feedback" href="/clientes">Ver modulo</Link>
           </div>
-          <div className="list">
+          <MoraScrollReveal as="div" className="list" selector=".list-item" variant="fade-up" stagger={0.05} duration={0.45}>
             {filteredClients.map((client) => (
               <div key={client.id} className="list-item">
                 <div className="avatar">{client.name.split(' ').map((word) => word[0]).join('')}</div>
@@ -148,7 +149,7 @@ export default function BusquedaAdminPage() {
                 <div className="pill">{client.active ? 'Activo' : 'Inactivo'}</div>
               </div>
             ))}
-          </div>
+          </MoraScrollReveal>
         </section>
       )}
 
@@ -159,11 +160,11 @@ export default function BusquedaAdminPage() {
               <div className="eyebrow">Servicios</div>
               <h2>Coincidencias en servicios</h2>
             </div>
-            <Link className="chip" href="/servicios">Ver modulo</Link>
+            <Link className="chip press-feedback" href="/servicios">Ver modulo</Link>
           </div>
-          <div className="grid grid-2">
+          <MoraScrollReveal as="div" className="grid grid-2" selector=".service-card" variant="fade-up" stagger={0.06} duration={0.5}>
             {filteredServices.map((service) => (
-              <div key={service.id} className="card service-card">
+              <div key={service.id} className="card service-card lift-on-hover">
                 <div className="service-title">{service.name}</div>
                 <div className="service-meta">
                   <span className="pill">{service.durationMin} min</span>
@@ -172,7 +173,7 @@ export default function BusquedaAdminPage() {
                 <div className="service-sub">Estado: {service.active ? 'Activo' : 'Inactivo'}</div>
               </div>
             ))}
-          </div>
+          </MoraScrollReveal>
         </section>
       )}
 
@@ -183,7 +184,7 @@ export default function BusquedaAdminPage() {
               <div className="eyebrow">Citas</div>
               <h2>Coincidencias en reservas</h2>
             </div>
-            <Link className="chip" href="/reservas">Ver modulo</Link>
+            <Link className="chip press-feedback" href="/reservas">Ver modulo</Link>
           </div>
           <div className="table-head">
             <div>Codigo</div>
@@ -192,7 +193,7 @@ export default function BusquedaAdminPage() {
             <div>Servicios</div>
             <div>Estado</div>
           </div>
-          <div className="table-body">
+          <MoraScrollReveal as="div" className="table-body" selector=".table-row" variant="fade-up" stagger={0.05} duration={0.45}>
             {filteredReservations.map((reservation) => (
               <div key={reservation.id} className="table-row">
                 <div className="table-title">{reservation.code}</div>
@@ -209,7 +210,7 @@ export default function BusquedaAdminPage() {
                 <div className="pill">{reservation.status}</div>
               </div>
             ))}
-          </div>
+          </MoraScrollReveal>
         </section>
       )}
     </div>

@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const search = useSearchParams();
   const { setClientToken } = useAuth();
   const [form, setForm] = useState({ phone: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const sessionExpired = search.get('expired') === '1';
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -37,10 +39,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-shell">
+    <div className="auth-shell page-enter">
       <div className="auth-card">
         <h1>Ingresa a tu cuenta</h1>
         <p>Reserva, revisa tus citas y accede a promociones exclusivas.</p>
+        {sessionExpired && (
+          <div className="auth-warning" role="alert">
+            Tu sesion expiro por inactividad. Ingresa de nuevo para continuar.
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
             Telefono
@@ -55,7 +62,7 @@ export default function LoginPage() {
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" disabled={loading} type="submit">
+          <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit">
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>

@@ -112,7 +112,7 @@ export default function ReservarPaso4Page() {
             });
           })();
 
-      await clientFetch('/client-reservations', {
+      const resp = await clientFetch<{ data?: { id?: number } }>('/client-reservations', {
         method: 'POST',
         body: JSON.stringify({
           channel: 'WEB',
@@ -120,6 +120,13 @@ export default function ReservarPaso4Page() {
           details
         })
       });
+
+      const reservationId = resp?.data?.id;
+      if (reservationId) {
+        // go to payment step to pay deposit
+        router.push(`/reservar/paso-5?reservationId=${reservationId}`);
+        return;
+      }
 
       setNotice('Reserva creada. Revisa tu cuenta para el detalle.');
       clearBookingState();
@@ -131,7 +138,7 @@ export default function ReservarPaso4Page() {
   };
 
   return (
-    <div className="booking-shell">
+    <div className="booking-shell page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Reserva online</div>
@@ -139,7 +146,7 @@ export default function ReservarPaso4Page() {
           <p>Completa cada paso para reservar tu cita.</p>
         </div>
         <div className="page-actions">
-          <div className="pill">Paso 4 de 4</div>
+          <div className="pill pulse-glow">Paso 4 de 5</div>
         </div>
       </header>
 
@@ -200,8 +207,8 @@ export default function ReservarPaso4Page() {
           </label>
         </div>
         <div className="booking-nav">
-          <button className="btn btn-outline" type="button" onClick={() => router.push('/reservar/paso-3')}>Atras</button>
-          <button className="btn" type="button" onClick={handleReserve} disabled={saving}>
+          <button className="btn btn-outline press-feedback" type="button" onClick={() => router.push('/reservar/paso-3')}>Atras</button>
+          <button className="btn shine-on-hover press-feedback" type="button" onClick={handleReserve} disabled={saving}>
             {saving ? 'Guardando...' : 'Confirmar reserva'}
           </button>
         </div>

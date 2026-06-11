@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import MoraScrollReveal from '../../components/MoraScrollReveal';
+import { AdminForm } from '../../components/AdminForm';
 
 type PromotionType = 'PORCENTAJE' | 'MONTO' | 'REGALO';
 
@@ -35,6 +38,8 @@ export default function PromocionesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [form, setForm] = useState(createEmptyForm());
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<Promotion | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const loadPromos = () => {
@@ -96,19 +101,21 @@ export default function PromocionesPage() {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleDelete = async (promo: Promotion) => {
-    const confirmed = window.confirm(`Eliminar ${promo.name}? Quedara archivada como inactiva.`);
-    if (!confirmed) return;
-
+  const handleDeleteConfirm = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
     setError('');
     try {
-      await staffFetch(`/promotions/${promo.id}`, { method: 'DELETE' });
-      if (form.id === promo.id) {
+      await staffFetch(`/promotions/${confirmDelete.id}`, { method: 'DELETE' });
+      if (form.id === confirmDelete.id) {
         resetForm();
       }
       loadPromos();
+      setConfirmDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -134,7 +141,7 @@ export default function PromocionesPage() {
   };
 
   return (
-    <div className="page-stack">
+    <div className="page-stack page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Promociones y beneficios</div>
@@ -142,7 +149,7 @@ export default function PromocionesPage() {
           <p>Planifica promociones y descuentos con impacto real.</p>
         </div>
         <div className="page-actions">
-          <button className="btn" onClick={() => {
+          <button className="btn shine-on-hover press-feedback" onClick={() => {
             resetForm();
             formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}>
@@ -151,14 +158,12 @@ export default function PromocionesPage() {
         </div>
       </header>
 
-      <section className="card reveal" ref={formRef}>
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">{form.id ? 'Editar promocion' : 'Nueva promocion'}</div>
-            <h2>{form.id ? 'Actualizar promocion' : 'Crear promocion'}</h2>
-          </div>
-          <button className="chip" type="button" onClick={resetForm}>Limpiar</button>
-        </div>
+      <AdminForm
+        eyebrow={form.id ? 'Editar promocion' : 'Nueva promocion'}
+        title={form.id ? 'Actualizar promocion' : 'Crear promocion'}
+        onReset={resetForm}
+        sectionRef={formRef}
+      >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nombre
@@ -195,9 +200,9 @@ export default function PromocionesPage() {
                 <h2>Define el alcance</h2>
               </div>
             </div>
-            <div className="chip-row">
-              {services.map((service) => (
-                <label key={service.id} className="chip">
+            <MoraScrollReveal as="div" className="chip-row" selector=".chip" variant="fade-up" stagger={0.04} duration={0.4}>
+                {services.map((service) => (
+                  <label key={service.id} className="chip press-feedback">
                   <input
                     type="checkbox"
                     checked={form.serviceIds.includes(service.id)}
@@ -206,22 +211,26 @@ export default function PromocionesPage() {
                   {service.name}
                 </label>
               ))}
-            </div>
+            </MoraScrollReveal>
           </div>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn" type="submit">{form.id ? 'Actualizar' : 'Guardar'}</button>
+          <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar' : 'Guardar'}</button>
         </form>
-      </section>
+      </AdminForm>
 
-      <section className="grid grid-3">
+      <MoraScrollReveal as="section" className="grid grid-3" selector=".promo-card" variant="fade-up" stagger={0.07} duration={0.6}>
         {promos.map((promo, index) => (
           <div
             key={promo.id}
-            className="card promo-card reveal"
+            className="card promo-card lift-on-hover reveal"
             style={{ animationDelay: `${index * 90}ms` }}
           >
-            <div className="promo-tag">{promo.active ? 'Activa' : 'Inactiva'}</div>
-            <h3>{promo.name}</h3>
+            <div className="card-head-row">
+              <h3>{promo.name}</h3>
+              <span className={`status-pill ${promo.active ? 'status-on' : 'status-off'}`}>
+                {promo.active ? 'Activa' : 'Inactiva'}
+              </span>
+            </div>
             <p>Tipo {promo.type}{promo.value ? ` · ${promo.value}` : ''}</p>
             <div className="promo-date">Canal: {promo.channel || 'General'}</div>
             <div className="promo-date">{promo.startDate?.slice(0, 10)} - {promo.endDate?.slice(0, 10)}</div>
@@ -231,15 +240,30 @@ export default function PromocionesPage() {
                 .map((service) => <span key={service.id} className="pill">{service.name}</span>)}
             </div>
             <div className="service-actions">
-              <button className="chip" onClick={() => handleEdit(promo)}>Editar</button>
-              <button className="chip" onClick={() => toggleActive(promo)}>
+              <button className="chip press-feedback" onClick={() => handleEdit(promo)}>Editar</button>
+              <button className="chip press-feedback" onClick={() => toggleActive(promo)}>
                 {promo.active ? 'Desactivar' : 'Activar'}
               </button>
-              <button className="chip" onClick={() => handleDelete(promo)}>Eliminar</button>
+              <button className="chip chip-danger press-feedback" onClick={() => setConfirmDelete(promo)}>Eliminar</button>
             </div>
           </div>
         ))}
-      </section>
+      </MoraScrollReveal>
+
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        title="Eliminar promocion"
+        description={
+          confirmDelete
+            ? `Eliminar "${confirmDelete.name}"? Quedara archivada como inactiva.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

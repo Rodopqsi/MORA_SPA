@@ -57,6 +57,16 @@ export const signToken = (payload: object) => {
   return jwt.sign(payload, secret, { expiresIn });
 };
 
+const handleAuthError = (err: unknown): never => {
+  if (err instanceof jwt.TokenExpiredError) {
+    throw new AppError(401, 'Token expired', 'token_expired');
+  }
+  if (err instanceof jwt.JsonWebTokenError) {
+    throw new AppError(401, 'Invalid token', 'invalid_token');
+  }
+  throw err;
+};
+
 export const authRequired = asyncHandler(async (req, _res, next) => {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
@@ -64,7 +74,7 @@ export const authRequired = asyncHandler(async (req, _res, next) => {
   }
 
   const token = header.slice(7);
-  const decoded = jwt.verify(token, process.env.JWT_SECRET ?? 'dev-secret') as {
+  let decoded: {
     sub: string | number;
     username?: string;
     roles?: string[];
@@ -72,19 +82,24 @@ export const authRequired = asyncHandler(async (req, _res, next) => {
     phone?: string;
     email?: string | null;
   };
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET ?? 'dev-secret') as typeof decoded;
+  } catch (err) {
+    handleAuthError(err);
+  }
 
-  if (decoded.kind && decoded.kind !== 'staff') {
+  if (decoded!.kind && decoded!.kind !== 'staff') {
     throw new AppError(401, 'Unauthorized', 'unauthorized');
   }
 
-  if (!decoded.username) {
+  if (!decoded!.username) {
     throw new AppError(401, 'Unauthorized', 'unauthorized');
   }
 
   req.user = {
-    id: Number(decoded.sub),
-    username: decoded.username,
-    roles: decoded.roles ?? [],
+    id: Number(decoded!.sub),
+    username: decoded!.username!,
+    roles: decoded!.roles ?? [],
     kind: 'staff'
   };
 
@@ -98,21 +113,26 @@ export const clientAuthRequired = asyncHandler(async (req, _res, next) => {
   }
 
   const token = header.slice(7);
-  const decoded = jwt.verify(token, process.env.JWT_SECRET ?? 'dev-secret') as {
+  let decoded: {
     sub: string | number;
     kind?: string;
     phone?: string;
     email?: string | null;
   };
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET ?? 'dev-secret') as typeof decoded;
+  } catch (err) {
+    handleAuthError(err);
+  }
 
-  if (decoded.kind !== 'client' || !decoded.phone) {
+  if (decoded!.kind !== 'client' || !decoded!.phone) {
     throw new AppError(401, 'Unauthorized', 'unauthorized');
   }
 
   req.client = {
-    id: Number(decoded.sub),
-    phone: decoded.phone,
-    email: decoded.email ?? null,
+    id: Number(decoded!.sub),
+    phone: decoded!.phone!,
+    email: decoded!.email ?? null,
     kind: 'client'
   };
 
@@ -134,10 +154,16 @@ export const requireRoles = (...roles: string[]) => {
   };
 };
 
-export const errorHandler = (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+export const errorHandler = (err: unknown, req: Request, res: Response, _next: NextFunction) => {
   const status = err instanceof AppError ? err.status : 500;
   const code = err instanceof AppError ? err.code : 'internal_error';
   const message = err instanceof AppError ? err.message : 'Internal error';
+
+  // Log full stack on 5xx so we can debug 500s in dev
+  if (status >= 500) {
+    // eslint-disable-next-line no-console
+    console.error(`[api] ${req.method} ${req.originalUrl} -> ${status}`, err);
+  }
 
   res.status(status).json({
     error: {
@@ -146,3 +172,48 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, _next: 
     }
   });
 };
+
+export type PaginationParams = {
+  page: number;
+  pageSize: number;
+  q?: string;
+};
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+const sanitizePositiveInt = (value: unknown, fallback: number, max: number) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(n), max);
+};
+
+export const readPagination = (query: Record<string, unknown> | { [key: string]: unknown }): PaginationParams => {
+  const page = sanitizePositiveInt(query.page, 1, 10_000);
+  const pageSize = sanitizePositiveInt(query.pageSize ?? query.limit, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  const rawQ = typeof query.q === 'string' ? query.q.trim() : '';
+  return { page, pageSize, q: rawQ ? rawQ : undefined };
+};
+
+export const paginationMeta = (params: PaginationParams, total: number) => {
+  const totalPages = Math.max(1, Math.ceil(total / params.pageSize));
+  return {
+    page: params.page,
+    pageSize: params.pageSize,
+    total,
+    totalPages,
+    hasNext: params.page < totalPages,
+    hasPrev: params.page > 1
+  };
+};
+
+export const paginatedResponse = <T>(
+  data: T[],
+  params: PaginationParams,
+  total: number
+) => ({
+  data,
+  meta: paginationMeta(params, total)
+});

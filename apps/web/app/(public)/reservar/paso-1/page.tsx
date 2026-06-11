@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
+import MoraScrollReveal from '../../../components/MoraScrollReveal';
 import { BookingTimeline } from '../BookingTimeline';
 import {
   BookingState,
@@ -60,7 +61,7 @@ export default function ReservarPaso1Page() {
   };
 
   return (
-    <div className="booking-shell">
+    <div className="booking-shell page-enter">
       <header className="page-head">
         <div>
           <div className="eyebrow">Reserva online</div>
@@ -68,7 +69,7 @@ export default function ReservarPaso1Page() {
           <p>Completa cada paso para reservar tu cita.</p>
         </div>
         <div className="page-actions">
-          <div className="pill">Paso 1 de 4</div>
+          <div className="pill pulse-glow">Paso 1 de 5</div>
         </div>
       </header>
 
@@ -83,10 +84,10 @@ export default function ReservarPaso1Page() {
             <h2>Selecciona tus servicios</h2>
           </div>
         </div>
-        <div className="booking-list">
+        <MoraScrollReveal as="div" className="booking-list" selector=".booking-item" variant="fade-up" stagger={0.06} duration={0.5}>
           {services.length === 0 && <div className="list-sub">Sin servicios disponibles.</div>}
           {services.map((service) => (
-            <label key={service.id} className={`booking-item ${booking.selectedServices.includes(service.id) ? 'active' : ''}`}>
+            <label key={service.id} className={`booking-item lift-on-hover ${booking.selectedServices.includes(service.id) ? 'active' : ''}`}>
               <input
                 type="checkbox"
                 checked={booking.selectedServices.includes(service.id)}
@@ -99,10 +100,10 @@ export default function ReservarPaso1Page() {
               <div className="booking-price">S/ {service.priceBase}</div>
             </label>
           ))}
-        </div>
+        </MoraScrollReveal>
         <div className="booking-nav">
           <div />
-          <button className="btn" type="button" onClick={goNext}>Continuar</button>
+          <button className="btn shine-on-hover press-feedback" type="button" onClick={goNext}>Continuar</button>
         </div>
       </section>
     </div>
