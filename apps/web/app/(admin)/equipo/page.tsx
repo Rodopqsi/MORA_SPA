@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -207,7 +207,7 @@ export default function EquipoPage() {
             </label>
           </div>
           <label>
-            Telefono
+            Teléfono
             <input
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
@@ -283,8 +283,8 @@ export default function EquipoPage() {
         {team.length === 0 && (
           <div className="card empty-state">
             <div className="empty-state-icon">EQ</div>
-            <h3>Aun no hay colaboradores</h3>
-            <p>Anade al primero con el boton superior.</p>
+            <h3>Aún no hay colaboradores</h3>
+            <p>Añade al primero con el boton superior.</p>
           </div>
         )}
         {team.map((member, index) => {
@@ -346,7 +346,7 @@ export default function EquipoPage() {
       <ConfirmDialog
         open={!!confirmDelete}
         title="Eliminar colaborador"
-        description={`Eliminar a "${confirmDelete?.name}"? Quedara archivado como inactivo y no aparecera disponible para reservas.`}
+        description={`Eliminar a "${confirmDelete?.name}"? Quedara archivado cómo inactivo y no aparecera disponible para reservas.`}
         confirmLabel="Eliminar"
         variant="danger"
         loading={deleting}

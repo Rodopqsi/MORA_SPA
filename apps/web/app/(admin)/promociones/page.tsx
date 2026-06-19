@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -255,7 +255,7 @@ export default function PromocionesPage() {
         title="Eliminar promocion"
         description={
           confirmDelete
-            ? `Eliminar "${confirmDelete.name}"? Quedara archivada como inactiva.`
+            ? `Eliminar "${confirmDelete.name}"? Quedara archivada cómo inactiva.`
             : ''
         }
         confirmLabel="Eliminar"

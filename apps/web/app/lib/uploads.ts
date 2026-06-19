@@ -1,4 +1,4 @@
-import { apiBaseUrl } from './api';
+﻿import { apiBaseUrl } from './api';
 import { getToken } from './auth';
 
 export type UploadBucket = 'services' | 'staff' | 'clients' | 'products' | 'misc';
@@ -18,7 +18,7 @@ const validateFile = (file: File): string | null => {
     return `Tipo de archivo no permitido: ${file.type || 'desconocido'}`;
   }
   if (file.size > MAX_FILE_SIZE) {
-    return `La imagen supera el maximo de 5MB (${(file.size / 1024 / 1024).toFixed(1)}MB)`;
+    return `La imagen supera el máximo de 5MB (${(file.size / 1024 / 1024).toFixed(1)}MB)`;
   }
   return null;
 };

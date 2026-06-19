@@ -7,7 +7,7 @@ import { AppError } from './core';
 
 const UPLOAD_ROOT = path.resolve(process.cwd(), 'uploads');
 
-export const UPLOAD_BUCKETS = ['services', 'staff', 'clients', 'products', 'misc'] as const;
+export const UPLOAD_BUCKETS = ['services', 'staff', 'clients', 'products', 'misc', 'payments'] as const;
 export type UploadBucket = (typeof UPLOAD_BUCKETS)[number];
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);

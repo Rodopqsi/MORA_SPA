@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const sections = [
   {
-    title: 'Operacion',
+    title: 'Operación',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: 'DB' },
       { href: '/agenda', label: 'Agenda', icon: 'AG' },
@@ -13,7 +13,7 @@ const sections = [
     ]
   },
   {
-    title: 'Gestion',
+    title: 'Gestión',
     items: [
       { href: '/clientes', label: 'Clientes', icon: 'CL' },
       { href: '/usuarios', label: 'Usuarios', icon: 'US' },
@@ -26,8 +26,8 @@ const sections = [
   {
     title: 'Experiencia',
     items: [
-      { href: '/resenas', label: 'Resenas', icon: 'RE' },
-      { href: '/albumes', label: 'Albumes', icon: 'AL' }
+      { href: '/resenas', label: 'Reseñas', icon: 'RE' },
+      { href: '/albumes', label: 'Álbumes', icon: 'AL' }
     ]
   }
 ];

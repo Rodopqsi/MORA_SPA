@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import SideNav from '../components/SideNav';
 import AdminSearch from '../components/AdminSearch';
 import AdminLogoutButton from '../components/AdminLogoutButton';
@@ -6,7 +6,7 @@ import AdminUserChip from '../components/AdminUserChip';
 
 export const metadata = {
   title: 'Mora Spa Admin',
-  description: 'Panel administrativo de Mora Peluqueria & Spa'
+  description: 'Panel administrativo de Mora Peluquería & Spa'
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

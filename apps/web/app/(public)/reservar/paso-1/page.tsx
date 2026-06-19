@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -21,7 +21,26 @@ export default function ReservarPaso1Page() {
   const [booking, setBooking] = useState<BookingState>(defaultBookingState());
 
   useEffect(() => {
-    setBooking(loadBookingState());
+    const state = loadBookingState();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const preselect = params.get('service');
+      if (preselect) {
+        const ids = preselect.split(',').map(Number).filter((n) => !isNaN(n) && n > 0);
+        if (ids.length > 0) {
+          const nextState = {
+            ...state,
+            selectedServices: Array.from(new Set([...state.selectedServices, ...ids])),
+            selectedStaff: 'any',
+            selectedSlot: null
+          };
+          setBooking(nextState);
+          saveBookingState(nextState);
+          return;
+        }
+      }
+    }
+    setBooking(state);
   }, []);
 
   useEffect(() => {
@@ -29,7 +48,7 @@ export default function ReservarPaso1Page() {
       .then((res) => {
         const data = res.data ?? [];
         setServices(data);
-        setNotice(data.length === 0 ? 'Aun no hay servicios publicados para reservas online.' : '');
+        setNotice(data.length === 0 ? 'Aún no hay servicios publicados para reservas online.' : '');
       })
       .catch(() => {
         setServices([]);

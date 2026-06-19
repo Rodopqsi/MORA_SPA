@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -50,7 +50,7 @@ export default function LoginPage() {
         )}
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            Telefono
+            Teléfono
             <input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} placeholder="+51 987 654 321" />
           </label>
           <label>
@@ -58,7 +58,7 @@ export default function LoginPage() {
             <input value={form.email} onChange={(e) => handleChange('email', e.target.value)} placeholder="correo@email.com" />
           </label>
           <label>
-            Contrasena
+            Contraseña
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -296,8 +296,8 @@ export default function ReservarPaso5Page() {
               {method === 'PASARELA' && (
                 <div className="card-fields">
                   <label>
-                    Numero de tarjeta
-                    <input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="Numero" />
+                    Número de tarjeta
+                    <input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="Número" />
                   </label>
                   <label>
                     CVV

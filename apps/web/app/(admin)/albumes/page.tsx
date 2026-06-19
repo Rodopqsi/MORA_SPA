@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -16,7 +16,7 @@ type AlbumPhoto = {
   isCover?: boolean;
 };
 
-type Album = {
+type Álbum = {
   id: number;
   title: string;
   clientId: number;
@@ -54,12 +54,12 @@ const buildValidPhotos = (photos: PhotoForm[]) => {
 };
 
 export default function AlbumesPage() {
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [albums, setAlbums] = useState<Álbum[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [form, setForm] = useState<AlbumForm>(createEmptyForm());
   const [photos, setPhotos] = useState<PhotoForm[]>([emptyPhoto()]);
   const [error, setError] = useState('');
-  const [confirmDeleteAlbum, setConfirmDeleteAlbum] = useState<Album | null>(null);
+  const [confirmDeleteAlbum, setConfirmDeleteAlbum] = useState<Álbum | null>(null);
   const [confirmDeletePhotoId, setConfirmDeletePhotoId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -67,7 +67,7 @@ export default function AlbumesPage() {
 
   const loadData = () => {
     Promise.all([
-      staffFetch<{ data: Album[] }>('/albums'),
+      staffFetch<{ data: Álbum[] }>('/albums'),
       staffFetch<{ data: Client[] }>('/clients')
     ])
       .then(([albumRes, clientRes]) => {
@@ -160,7 +160,7 @@ export default function AlbumesPage() {
     setPhotos((current) => (current.length === 1 ? [emptyPhoto()] : current.filter((_, currentIndex) => currentIndex !== index)));
   };
 
-  const handleEdit = (album: Album) => {
+  const handleEdit = (album: Álbum) => {
     setForm({
       id: album.id,
       title: album.title,
@@ -172,7 +172,7 @@ export default function AlbumesPage() {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleDelete = (album: Album) => {
+  const handleDelete = (album: Álbum) => {
     setConfirmDeleteAlbum(album);
   };
 
@@ -221,7 +221,7 @@ export default function AlbumesPage() {
     <div className="page-stack page-enter">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Albumes y recuerdos</div>
+          <div className="eyebrow">Álbumes y recuerdos</div>
           <h1>Historias visuales de transformacion</h1>
           <p>Organiza antes y despues, con permisos claros.</p>
         </div>
@@ -256,7 +256,7 @@ export default function AlbumesPage() {
             </select>
           </label>
           <label>
-            Descripcion
+            Descripción
             <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </label>
           <label>
@@ -270,7 +270,7 @@ export default function AlbumesPage() {
           <div>
             <div className="section-head" style={{ marginBottom: 12 }}>
               <div>
-                <div className="eyebrow">Imagenes</div>
+                <div className="eyebrow">Imágenes</div>
                 <h2>{form.id ? 'Agregar fotos nuevas' : 'Cargar enlaces de fotos'}</h2>
               </div>
               <button className="chip" type="button" onClick={addPhotoField}>Agregar foto</button>

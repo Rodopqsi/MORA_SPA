@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useState } from 'react';
 import { uploadImages, deleteUpload, type UploadBucket } from '../lib/uploads';
@@ -50,7 +50,7 @@ export default function ImageUploader({ bucket, value, onChange, maxFiles = 8, l
       const files = Array.from(filesList);
       const remaining = maxFiles - value.length;
       if (files.length > remaining) {
-        throw new Error(`Solo puedes agregar ${remaining} imagen(es) mas (maximo ${maxFiles}).`);
+        throw new Error(`Solo puedes agregar ${remaining} imagen(es) mas (máximo ${maxFiles}).`);
       }
       const uploaded = await uploadImages(files, bucket);
       const next: UploaderImage[] = [
@@ -96,7 +96,7 @@ export default function ImageUploader({ bucket, value, onChange, maxFiles = 8, l
 
   const handleAddUrl = () => {
     if (value.length >= maxFiles) {
-      setError(`Maximo ${maxFiles} imagenes.`);
+      setError(`Máximo ${maxFiles} imagenes.`);
       return;
     }
     onChange(ensureCover([...value, newBlank()]));
@@ -139,7 +139,7 @@ export default function ImageUploader({ bucket, value, onChange, maxFiles = 8, l
                   type="button"
                   className="uploader-chip"
                   onClick={() => handleSetCover(index)}
-                  title="Marcar como portada"
+                  title="Marcar cómo portada"
                 >
                   Portada
                 </button>

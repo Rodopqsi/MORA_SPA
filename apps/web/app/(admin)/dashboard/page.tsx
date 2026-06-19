@@ -63,7 +63,7 @@ export default function DashboardPage() {
           <div className="section-head">
             <div>
               <div className="eyebrow">Proximas citas</div>
-              <h2>Confirma o reagenda con un toque</h2>
+              <h2>Confirma o reagenda citas</h2>
             </div>
             <Link className="chip press-feedback" href="/agenda">Ver agenda completa</Link>
           </div>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <div className="section-head">
             <div>
               <div className="eyebrow">Equipo de hoy</div>
-              <h2>Disponibilidad en tiempo real</h2>
+              <h2>Equipos hoy</h2>
             </div>
             <Link className="chip press-feedback" href="/equipo">Ver equipo completo</Link>
           </div>

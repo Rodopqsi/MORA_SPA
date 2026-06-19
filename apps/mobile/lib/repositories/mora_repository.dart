@@ -1,6 +1,7 @@
+import 'dart:convert';
+
 import '../core/models.dart';
 import '../core/network/api_client.dart';
-import '../core/config/app_config.dart';
 import '../state/app_state.dart';
 
 class MoraRepository {
@@ -60,7 +61,7 @@ class MoraRepository {
     return _unwrapList(response).map(ProductItem.fromJson).toList(growable: false);
   }
 
-  Future<void> registerClient({
+  Future<ClientSession> registerClient({
     required String name,
     required String phone,
     required String password,
@@ -70,7 +71,7 @@ class MoraRepository {
     String? docType,
     String? docNumber,
   }) async {
-    await apiClient.post(
+    final response = await apiClient.post(
       '/client-auth/register',
       body: {
         'name': name,
@@ -83,6 +84,12 @@ class MoraRepository {
         if (_hasText(docNumber)) 'docNumber': docNumber,
       },
     );
+
+    final map = _unwrapMap(response);
+    final token = stringOf(map['token']);
+    final session = ClientSession.fromJson(jsonMapOf(map['client']) ?? const {});
+    appState.setClientSession(token, session);
+    return session;
   }
 
   Future<ClientSession> loginClient({
@@ -189,17 +196,26 @@ class MoraRepository {
     required List<BookingSelection> details,
     String? notes,
   }) async {
-    final response = await apiClient.post(
-      '/client-reservations',
-      scope: AuthScope.client,
-      body: {
-        'channel': 'MOVIL',
-        if (_hasText(notes)) 'notes': notes,
-        'details': details.map((item) => item.toJson()).toList(growable: false),
-      },
-    );
-
-    return ReservationRecord.fromJson(_unwrapMap(response));
+    final body = <String, Object?>{
+      'channel': 'MOVIL',
+      if (_hasText(notes)) 'notes': notes,
+      'details': details.map((item) => item.toJson()).toList(growable: false),
+    };
+    // Diagnostico: ver exactamente que se manda al backend.
+    // ignore: avoid_print
+    print('[Mora] POST /client-reservations body=${jsonEncode(body)}');
+    try {
+      final response = await apiClient.post(
+        '/client-reservations',
+        scope: AuthScope.client,
+        body: body,
+      );
+      return ReservationRecord.fromJson(_unwrapMap(response));
+    } on ApiException catch (e) {
+      // ignore: avoid_print
+      print('[Mora] POST /client-reservations failed code=${e.code} status=${e.statusCode} message=${e.message}');
+      rethrow;
+    }
   }
 
   Future<ReviewRecord> createReview({
@@ -220,6 +236,35 @@ class MoraRepository {
     return ReviewRecord.fromJson(_unwrapMap(response));
   }
 
+  /// Tokeniza una tarjeta a traves del proxy backend (`/public/culqi/token`).
+  /// La app movil NO debe llamar directo a secure.culqi.com (CORS / TLS /
+  /// cleartext en Android lo bloquean), asi que delegamos al backend y este
+  /// reenvia la peticion con la `CULQI_PUBLIC_KEY` del servidor.
+  Future<String?> tokenizeCulqi({
+    required String cardNumber,
+    required String cvv,
+    required String expirationMonth,
+    required String expirationYear,
+    String? email,
+  }) async {
+    final response = await apiClient.post(
+      '/public/culqi/token',
+      body: {
+        'card_number': cardNumber.replaceAll(RegExp(r"\s+"), ''),
+        'cvv': cvv,
+        'expiration_month': expirationMonth,
+        'expiration_year': expirationYear,
+        if (_hasText(email)) 'email': email,
+      },
+    );
+    final data = _unwrapMap(response);
+    final id = data['id'];
+    if (id is String && id.isNotEmpty) {
+      return id;
+    }
+    return null;
+  }
+
   Future<SaleRecord> createPublicOrder({
     required String customerName,
     required String customerPhone,
@@ -229,18 +274,6 @@ class MoraRepository {
     String? notes,
     required List<CartEntry> items,
   }) async {
-    // If using PASARELA and no paymentReference provided, attempt client-side tokenization
-    if (method == 'PASARELA' && (paymentReference == null || paymentReference.isEmpty)) {
-      try {
-        final publicKey = AppConfig.culqiPublicKey;
-        final tokenResp = await _tokenizeCard(publicKey);
-        if (tokenResp != null && tokenResp['id'] != null) {
-          paymentReference = tokenResp['id'] as String;
-        }
-      } catch (_) {
-        // ignore tokenization failures; server will return requiresGateway
-      }
-    }
     final response = await apiClient.post(
       '/public/orders',
       body: {
@@ -257,12 +290,6 @@ class MoraRepository {
     );
 
     return SaleRecord.fromJson(_unwrapMap(response));
-  }
-
-  Future<Map<String, dynamic>?> _tokenizeCard(String publicKey) async {
-    // Mobile flow does not collect card details in repository; tokenization
-    // should be performed in UI and passed as paymentReference. Return null.
-    return null;
   }
 
   Future<StaffSession> loginStaff({

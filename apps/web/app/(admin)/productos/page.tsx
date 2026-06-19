@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -336,12 +336,12 @@ export default function ProductosPage() {
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </label>
             <label>
-              Categoria
+              Categoría
               <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
             </label>
           </div>
           <label>
-            Descripcion
+            Descripción
             <textarea
               rows={3}
               value={form.description}
@@ -392,8 +392,8 @@ export default function ProductosPage() {
           <div className="form-section">
             <div className="section-head" style={{ marginBottom: 12 }}>
               <div>
-                <div className="eyebrow">Imagenes</div>
-                <h2>Galeria del producto</h2>
+                <div className="eyebrow">Imágenes</div>
+                <h2>Galería del producto</h2>
               </div>
               <div className="chip-row">
                 <label className="chip">
@@ -410,7 +410,7 @@ export default function ProductosPage() {
                 <button className="chip" type="button" onClick={addImageField}>Agregar URL</button>
               </div>
             </div>
-            <p className="form-hint">Marca una imagen como portada para que sea la principal en la tienda.</p>
+            <p className="form-hint">Marca una imagen cómo portada para que sea la principal en la tienda.</p>
             <div className="grid grid-2">
               {form.images.map((image, index) => (
                 <div key={index} className="card" style={{ padding: 16 }}>
@@ -515,7 +515,7 @@ export default function ProductosPage() {
           </div>
         </div>
         <div className="sale-order-grid">
-          {sales.length === 0 && <div className="empty-state">Aun no hay ventas registradas.</div>}
+          {sales.length === 0 && <div className="empty-state">Aún no hay ventas registradas.</div>}
           {sales.map((sale) => (
             <article key={sale.id} className="sale-order-card">
               <div className="sale-order-head">
@@ -557,7 +557,7 @@ export default function ProductosPage() {
         title="Eliminar producto"
         description={
           confirmDelete
-            ? `Eliminar "${confirmDelete.name}"? Quedara archivado como no publicado.`
+            ? `Eliminar "${confirmDelete.name}"? Quedara archivado cómo no publicado.`
             : ''
         }
         confirmLabel="Eliminar"

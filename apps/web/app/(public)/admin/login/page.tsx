@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
             <input value={form.username} onChange={(e) => handleChange('username', e.target.value)} />
           </label>
           <label>
-            Contrasena
+            Contraseña
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}

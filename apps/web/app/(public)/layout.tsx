@@ -1,12 +1,12 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import PublicNav from '../components/PublicNav';
 
 const footerColumns = [
   {
-    title: 'Atencion',
+    title: 'Atención',
     lines: [
       'Reserva online, seguimiento desde tu cuenta y confirmacion personalizada.',
-      'Servicios, productos y promos en un solo flujo pensado para volver facil.'
+      'Servicios, productos y promos en un solo flujo pensado para volver fácil.'
     ]
   },
   {
@@ -89,7 +89,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
         <div className="public-footer-bottom">
           <div className="public-footer-powered">
-            <span>Mora Peluqueria &amp; Spa &middot; Agenda, tienda y seguimiento</span>
+            <span>Mora Peluquería &amp; Spa &middot; Agenda, tienda y seguimiento</span>
           </div>
 
           <nav className="public-footer-links" aria-label="Enlaces del sitio">

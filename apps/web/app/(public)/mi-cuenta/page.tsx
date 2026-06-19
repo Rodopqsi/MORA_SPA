@@ -19,6 +19,51 @@ type Reservation = {
   details: { serviceId: number }[];
 };
 
+type ProductSaleDetail = {
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  product?: { name?: string; images?: { url: string }[] };
+};
+
+type ProductSale = {
+  id: number;
+  date: string;
+  total: number;
+  method: 'EFECTIVO' | 'YAPE' | 'PASARELA';
+  paymentStatus: 'CONFIRMADO' | 'ANULADO' | 'PENDIENTE';
+  paymentProofUrl?: string | null;
+  details: ProductSaleDetail[];
+};
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
+
+const formatOrderDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
+const PAYMENT_LABEL: Record<ProductSale['method'], string> = {
+  EFECTIVO: 'Efectivo',
+  YAPE: 'Yape',
+  PASARELA: 'Tarjeta'
+};
+
+const STATUS_LABEL: Record<ProductSale['paymentStatus'], string> = {
+  PENDIENTE: 'Pendiente',
+  CONFIRMADO: 'Pagado',
+  ANULADO: 'Anulado'
+};
+
 const formatLongDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
@@ -53,6 +98,7 @@ export default function MiCuentaPage() {
   const { clearClient } = useAuth();
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [orders, setOrders] = useState<ProductSale[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -60,11 +106,13 @@ export default function MiCuentaPage() {
     setLoading(true);
     Promise.all([
       clientFetch<{ data?: ClientProfile }>('/client-auth/me'),
-      clientFetch<{ data: Reservation[] }>('/client-reservations')
+      clientFetch<{ data: Reservation[] }>('/client-reservations'),
+      clientFetch<{ data: ProductSale[] }>('/client-orders')
     ])
-      .then(([profileRes, reservationsRes]) => {
+      .then(([profileRes, reservationsRes, ordersRes]) => {
         setProfile(profileRes.data ?? (profileRes as unknown as ClientProfile));
         setReservations(reservationsRes.data ?? []);
+        setOrders(ordersRes.data ?? []);
         setError('');
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la información.'))
@@ -133,6 +181,11 @@ export default function MiCuentaPage() {
           <span>Reservas</span>
           <strong>{loading ? '—' : sorted.length}</strong>
         </div>
+        <span className="account-min-divider" aria-hidden />
+        <div className="account-min-summary-item">
+          <span>Pedidos</span>
+          <strong>{loading ? '—' : orders.length}</strong>
+        </div>
       </section>
 
       <section className="account-min-next">
@@ -182,6 +235,69 @@ export default function MiCuentaPage() {
 
         {sorted.length > 5 && (
           <p className="account-min-muted account-min-more">+ {sorted.length - 5} más</p>
+        )}
+      </section>
+
+      <section className="account-min-orders">
+        <div className="account-min-history-head">
+          <h2>Mis pedidos</h2>
+          <span className="account-min-muted">{orders.length} compras</span>
+        </div>
+
+        {loading ? (
+          <p className="account-min-muted">Cargando…</p>
+        ) : orders.length === 0 ? (
+          <div className="account-min-empty">
+            <p>Aún no has comprado productos.</p>
+            <Link className="btn btn-sm" href="/tienda">Ir a la tienda</Link>
+          </div>
+        ) : (
+          <ul className="account-min-orders-list">
+            {orders.map((order) => (
+              <li key={order.id} className="account-min-order-item lift-on-hover">
+                <header className="account-min-order-head">
+                  <div>
+                    <span className="account-min-order-id">Pedido #{order.id}</span>
+                    <span className="account-min-order-date">{formatOrderDate(order.date)}</span>
+                  </div>
+                  <span
+                    className={`account-min-order-status status-${order.paymentStatus.toLowerCase()}`}
+                  >
+                    {STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}
+                  </span>
+                </header>
+                <ul className="account-min-order-details">
+                  {order.details.map((detail) => (
+                    <li key={detail.productId} className="account-min-order-detail">
+                      <span className="account-min-order-detail-name">
+                        {detail.product?.name ?? `Producto #${detail.productId}`}
+                      </span>
+                      <span className="account-min-order-detail-qty">x{detail.quantity}</span>
+                      <span className="account-min-order-detail-sub">
+                        {formatCurrency(detail.subtotal)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <footer className="account-min-order-foot">
+                  <span className="account-min-order-method">
+                    Pago: {PAYMENT_LABEL[order.method] ?? order.method}
+                  </span>
+                  <span className="account-min-order-total">{formatCurrency(order.total)}</span>
+                </footer>
+                {order.paymentProofUrl && (
+                  <a
+                    className="account-min-order-proof"
+                    href={order.paymentProofUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver comprobante
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

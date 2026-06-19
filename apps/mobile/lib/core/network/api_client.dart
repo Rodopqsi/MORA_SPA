@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -27,10 +28,13 @@ class ApiClient {
   ApiClient({
     required this.appState,
     http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+    Duration? requestTimeout,
+  })  : _httpClient = httpClient ?? http.Client(),
+        _requestTimeout = requestTimeout ?? const Duration(seconds: 20);
 
   final AppState appState;
   final http.Client _httpClient;
+  final Duration _requestTimeout;
 
   Future<dynamic> get(
     String path, {
@@ -93,21 +97,33 @@ class ApiClient {
     late http.Response response;
     final payload = body == null ? null : jsonEncode(body);
 
+    Future<http.Response> send(Future<http.Response> Function() call) async {
+      try {
+        return await call().timeout(_requestTimeout);
+      } on TimeoutException {
+        throw http.ClientException(
+          'La peticion excedio el tiempo de espera (${_requestTimeout.inSeconds}s). '
+          'Verifica la URL del API o tu conexion.',
+          uri,
+        );
+      }
+    }
+
     switch (method) {
       case 'GET':
-        response = await _httpClient.get(uri, headers: headers);
+        response = await send(() => _httpClient.get(uri, headers: headers));
         break;
       case 'POST':
-        response = await _httpClient.post(uri, headers: headers, body: payload);
+        response = await send(() => _httpClient.post(uri, headers: headers, body: payload));
         break;
       case 'PATCH':
-        response = await _httpClient.patch(uri, headers: headers, body: payload);
+        response = await send(() => _httpClient.patch(uri, headers: headers, body: payload));
         break;
       case 'PUT':
-        response = await _httpClient.put(uri, headers: headers, body: payload);
+        response = await send(() => _httpClient.put(uri, headers: headers, body: payload));
         break;
       case 'DELETE':
-        response = await _httpClient.delete(uri, headers: headers, body: payload);
+        response = await send(() => _httpClient.delete(uri, headers: headers, body: payload));
         break;
       default:
         throw ArgumentError('Unsupported method $method');

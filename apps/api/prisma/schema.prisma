@@ -400,6 +400,8 @@ model ProductSale {
   customerEmail    String?
   paymentStatus    PaymentStatus       @default(PENDIENTE)
   paymentReference String?
+  paymentProofUrl      String?
+  paymentProofFileName String?
   notes            String?
   client           Client?             @relation(fields: [clientId], references: [id])
   user             User?               @relation(fields: [userId], references: [id])

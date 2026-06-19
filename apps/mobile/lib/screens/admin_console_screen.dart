@@ -66,7 +66,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
     if (username.isEmpty || password.isEmpty) {
-      _showMessage(context, 'Completa usuario y contrasena.');
+      _showMessage(context, 'Completa usuario y contraseña.');
       return;
     }
 
@@ -77,7 +77,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
         return;
       }
       setState(() => _future = widget.repository.fetchAdminSnapshot());
-      _showMessage(context, 'Sesion de staff iniciada.');
+      _showMessage(context, 'Sesión de staff iniciada.');
     } catch (error) {
       if (mounted) {
         _showMessage(context, _errorMessage(error));
@@ -122,7 +122,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Tooltip(
-                  message: 'Cerrar sesion',
+                  message: 'Cerrar sesión',
                   child: Icon(Icons.logout_rounded, color: MoraColors.ink),
                 ),
               ),
@@ -166,9 +166,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                       children: [
                         _AdminHero(
-                          title: 'Operacion movil para ${staff?.fullName ?? 'staff'}',
-                          subtitle:
-                              'Esta consola trabaja contra los endpoints autenticados del backend y permite ajustes rapidos sin pasar por el panel web.',
+                          title: 'Consola ${staff?.fullName ?? 'staff'}',
+                          subtitle: 'Ajustes rápidos del salón desde el móvil.',
                           metrics: [
                             _AdminMetric(label: 'Reservas hoy', value: '${data.metrics.reservationCount}'),
                             _AdminMetric(label: 'Ingresos', value: formatCurrency(data.metrics.revenue)),
@@ -179,8 +178,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                         const SizedBox(height: 20),
                         _AdminSection(
                           eyebrow: 'Agenda',
-                          title: 'Reservas y proximas atenciones',
-                          subtitle: 'Actualiza estados o cancela citas directamente desde el telefono.',
+                          title: 'Reservas',
+                          subtitle: 'Actualiza o cancela citas desde el móvil.',
                           child: data.reservations.isEmpty
                               ? const _AdminEmptyCard(
                                   title: 'Sin reservas',
@@ -216,7 +215,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                                                 const SizedBox(height: 10),
                                                 DropdownButtonFormField<String>(
                                                   initialValue: data.reservations[i].status,
-                                                  decoration: const InputDecoration(labelText: 'Estado de la reserva'),
+                                                  decoration: const InputDecoration(labelText: 'Estado'),
                                                   items: _reservationStatuses
                                                       .map((status) => DropdownMenuItem<String>(value: status, child: Text(formatStatusLabel(status))))
                                                       .toList(growable: false),
@@ -269,9 +268,9 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                         ),
                         const SizedBox(height: 20),
                         _AdminSection(
-                          eyebrow: 'Catalogo',
+                          eyebrow: 'Catálogo',
                           title: 'Servicios',
-                          subtitle: 'CRUD rapido sobre el menu de servicios.',
+                          subtitle: 'Gestiona el menú de servicios.',
                           action: FilledButton.icon(
                             onPressed: () async {
                               final payload = await _showServiceDialog(context);
@@ -313,7 +312,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                                             ],
                                           ),
                                           const SizedBox(height: 6),
-                                          Text(data.services[i].description.isEmpty ? 'Sin descripcion.' : data.services[i].description),
+                                          Text(data.services[i].description.isEmpty ? 'Sin descripción.' : data.services[i].description),
                                           const SizedBox(height: 10),
                                           Wrap(
                                             spacing: 8,
@@ -601,7 +600,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                         _AdminSection(
                           eyebrow: 'Tienda',
                           title: 'Productos',
-                          subtitle: 'CRUD rapido con soporte para imagenes y stock.',
+                          subtitle: 'Gestiona productos, imágenes y stock.',
                           action: FilledButton.icon(
                             onPressed: () async {
                               final payload = await _showProductDialog(context);
@@ -654,7 +653,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                                                 const SizedBox(height: 8),
                                                 Text(formatCurrency(data.products[i].price)),
                                                 const SizedBox(height: 8),
-                                                Text('Stock ${data.products[i].stock} · ${data.products[i].category.isEmpty ? 'Sin categoria' : data.products[i].category}', style: Theme.of(context).textTheme.bodySmall),
+                                                Text('Stock ${data.products[i].stock} · ${data.products[i].category.isEmpty ? 'Sin categoría' : data.products[i].category}', style: Theme.of(context).textTheme.bodySmall),
                                                 const SizedBox(height: 10),
                                                 Wrap(
                                                   spacing: 8,
@@ -714,8 +713,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                         const SizedBox(height: 20),
                         _AdminSection(
                           eyebrow: 'Ventas',
-                          title: 'Seguimiento de pedidos',
-                          subtitle: 'Ajusta el estado de pago de las ventas creadas por la tienda.',
+                          title: 'Pedidos',
+                          subtitle: 'Ajusta el estado de pago de las ventas.',
                           child: data.sales.isEmpty
                               ? const _AdminEmptyCard(title: 'Sin ventas', message: 'Aun no hay pedidos registrados.')
                               : Column(
@@ -768,8 +767,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                         const SizedBox(height: 20),
                         _AdminSection(
                           eyebrow: 'Clientes',
-                          title: 'Base de clientes',
-                          subtitle: 'Alta, edicion y desactivacion rapida de clientes.',
+                          title: 'Clientes',
+                          subtitle: 'Alta, edición y desactivación.',
                           action: FilledButton.icon(
                             onPressed: () async {
                               final payload = await _showClientDialog(context);

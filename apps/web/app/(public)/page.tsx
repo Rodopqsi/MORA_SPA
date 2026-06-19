@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ const heroSlides = [
   },
   {
     badge: 'Agenda inteligente',
-    title: 'Horarios reales segun servicios, staff y disponibilidad',
+    title: 'Horarios reales según servicios, staff y disponibilidad',
     subtitle: 'El sistema cruza duraciones y equipo activo para mostrar solo slots realmente reservables.',
     image: '/assets/img24.jpeg'
   },
@@ -51,7 +51,7 @@ const galleryImages = [
 const experienceHighlights = [
   {
     title: 'Diagnostico claro',
-    text: 'Cada servicio se recomienda segun necesidad real, tiempo disponible y objetivo de resultado.'
+    text: 'Cada servicio se recomienda según necesidad real, tiempo disponible y objetivo de resultado.'
   },
   {
     title: 'Agenda sin fricciones',
@@ -59,7 +59,7 @@ const experienceHighlights = [
   },
   {
     title: 'Equipo especializado',
-    text: 'Asignamos a cada profesional segun servicio y disponibilidad, no por una agenda ficticia.'
+    text: 'Asignamos a cada profesional según servicio y disponibilidad, no por una agenda ficticia.'
   }
 ] as const;
 
@@ -214,9 +214,9 @@ export default function PublicHomePage() {
                   <span className="service-box-price">S/ {service.priceBase}</span>
                 </div>
                 <p className="service-box-text">
-                  {service.description ?? 'Atencion personalizada con diagnostico y acabado profesional.'}
+                  {service.description ?? 'Atención personalizada con diagnostico y acabado profesional.'}
                 </p>
-                <Link href="/reservar" className="service-box-action">Reservar este servicio</Link>
+                <Link href={`/reservar?service=${service.id}`} className="service-box-action">Reservar este servicio</Link>
               </div>
             </div>
           ))}
@@ -254,7 +254,7 @@ export default function PublicHomePage() {
             );
           })}
           {products.filter((product) => product.featured).length === 0 && (
-            <div className="empty-state">Los productos destacados apareceran aqui cuando el catalogo este listo.</div>
+            <div className="empty-state">Los productos destacados apareceran aqui cuándo el catalogo este listo.</div>
           )}
         </MoraScrollReveal>
       </section>
@@ -295,7 +295,7 @@ export default function PublicHomePage() {
           <Link href="/reservar" className="section-link-more">Agendar con el equipo</Link>
         </div>
         <MoraScrollReveal selector=".staff-card" className="staff-grid" stagger={0.1}>
-          {staff.length === 0 && <div className="list-sub">Nuestro equipo aparecera aqui cuando la agenda este habilitada.</div>}
+          {staff.length === 0 && <div className="list-sub">Nuestro equipo aparecera aqui cuándo la agenda este habilitada.</div>}
           {staff.slice(0, 4).map((member, index) => (
             <div key={member.id} className="staff-card lift-on-hover">
               <img src={galleryImages[index % galleryImages.length]} alt={member.name} />
@@ -317,7 +317,7 @@ export default function PublicHomePage() {
         <div className="section-premium-head">
           <div>
             <span className="eyebrow">Resultados reales</span>
-            <h2>Galeria de resultados</h2>
+            <h2>Galería de resultados</h2>
           </div>
           <Link href="/reservar" className="section-link-more">Quiero este look</Link>
         </div>
@@ -365,7 +365,7 @@ export default function PublicHomePage() {
           </div>
           <div className="perk-item">
             <h4>Promos visibles</h4>
-            <p>Cuando activemos nuevas campañas, las veras desde web y podras aplicarlas al reservar.</p>
+            <p>Cuándo activemos nuevas campañas, las veras desde web y podras aplicarlas al reservar.</p>
           </div>
         </MoraScrollReveal>
       </section>

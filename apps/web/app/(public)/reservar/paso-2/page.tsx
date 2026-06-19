@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -34,7 +34,7 @@ export default function ReservarPaso2Page() {
       .then((res) => {
         const data = res.data ?? [];
         setStaff(data);
-        setNotice(data.length === 0 ? 'Aun no hay especialistas disponibles para reservas online.' : '');
+        setNotice(data.length === 0 ? 'Aún no hay especialistas disponibles para reservas online.' : '');
       })
       .catch(() => {
         setStaff([]);

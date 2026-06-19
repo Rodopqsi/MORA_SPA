@@ -1,3 +1,5 @@
+import 'config/app_config.dart' as cfg;
+
 typedef JsonMap = Map<String, dynamic>;
 
 JsonMap? jsonMapOf(dynamic value) {
@@ -266,7 +268,7 @@ class ProductImage {
 
   factory ProductImage.fromJson(JsonMap json) {
     return ProductImage(
-      url: stringOf(json['url']),
+      url: cfg.resolveMediaUrl(stringOf(json['url'])),
       fileName: stringOf(json['fileName']),
       isCover: boolOf(json['isCover']),
       order: intOf(json['order']),
@@ -356,7 +358,7 @@ class CartEntry {
       name: stringOf(json['name']),
       price: doubleOf(json['price']),
       quantity: intOf(json['quantity'], 1),
-      coverUrl: stringOf(json['coverUrl']),
+      coverUrl: cfg.resolveMediaUrl(stringOf(json['coverUrl'])),
       stock: intOf(json['stock']),
     );
   }
@@ -656,7 +658,7 @@ class AlbumPhoto {
   factory AlbumPhoto.fromJson(JsonMap json) {
     return AlbumPhoto(
       id: intOf(json['id']),
-      url: stringOf(json['url']),
+      url: cfg.resolveMediaUrl(stringOf(json['url'])),
       caption: stringOf(json['caption']),
     );
   }
@@ -751,7 +753,7 @@ class SaleDetail {
       quantity: intOf(json['quantity'], 1),
       unitPrice: doubleOf(json['unitPrice']),
       subtotal: doubleOf(json['subtotal']),
-      coverUrl: stringOf(cover?['url']),
+      coverUrl: cfg.resolveMediaUrl(stringOf(cover?['url'])),
     );
   }
 }

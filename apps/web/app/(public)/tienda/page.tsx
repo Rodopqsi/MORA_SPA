@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -56,12 +56,6 @@ const defaultCheckoutForm = (): CheckoutForm => ({
   paymentReference: '',
   notes: ''
 });
-
-const paymentDescriptions: Record<CheckoutForm['method'], string> = {
-  EFECTIVO: 'Reserva tu pedido y paga al recogerlo en Mora Spa.',
-  YAPE: 'Registra tu pedido y luego comparte el comprobante para confirmarlo.',
-  PASARELA: 'Este es el ultimo paso del checkout. La integracion real de la pasarela queda lista para conectarse aqui.'
-};
 
 export default function TiendaPage() {
   const { isClientAuthed, refresh } = useAuth();
@@ -310,7 +304,7 @@ export default function TiendaPage() {
             <div>
               <div className="eyebrow">Catalogo</div>
               <h2>Selecciona tus productos</h2>
-              <div className="list-sub">Filtra por linea y arma el carrito con inventario real.</div>
+              <div className="list-sub"></div>
             </div>
             <div className="shop-filter-row">
               {categories.map((item) => (
@@ -324,11 +318,6 @@ export default function TiendaPage() {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="shop-catalog-meta">
-            <span className="pill">{visibleProducts.length} visibles</span>
-            <span className="pill">{availableProducts} con stock disponible</span>
           </div>
 
           <MoraScrollReveal key={loading ? 'shop-loading' : 'shop-ready'} as="div" className="shop-product-grid" selector=".shop-product-card" variant="fade-up" stagger={0.08} duration={0.7}>
@@ -458,7 +447,7 @@ export default function TiendaPage() {
                 <strong>Orden #{success.data.id}</strong>
                 <p>
                   Total S/ {Number(success.data.total).toFixed(2)}. {success.meta?.requiresGateway
-                    ? 'La pasarela sigue como placeholder y puede conectarse despues.'
+                    ? 'Pago pendiente de confirmacion por la pasarela.'
                     : 'El pedido ya puede confirmarse desde el panel.'}
                 </p>
               </div>
@@ -535,7 +524,7 @@ export default function TiendaPage() {
                               onClick={() => setCart((current) => updateCartItemQuantity(current, item.productId, item.quantity + 1))}
                               disabled={atMax}
                               aria-label="Aumentar cantidad"
-                              title={atMax ? 'Stock maximo alcanzado' : 'Aumentar cantidad'}
+                              title={atMax ? 'Stock máximo alcanzado' : 'Aumentar cantidad'}
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -568,7 +557,7 @@ export default function TiendaPage() {
                   />
                 </label>
                 <label>
-                  Telefono
+                  Teléfono
                   <input
                     required
                     value={checkout.customerPhone}
@@ -588,10 +577,10 @@ export default function TiendaPage() {
                 </label>
                 <div className="shop-payment-methods" role="radiogroup" aria-label="Metodo de pago">
                   {(['PASARELA', 'YAPE', 'EFECTIVO'] as const).map((method) => {
-                    const labels: Record<CheckoutForm['method'], { title: string; sub: string; icon: string }> = {
-                      PASARELA: { title: 'Tarjeta', sub: 'Pasarela online', icon: '\u{1F4B3}' },
-                      YAPE: { title: 'Yape', sub: 'Comprobante digital', icon: '\u{1F4F1}' },
-                      EFECTIVO: { title: 'Efectivo', sub: 'Pago al recoger', icon: '\u{1F4B5}' }
+                    const labels: Record<CheckoutForm['method'], { title: string; sub: string }> = {
+                      PASARELA: { title: 'Tarjeta', sub: 'Pasarela online' },
+                      YAPE: { title: 'Yape', sub: 'Comprobante digital' },
+                      EFECTIVO: { title: 'Efectivo', sub: 'Pago al recoger' }
                     };
                     const active = checkout.method === method;
                     return (
@@ -603,7 +592,6 @@ export default function TiendaPage() {
                         className={`shop-payment-pill ${active ? 'active' : ''}`}
                         onClick={() => setCheckout({ ...checkout, method })}
                       >
-                        <span className="shop-payment-icon" aria-hidden="true">{labels[method].icon}</span>
                         <span className="shop-payment-text">
                           <strong>{labels[method].title}</strong>
                           <span>{labels[method].sub}</span>
@@ -615,7 +603,7 @@ export default function TiendaPage() {
                 {checkout.method === 'PASARELA' && (
                   <div className="card-fields">
                     <label>
-                      Numero de tarjeta
+                      Número de tarjeta
                       <input
                         required
                         value={cardNumber}
@@ -643,19 +631,13 @@ export default function TiendaPage() {
                   <input
                     value={checkout.paymentReference}
                     onChange={(event) => setCheckout({ ...checkout, paymentReference: event.target.value })}
-                    placeholder={checkout.method === 'PASARELA' ? 'ID de pago futuro o checkout session' : 'Operacion, captura o nota interna'}
+                    placeholder={checkout.method === 'PASARELA' ? 'ID de pago futuro o checkout session' : 'Operación, captura o nota interna'}
                   />
                 </label>
                 <label>
                   Notas del pedido
                   <textarea value={checkout.notes} onChange={(event) => setCheckout({ ...checkout, notes: event.target.value })} rows={4} />
                 </label>
-
-                <div className="shop-gateway-card">
-                  <div className="eyebrow">Pasarela de pagos</div>
-                  <strong>Ultimo paso del checkout</strong>
-                  <p>{paymentDescriptions[checkout.method]}</p>
-                </div>
 
                 <button className="btn" type="submit" disabled={submitting || cart.length === 0}>
                   {submitting ? 'Procesando...' : 'Registrar pedido'}

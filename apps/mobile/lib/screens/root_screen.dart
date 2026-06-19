@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:convert';
+import 'dart:async' show TimeoutException, unawaited;
+import 'dart:io' show SocketException, HttpException;
 import 'package:http/http.dart' as http;
 
 import '../app/theme.dart';
@@ -11,7 +12,6 @@ import '../core/network/api_client.dart';
 import '../core/utils/formatters.dart';
 import '../repositories/mora_repository.dart';
 import '../state/app_state.dart';
-import 'admin_console_screen.dart';
 
 class RootScreen extends StatefulWidget {
   const RootScreen({super.key, required this.repository});
@@ -153,7 +153,6 @@ class _HomeTabState extends State<HomeTab> {
         final spotlightServices = data.services.take(3).toList(growable: false);
         final spotlightStaff = data.staff.take(3).toList(growable: false);
         final activePromotions = data.promotions.where((promo) => promo.active).toList(growable: false);
-        final heroPromotionCount = activePromotions.isEmpty ? data.promotions.length : activePromotions.length;
         final spotlightPromotion = activePromotions.isNotEmpty
             ? activePromotions.first
             : data.promotions.isNotEmpty
@@ -167,9 +166,9 @@ class _HomeTabState extends State<HomeTab> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               _HeroPanel(
-                eyebrow: 'Mora signature',
-                title: 'Reserva y compra con una vista mas clara.',
-                subtitle: 'La app movil ahora prioriza lo importante y conserva la misma logica en tiempo real que la web.',
+                eyebrow: 'Mora',
+                title: 'Reserva y compra.',
+                subtitle: 'Agenda, boutique y cuenta en un solo lugar.',
                 actions: [
                   FilledButton.icon(
                     onPressed: () => widget.onNavigate(1),
@@ -177,46 +176,36 @@ class _HomeTabState extends State<HomeTab> {
                     label: const Text('Reservar'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => widget.onNavigate(3),
-                    icon: const Icon(Icons.person_outline_rounded),
-                    label: const Text('Mi cuenta'),
+                    onPressed: () => widget.onNavigate(2),
+                    icon: const Icon(Icons.shopping_bag_outlined),
+                    label: const Text('Tienda'),
                   ),
                 ],
-                footer: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _MetricChip(icon: Icons.content_cut_rounded, label: '${data.services.length} servicios'),
-                    _MetricChip(icon: Icons.local_offer_outlined, label: '$heroPromotionCount promos'),
-                    _MetricChip(icon: Icons.shopping_bag_outlined, label: '${products.length} productos'),
-                  ],
-                ),
               ),
               const SizedBox(height: 18),
               _SectionCard(
                 eyebrow: 'Accesos',
-                title: 'Empieza por aqui',
-                subtitle: 'Menos lectura y tres entradas directas para completar la tarea que viniste a hacer.',
+                title: 'Empieza por aquí',
                 child: Column(
                   children: [
                     _QuickActionTile(
                       icon: Icons.event_available_rounded,
                       title: 'Nueva reserva',
-                      subtitle: 'Disponibilidad real y confirmacion clara en pocos pasos.',
+                      subtitle: 'Disponibilidad real en pocos pasos.',
                       onTap: () => widget.onNavigate(1),
                     ),
                     const SizedBox(height: 12),
                     _QuickActionTile(
                       icon: Icons.shopping_bag_outlined,
-                      title: 'Boutique Mora',
-                      subtitle: 'Productos destacados y carrito persistente sin ruido visual.',
+                      title: 'Tienda',
+                      subtitle: 'Productos destacados y carrito.',
                       onTap: () => widget.onNavigate(2),
                     ),
                     const SizedBox(height: 12),
                     _QuickActionTile(
                       icon: Icons.person_outline_rounded,
                       title: 'Mi cuenta',
-                      subtitle: 'Historial, albumes, resenas y acceso al panel desde una sola vista.',
+                      subtitle: 'Historial, álbumes y reseñas.',
                       onTap: () => widget.onNavigate(3),
                     ),
                   ],
@@ -224,19 +213,18 @@ class _HomeTabState extends State<HomeTab> {
               ),
               const SizedBox(height: 18),
               _SectionCard(
-                eyebrow: 'Seleccion',
-                title: 'Lo mas buscado hoy',
-                subtitle: 'Un resumen ligero de servicios, promo activa y especialistas visibles.',
+                eyebrow: 'Selección',
+                title: 'Lo más buscado',
                 child: spotlightServices.isEmpty
                     ? const _EmptyInfoCard(
                         title: 'Sin destacados por ahora',
-                        message: 'La portada mostrara servicios y promos apenas vuelvan a estar activos.',
+                        message: 'Volveremos a mostrar servicios y promos cuando estén activos.',
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
-                            height: 192,
+                            height: 230,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: spotlightServices.length,
@@ -263,9 +251,8 @@ class _HomeTabState extends State<HomeTab> {
               ),
               const SizedBox(height: 18),
               _SectionCard(
-                eyebrow: 'Boutique',
-                title: 'Compra rapido',
-                subtitle: 'Favoritos sincronizados con menos texto y el mismo stock real.',
+                eyebrow: 'Tienda',
+                title: 'Compra rápido',
                 action: TextButton(
                   onPressed: () => widget.onNavigate(2),
                   child: const Text('Abrir'),
@@ -273,10 +260,10 @@ class _HomeTabState extends State<HomeTab> {
                 child: spotlightProducts.isEmpty
                     ? const _EmptyInfoCard(
                         title: 'Sin productos visibles',
-                        message: 'Cuando el catalogo tenga stock activo, apareceran aqui tus destacados.',
+                        message: 'Cuando el catálogo tenga stock activo, aparecerán aquí tus destacados.',
                       )
                     : SizedBox(
-                        height: 244,
+                        height: 290,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: spotlightProducts.length,
@@ -324,6 +311,20 @@ class _BookingTabState extends State<BookingTab> {
   void initState() {
     super.initState();
     _catalogFuture = widget.repository.fetchBookingCatalog();
+    // Pre-selecciona el dia actual (interpretado en la zona horaria del
+    // negocio, UTC-5 Lima) para que el usuario vea horarios sin tener
+    // que pasar por el date picker.
+    _selectedDate = _businessNow();
+  }
+
+  /// Devuelve el "hoy" del negocio (UTC-5) truncado a medianoche. Esto
+  /// asegura que el selector y el backend siempre coincidan en la fecha
+  /// sin importar la zona horaria del dispositivo.
+  static DateTime _businessNow() {
+    final nowUtc = DateTime.now().toUtc();
+    // Lima = UTC-5 sin horario de verano.
+    final limaToday = nowUtc.add(const Duration(hours: -5));
+    return DateTime(limaToday.year, limaToday.month, limaToday.day);
   }
 
   @override
@@ -349,6 +350,7 @@ class _BookingTabState extends State<BookingTab> {
       _selectedSlot = null;
       _availabilityError = null;
     });
+    _maybeAutoSearch();
   }
 
   Future<void> _pickDate() async {
@@ -370,23 +372,47 @@ class _BookingTabState extends State<BookingTab> {
       _availability = null;
       _availabilityError = null;
     });
+    _maybeAutoSearch();
   }
 
-  Future<void> _searchSlots() async {
+  /// Lanza la busqueda en cuanto el usuario tenga servicio(s) y fecha
+  /// listos. Asi la pestana de "Paso 2" nunca queda en blanco si los
+  /// datos son validos.
+  void _maybeAutoSearch() {
+    if (_loadingSlots) {
+      return;
+    }
+    if (_selectedServiceIds.isEmpty || _selectedDate == null) {
+      return;
+    }
     final appState = context.read<AppState>();
     if (!appState.isClientAuthenticated) {
-      _showMessage(context, 'Inicia sesion para consultar horarios reales y reservar.');
-      widget.onNavigate(3);
+      return;
+    }
+    unawaited(_searchSlots(silent: true));
+  }
+
+  Future<void> _searchSlots({bool silent = false}) async {
+    final appState = context.read<AppState>();
+    if (!appState.isClientAuthenticated) {
+      if (!silent) {
+        _showMessage(context, 'Inicia sesion para consultar horarios reales y reservar.');
+        widget.onNavigate(3);
+      }
       return;
     }
 
     if (_selectedServiceIds.isEmpty) {
-      _showMessage(context, 'Selecciona al menos un servicio.');
+      if (!silent) {
+        _showMessage(context, 'Selecciona al menos un servicio.');
+      }
       return;
     }
 
     if (_selectedDate == null) {
-      _showMessage(context, 'Elige una fecha primero.');
+      if (!silent) {
+        _showMessage(context, 'Elige una fecha primero.');
+      }
       return;
     }
 
@@ -419,6 +445,26 @@ class _BookingTabState extends State<BookingTab> {
         _availabilityError = _errorMessage(error);
         _availability = null;
       });
+
+      // Fallback automatico: si el server rechazo los IDs por algun
+      // motivo (catalogo desincronizado, sesion vencida con token
+      // fantasma, etc.), reintentamos una vez con cualquier staff
+      // para mostrar al menos los horarios disponibles. Asi la
+      // pestana nunca queda con "Sin horarios" cuando la realidad
+      // es que el server rechazo la consulta.
+      if (error is ApiException &&
+          (error.code == 'invalid_services' ||
+              error.code == 'invalid_staff_service' ||
+              error.code == 'invalid_staff')) {
+        if (_selectedStaffId != 0) {
+          // Restablecer el staff a "Cualquiera" y reintentar.
+          setState(() {
+            _selectedStaffId = 0;
+            _availabilityError = null;
+          });
+          await _searchSlots(silent: silent);
+        }
+      }
     } finally {
       if (mounted) {
         setState(() => _loadingSlots = false);
@@ -472,6 +518,21 @@ class _BookingTabState extends State<BookingTab> {
     } catch (error) {
       if (!mounted) {
         return;
+      }
+      // Si el server reporta que el slot ya fue tomado o estaba fuera de
+      // horario, refrescamos la disponibilidad para que el usuario vea los
+      // horarios actualizados en lugar de quedar con datos obsoletos.
+      if (error is ApiException &&
+          (error.code == 'slot_taken' ||
+              error.code == 'outside_working_hours' ||
+              error.code == 'min_advance' ||
+              error.code == 'invalid_staff_service')) {
+        // Forzamos una recarga de los slots para que el usuario vea los
+        // horarios actualizados en lugar de quedar con datos obsoletos.
+        await _searchSlots();
+        if (!mounted) {
+          return;
+        }
       }
       _showMessage(context, _errorMessage(error));
     } finally {
@@ -528,6 +589,19 @@ class _BookingTabState extends State<BookingTab> {
     return FutureBuilder<BookingCatalog>(
       future: _catalogFuture,
       builder: (context, snapshot) {
+        // Cuando el catalogo llega por primera vez (o se refresca),
+        // pre-seleccionamos el primer servicio para que la pestana
+        // muestre horarios sin que el usuario tenga que tocar nada.
+        if (snapshot.hasData && _selectedServiceIds.isEmpty) {
+          final catalog = snapshot.data;
+          if (catalog != null && catalog.services.isNotEmpty) {
+            _selectedServiceIds.add(catalog.services.first.id);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _maybeAutoSearch();
+            });
+          }
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -560,33 +634,22 @@ class _BookingTabState extends State<BookingTab> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               _HeroPanel(
-                eyebrow: 'Reserva real',
-                title: 'Horarios calculados con la agenda del salon.',
-                subtitle:
-                    'La app consulta el motor de disponibilidad del backend, respeta avance minimo y arma reservas con un solo o varios especialistas.',
+                eyebrow: 'Reserva',
+                title: 'Horarios reales del salón.',
+                subtitle: 'Confirma tu cita con uno o varios especialistas.',
                 actions: [
                   if (!appState.isClientAuthenticated)
                     FilledButton.icon(
                       onPressed: () => widget.onNavigate(3),
                       icon: const Icon(Icons.login_rounded),
-                      label: const Text('Iniciar sesion'),
+                      label: const Text('Iniciar sesión'),
                     ),
                 ],
-                footer: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _MetricChip(label: appState.isClientAuthenticated ? 'Sesion activa' : 'Necesitas autenticarte'),
-                    _MetricChip(label: '${catalog.services.length} servicios listos'),
-                    _MetricChip(label: '${catalog.staff.length} especialistas sincronizados'),
-                  ],
-                ),
               ),
               const SizedBox(height: 20),
               _SectionCard(
                 eyebrow: 'Paso 1',
                 title: 'Define tu visita',
-                subtitle: 'Puedes reservar varios servicios en una sola operacion.',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -623,6 +686,7 @@ class _BookingTabState extends State<BookingTab> {
                           _availability = null;
                           _selectedSlot = null;
                         });
+                        _maybeAutoSearch();
                       },
                     ),
                     const SizedBox(height: 16),
@@ -664,15 +728,13 @@ class _BookingTabState extends State<BookingTab> {
               const SizedBox(height: 20),
               _SectionCard(
                 eyebrow: 'Paso 2',
-                title: 'Selecciona un horario real',
-                subtitle: 'Los resultados salen del endpoint de disponibilidad del cliente.',
+                title: 'Elige un horario',
                 child: _buildAvailabilityContent(context, selectedServices),
               ),
               const SizedBox(height: 20),
               _SectionCard(
                 eyebrow: 'Paso 3',
                 title: 'Confirma tu visita',
-                subtitle: 'Puedes dejar observaciones para el equipo antes de reservar.',
                 child: Column(
                   children: [
                     TextField(
@@ -712,8 +774,9 @@ class _BookingTabState extends State<BookingTab> {
 
     if (_availability == null) {
       return const _EmptyInfoCard(
-        title: 'Busca disponibilidad',
-        message: 'Selecciona servicios y fecha para consultar horarios disponibles.',
+        title: 'Te ayudamos a encontrar horarios',
+        message:
+            'Elige al menos un servicio y la fecha (ya cargamos "hoy" del salon). Los horarios se consultan en automatico.',
       );
     }
 
@@ -727,15 +790,6 @@ class _BookingTabState extends State<BookingTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _MetricChip(label: '${_availability!.meta.totalDurationMin} min totales'),
-            _MetricChip(label: _availability!.meta.mode == 'multi_staff' ? 'Cobertura multi staff' : 'Cobertura individual'),
-          ],
-        ),
-        const SizedBox(height: 16),
         ..._availability!.data.map(
           (entry) => Padding(
             padding: const EdgeInsets.only(bottom: 14),
@@ -776,7 +830,7 @@ class _BookingTabState extends State<BookingTab> {
                   ),
                   if (_selectedSlot?.entry.label == entry.label && _selectedSlot?.slot.assignments.isNotEmpty == true) ...[
                     const SizedBox(height: 12),
-                    Text('Asignacion automatica', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Asignación automática', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     ..._selectedSlot!.slot.assignments.map(
                       (assignment) {
@@ -839,7 +893,7 @@ class _ShopTabState extends State<ShopTab> {
   Future<void> _openCheckout() async {
     final appState = context.read<AppState>();
     if (appState.cart.isEmpty) {
-      _showMessage(context, 'Tu carrito esta vacio.');
+      _showMessage(context, 'Tu carrito está vacío.');
       return;
     }
 
@@ -859,8 +913,6 @@ class _ShopTabState extends State<ShopTab> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-
     return FutureBuilder<List<ProductItem>>(
       future: _future,
       builder: (context, snapshot) {
@@ -870,20 +922,20 @@ class _ShopTabState extends State<ShopTab> {
 
         if (snapshot.hasError && !snapshot.hasData) {
           return _AsyncErrorView(
-            title: 'No se pudo cargar la boutique',
+            title: 'No se pudo cargar la tienda',
             message: _errorMessage(snapshot.error),
             onRetry: _refresh,
           );
         }
 
-        final products = snapshot.data;
-        if (products == null) {
-          return _AsyncErrorView(
-            title: 'Catalogo vacio',
-            message: 'No hay productos sincronizados en este momento.',
-            onRetry: _refresh,
-          );
-        }
+    final products = snapshot.data;
+    if (products == null) {
+      return _AsyncErrorView(
+        title: 'Catálogo vacío',
+        message: 'No hay productos sincronizados en este momento.',
+        onRetry: _refresh,
+      );
+    }
 
         return RefreshIndicator(
           onRefresh: _refresh,
@@ -892,10 +944,9 @@ class _ShopTabState extends State<ShopTab> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               _HeroPanel(
-                eyebrow: 'Boutique Mora',
-                title: 'Carrito persistente y pedido directo al backend.',
-                subtitle:
-                    'El stock se sincroniza desde la API y el checkout registra ventas reales con estado de pago pendiente o confirmado.',
+                eyebrow: 'Tienda',
+                title: 'Productos Mora.',
+                subtitle: 'Carrito persistente y pedido directo al salón.',
                 actions: [
                   FilledButton.icon(
                     onPressed: _openCheckout,
@@ -903,85 +954,23 @@ class _ShopTabState extends State<ShopTab> {
                     label: const Text('Finalizar pedido'),
                   ),
                 ],
-                footer: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _MetricChip(label: '${appState.cartCount} item(s) en carrito'),
-                    _MetricChip(label: formatCurrency(appState.cartTotal)),
-                    _MetricChip(label: '${products.length} productos listados'),
-                  ],
-                ),
               ),
               const SizedBox(height: 20),
               if (products.isEmpty)
                 const _EmptyInfoCard(
                   title: 'Sin productos',
-                  message: 'Cuando la tienda tenga inventario activo, aparecera aqui.',
+                  message: 'Cuando la tienda tenga inventario activo, aparecerán aquí.',
                 )
               else
                 ...products.map(
                   (product) => Padding(
                     padding: const EdgeInsets.only(bottom: 14),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: sectionDecoration(color: Colors.white),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 108,
-                            child: _ImagePreview(imageUrl: product.coverUrl, height: 108),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    Text(product.name, style: Theme.of(context).textTheme.titleMedium),
-                                    if (product.featured) const _MetricChip(label: 'Destacado'),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  product.description.isEmpty ? 'Producto sincronizado desde el panel de administracion.' : product.description,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 12),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    _MetricChip(label: product.category.isEmpty ? 'Sin categoria' : product.category),
-                                    _MetricChip(label: 'Stock ${product.stock}'),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(formatCurrency(product.price), style: Theme.of(context).textTheme.titleMedium),
-                                    ),
-                                    FilledButton(
-                                      onPressed: product.stock > 0
-                                          ? () {
-                                              context.read<AppState>().addToCart(product);
-                                              _showMessage(context, '${product.name} agregado al carrito.');
-                                            }
-                                          : null,
-                                      child: Text(product.stock > 0 ? 'Agregar' : 'Sin stock'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: _ShopProductCard(
+                      product: product,
+                      onAdd: () {
+                        context.read<AppState>().addToCart(product);
+                        _showMessage(context, '${product.name} agregado al carrito.');
+                      },
                     ),
                   ),
                 ),
@@ -989,6 +978,110 @@ class _ShopTabState extends State<ShopTab> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ShopProductCard extends StatelessWidget {
+  const _ShopProductCard({required this.product, required this.onAdd});
+
+  final ProductItem product;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final canBuy = product.stock > 0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: sectionDecoration(color: Colors.white),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 108,
+                  height: 108,
+                  child: _ImagePreview(imageUrl: product.coverUrl, height: 108, width: 108),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        if (product.featured) ...[
+                          const SizedBox(width: 8),
+                          const _MetricChip(label: 'Destacado'),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      product.description.isEmpty
+                          ? 'Producto sincronizado desde el panel de administración.'
+                          : product.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: MoraColors.muted),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _MetricChip(label: product.category.isEmpty ? 'Línea Mora' : product.category),
+                        _MetricChip(label: 'Stock ${product.stock}'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, thickness: 1, color: MoraColors.border),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  formatCurrency(product.price),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: MoraColors.ink),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: canBuy ? onAdd : null,
+                icon: Icon(canBuy ? Icons.add_shopping_cart_rounded : Icons.block_rounded, size: 18),
+                label: Text(canBuy ? 'Agregar' : 'Sin stock'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1117,7 +1210,7 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
     final identifier = _loginIdentifierController.text.trim();
     final password = _loginPasswordController.text.trim();
     if (identifier.isEmpty || password.isEmpty) {
-      _showMessage(context, 'Completa tu telefono o email y la contrasena.');
+      _showMessage(context, 'Completa tu teléfono o email y la contraseña.');
       return;
     }
 
@@ -1132,7 +1225,7 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
         return;
       }
       setState(() => _bundleFuture = widget.repository.fetchClientBundle());
-      _showMessage(context, 'Sesion iniciada correctamente.');
+      _showMessage(context, 'Sesión iniciada correctamente.');
     } catch (error) {
       if (mounted) {
         _showMessage(context, _errorMessage(error));
@@ -1149,7 +1242,7 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
     final phone = _registerPhoneController.text.trim();
     final password = _registerPasswordController.text.trim();
     if (name.isEmpty || phone.isEmpty || password.length < 6) {
-      _showMessage(context, 'Nombre, telefono y contrasena valida son obligatorios.');
+      _showMessage(context, 'Nombre, teléfono y contraseña válida son obligatorios.');
       return;
     }
 
@@ -1166,17 +1259,11 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
         docNumber: _registerDocNumberController.text.trim(),
       );
 
-      await widget.repository.loginClient(
-        phone: phone,
-        email: _registerEmailController.text.trim().isEmpty ? null : _registerEmailController.text.trim(),
-        password: password,
-      );
-
       if (!mounted) {
         return;
       }
       setState(() => _bundleFuture = widget.repository.fetchClientBundle());
-      _showMessage(context, 'Cuenta creada y sesion iniciada.');
+      _showMessage(context, 'Cuenta creada y sesión iniciada.');
     } catch (error) {
       if (mounted) {
         _showMessage(context, _errorMessage(error));
@@ -1242,7 +1329,7 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
         _selectedRating = 5;
         _bundleFuture = widget.repository.fetchClientBundle();
       });
-      _showMessage(context, 'Resena enviada.');
+      _showMessage(context, 'Reseña enviada.');
     } catch (error) {
       if (mounted) {
         _showMessage(context, _errorMessage(error));
@@ -1290,10 +1377,9 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
           _HeroPanel(
-            eyebrow: 'Cuenta Mora',
-            title: 'Ingresa para ver tu perfil, tus citas y tu historial.',
-            subtitle:
-                'La autenticacion de cliente usa los mismos endpoints que el sitio web y guarda el token de forma persistente en el dispositivo.',
+            eyebrow: 'Cuenta',
+            title: 'Ingresa a tu cuenta.',
+            subtitle: 'Reservas, compras e historial en un solo lugar.',
             actions: [
               FilledButton.icon(
                 onPressed: () => setState(() => _registerMode = false),
@@ -1310,10 +1396,7 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
           const SizedBox(height: 20),
           _SectionCard(
             eyebrow: _registerMode ? 'Registro' : 'Login',
-            title: _registerMode ? 'Crea tu cuenta en segundos' : 'Accede a tu cuenta',
-            subtitle: _registerMode
-                ? 'Tus datos quedaran listos para reservar, comprar y revisar tu historial.'
-                : 'Usa tu telefono o tu email junto a tu contrasena.',
+            title: _registerMode ? 'Crea tu cuenta' : 'Inicia sesión',
             child: _registerMode ? _buildRegisterForm() : _buildLoginForm(),
           ),
         ],
@@ -1368,46 +1451,25 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
                 eyebrow: 'Mi cuenta',
                 title: 'Hola, ${bundle.profile.name}.',
                 subtitle: nextReservation.isEmpty
-                    ? 'No tienes una visita futura registrada. Desde aqui puedes reservar, actualizar tu perfil y revisar tu historial.'
-                    : 'Tu proxima visita es ${formatDateTime(nextReservation.first.start)}.',
+                    ? 'Sin visitas futuras. Reserva cuando quieras.'
+                    : 'Próxima visita: ${formatDateTime(nextReservation.first.start)}.',
                 actions: [
                   FilledButton.icon(
                     onPressed: () => widget.onNavigate(1),
                     icon: const Icon(Icons.event_available_rounded),
                     label: const Text('Nueva reserva'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AdminConsoleScreen(repository: widget.repository),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.admin_panel_settings_rounded),
-                    label: const Text('Admin movil'),
-                  ),
                 ],
-                footer: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _MetricChip(label: '${bundle.reservations.length} reservas'),
-                    _MetricChip(label: '${bundle.albums.length} albumes'),
-                    _MetricChip(label: '${bundle.reviews.length} resenas'),
-                  ],
-                ),
               ),
               const SizedBox(height: 20),
               _SectionCard(
               eyebrow: 'Perfil',
-              title: 'Tus datos de contacto',
-              subtitle: 'Estos datos se sincronizan contra el endpoint protegido del cliente.',
+              title: 'Tus datos',
               child: Column(
                 children: [
                   TextField(controller: _profileNameController, decoration: const InputDecoration(labelText: 'Nombre completo')),
                   const SizedBox(height: 12),
-                  TextField(controller: _profilePhoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefono')),
+                  TextField(controller: _profilePhoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Teléfono')),
                   const SizedBox(height: 12),
                   TextField(controller: _profileEmailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
                   const SizedBox(height: 12),
@@ -1427,7 +1489,7 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   TextField(controller: _profileDocTypeController, decoration: const InputDecoration(labelText: 'Tipo de documento')),
                   const SizedBox(height: 12),
-                  TextField(controller: _profileDocNumberController, decoration: const InputDecoration(labelText: 'Numero de documento')),
+                  TextField(controller: _profileDocNumberController, decoration: const InputDecoration(labelText: 'Número de documento')),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -1452,12 +1514,11 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
             const SizedBox(height: 20),
               _SectionCard(
               eyebrow: 'Reservas',
-              title: 'Historial y proximas visitas',
-              subtitle: 'Tu cronologia se alimenta del endpoint de reservas del cliente.',
+              title: 'Historial',
               child: bundle.reservations.isEmpty
                   ? const _EmptyInfoCard(
                       title: 'Sin reservas registradas',
-                      message: 'Cuando confirmes una cita, aparecera aqui junto con su estado.',
+                      message: 'Cuando confirmes una cita, aparecerá aquí.',
                     )
                   : Column(
                       children: bundle.reservations
@@ -1495,13 +1556,12 @@ class _AccountTabState extends State<AccountTab> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 20),
               _SectionCard(
-              eyebrow: 'Albumes',
-              title: 'Tus resultados y registros',
-              subtitle: 'Se cargan desde el endpoint protegido del cliente.',
+              eyebrow: 'Álbumes',
+              title: 'Tus registros',
               child: bundle.albums.isEmpty
                   ? const _EmptyInfoCard(
-                      title: 'Sin albumes aun',
-                      message: 'Cuando el equipo registre material, aparecera aqui.',
+                      title: 'Sin álbumes aún',
+                      message: 'Cuando el equipo registre material, aparecerá aquí.',
                     )
                   : SizedBox(
                       height: 220,
@@ -1765,45 +1825,41 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   Future<void> _submit() async {
     final appState = context.read<AppState>();
     if (appState.cart.isEmpty) {
-      _showMessage(context, 'Tu carrito esta vacio.');
+      _showMessage(context, 'Tu carrito está vacío.');
       return;
     }
 
     if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
-      _showMessage(context, 'Nombre y telefono son obligatorios.');
+      _showMessage(context, 'Nombre y teléfono son obligatorios.');
       return;
     }
 
     setState(() => _submitting = true);
     try {
-      // If using PASARELA, and no reference provided, tokenize card first
+      // If using PASARELA, and no reference provided, tokenize the card via
+      // the backend proxy (`/public/culqi/token`). La app movil NO debe llamar
+      // directo a secure.culqi.com: CORS / TLS / cleartext en Android lo
+      // bloquean, y antes el error se tragaba silenciosamente dejando la
+      // orden como pendiente sin cargo. Si la tokenizacion falla, el `catch`
+      // de abajo (vía `_errorMessage`) muestra el error al usuario.
       if (_method == 'PASARELA' && _referenceController.text.trim().isEmpty) {
-        try {
-          final publicKey = AppConfig.culqiPublicKey;
-          final tokenResp = await http.post(
-            Uri.parse('https://secure.culqi.com/v2/tokens'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $publicKey',
-            },
-            body: jsonEncode({
-              'card_number': _cardNumberController.text.replaceAll(RegExp(r"\s+"), ''),
-              'cvv': _cardCvvController.text,
-              'expiration_month': _cardMonthController.text,
-              'expiration_year': _cardYearController.text,
-              'email': _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
-            }),
-          );
-
-          if (tokenResp.statusCode >= 200 && tokenResp.statusCode < 300) {
-            final map = jsonDecode(tokenResp.body) as Map<String, dynamic>;
-            if (map['id'] != null) {
-              _referenceController.text = map['id'] as String;
-            }
+        final tokenId = await widget.repository.tokenizeCulqi(
+          cardNumber: _cardNumberController.text,
+          cvv: _cardCvvController.text,
+          expirationMonth: _cardMonthController.text,
+          expirationYear: _cardYearController.text,
+          email: _emailController.text.trim().isNotEmpty
+              ? _emailController.text.trim()
+              : null,
+        );
+        if (tokenId == null || tokenId.isEmpty) {
+          if (mounted) {
+            _showMessage(context,
+                'No se pudo tokenizar la tarjeta. Verifica los datos e intenta de nuevo.');
           }
-        } catch (_) {
-          // ignore, backend will indicate requiresGateway
+          return;
         }
+        _referenceController.text = tokenId;
       }
 
       final sale = await widget.repository.createPublicOrder(
@@ -1861,10 +1917,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               const SizedBox(height: 18),
               Text('Finalizar pedido', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
-              Text('Este checkout registra una venta real en el backend y descuenta stock.', style: Theme.of(context).textTheme.bodyMedium),
+              Text('Confirma tu pedido. Stock sincronizado en tiempo real.', style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 18),
               if (appState.cart.isEmpty)
-                const _EmptyInfoCard(title: 'Carrito vacio', message: 'Agrega productos antes de continuar.')
+                const _EmptyInfoCard(title: 'Carrito vacío', message: 'Agrega productos antes de continuar.')
               else ...[
                 ...appState.cart.map(
                   (item) => Padding(
@@ -1921,13 +1977,13 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 const SizedBox(height: 16),
                 TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nombre')),
                 const SizedBox(height: 12),
-                TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefono')),
+                TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Teléfono')),
                 const SizedBox(height: 12),
                 TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _method,
-                  decoration: const InputDecoration(labelText: 'Metodo de pago'),
+                  decoration: const InputDecoration(labelText: 'Método de pago'),
                   items: const [
                     DropdownMenuItem<String>(value: 'EFECTIVO', child: Text('Efectivo')),
                     DropdownMenuItem<String>(value: 'YAPE', child: Text('Yape')),
@@ -1944,7 +2000,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   TextField(
                     controller: _cardNumberController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Numero de tarjeta'),
+                    decoration: const InputDecoration(labelText: 'Número de tarjeta'),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -1965,7 +2021,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   const SizedBox(height: 12),
                   const _EmptyInfoCard(
                     title: 'Orden registrada como pendiente',
-                    message: 'La API marca este pedido para seguimiento de pasarela desde el panel.',
+                    message: 'El seguimiento de pasarela se hace desde el panel administrativo.',
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -1993,28 +2049,27 @@ class _HeroPanel extends StatelessWidget {
   const _HeroPanel({
     required this.eyebrow,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     this.actions = const [],
-    this.footer,
   });
 
   final String eyebrow;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final List<Widget> actions;
-  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: moraHeroGradient,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: MoraColors.border),
         boxShadow: const [
           BoxShadow(color: Color(0x14C65A7D), blurRadius: 28, offset: Offset(0, 14)),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
           Positioned(
@@ -2042,42 +2097,52 @@ class _HeroPanel extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: MoraColors.border),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
+            child: SafeArea(
+              top: false,
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.82),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: MoraColors.border),
+                    ),
+                    child: Text(
+                      eyebrow.toUpperCase(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: MoraColors.cocoa,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                          ),
+                    ),
                   ),
-                  child: Text(
-                    eyebrow.toUpperCase(),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: MoraColors.cocoa,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.9,
-                        ),
+                  const SizedBox(height: 16),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(color: MoraColors.ink),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(title, style: Theme.of(context).textTheme.displaySmall),
-                const SizedBox(height: 10),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: MoraColors.muted),
-                ),
-                if (actions.isNotEmpty) ...[
-                  const SizedBox(height: 18),
-                  Wrap(spacing: 12, runSpacing: 12, children: actions),
+                  if (subtitle != null && subtitle!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      subtitle!,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: MoraColors.muted),
+                    ),
+                  ],
+                  if (actions.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Wrap(spacing: 10, runSpacing: 10, children: actions),
+                  ],
                 ],
-                if (footer != null) ...[
-                  const SizedBox(height: 18),
-                  footer!,
-                ],
-              ],
+              ),
             ),
           ),
         ],
@@ -2090,14 +2155,14 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.eyebrow,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.child,
     this.action,
   });
 
   final String eyebrow;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget child;
   final Widget? action;
 
@@ -2126,8 +2191,10 @@ class _SectionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 6),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: MoraColors.muted)),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: MoraColors.muted)),
+                    ],
                   ],
                 ),
               ),
@@ -2144,10 +2211,9 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, this.icon});
+  const _MetricChip({required this.label});
 
   final String label;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -2161,10 +2227,6 @@ class _MetricChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 15, color: MoraColors.cocoa),
-            const SizedBox(width: 6),
-          ],
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -2339,55 +2401,64 @@ class _CompactServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 176,
-      padding: const EdgeInsets.all(14),
-      decoration: sectionDecoration(color: Colors.white),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: MoraColors.sand,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.spa_outlined, color: MoraColors.cocoa),
+    return SizedBox(
+      width: 184,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: sectionDecoration(color: Colors.white),
+        child: IntrinsicHeight(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: MoraColors.sand,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.spa_outlined, color: MoraColors.cocoa, size: 22),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                service.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Text(
+                  service.description.isEmpty ? 'Disponibilidad real.' : service.description,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: MoraColors.muted),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: MoraColors.sand.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: MoraColors.border),
+                ),
+                child: Text(
+                  '${service.durationMin} min · ${formatCurrency(service.priceBase)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: MoraColors.cocoa,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            service.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            service.description.isEmpty ? 'Disponibilidad real.' : service.description,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: MoraColors.sand.withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: MoraColors.border),
-            ),
-            child: Text(
-              '${service.durationMin} min · ${formatCurrency(service.priceBase)}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: MoraColors.cocoa,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -2401,7 +2472,8 @@ class _CompactPromotionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFFFFCFD), MoraColors.rose, MoraColors.gold],
@@ -2413,16 +2485,17 @@ class _CompactPromotionBanner extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Expanded(
                 child: Text(
-                  'Promo activa',
+                  'PROMO ACTIVA',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: MoraColors.cocoa,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.9,
+                        letterSpacing: 1,
                       ),
                 ),
               ),
@@ -2432,8 +2505,13 @@ class _CompactPromotionBanner extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(promotion.name, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          Text(
+            promotion.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: MoraColors.ink),
+          ),
           const SizedBox(height: 6),
           Text(
             promotion.type == 'PORCENTAJE'
@@ -2441,10 +2519,13 @@ class _CompactPromotionBanner extends StatelessWidget {
                 : promotion.type == 'MONTO'
                     ? '${formatCurrency(promotion.value)} de descuento'
                     : 'Beneficio especial configurado',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700, color: MoraColors.ink),
           ),
-          const SizedBox(height: 6),
-          Text('Vigente hasta ${formatDate(promotion.endDate)}', style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Text(
+            'Vigente hasta ${formatDate(promotion.endDate)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: MoraColors.cocoa),
+          ),
         ],
       ),
     );
@@ -2458,8 +2539,8 @@ class _CompactStaffChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: 260),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: sectionDecoration(color: Colors.white),
@@ -2477,6 +2558,7 @@ class _CompactStaffChip extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     member.name,
@@ -2489,7 +2571,7 @@ class _CompactStaffChip extends StatelessWidget {
                     member.role.isEmpty ? 'Especialista Mora' : member.role,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: MoraColors.muted),
                   ),
                 ],
               ),
@@ -2508,57 +2590,69 @@ class _CompactProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 184,
-      padding: const EdgeInsets.all(14),
-      decoration: sectionDecoration(color: Colors.white),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ImagePreview(imageUrl: product.coverUrl, height: 82),
-          const SizedBox(height: 10),
-          Text(
-            product.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            product.category.isEmpty ? 'Categoria Mora' : product.category,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const Spacer(),
-          Row(
+    final canBuy = product.stock > 0;
+    return SizedBox(
+      width: 192,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: sectionDecoration(color: Colors.white),
+        child: IntrinsicHeight(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  formatCurrency(product.price),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _ImagePreview(imageUrl: product.coverUrl, height: 120, width: double.infinity),
               ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: product.stock > 0
-                    ? () {
-                        context.read<AppState>().addToCart(product);
-                        _showMessage(context, '${product.name} agregado al carrito.');
-                      }
-                    : null,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(product.stock > 0 ? 'Agregar' : 'Stock'),
+              const SizedBox(height: 12),
+              Text(
+                product.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                product.category.isEmpty ? 'Línea Mora' : product.category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: MoraColors.muted),
+              ),
+              const Spacer(),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      formatCurrency(product.price),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: MoraColors.ink),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: canBuy
+                        ? () {
+                            context.read<AppState>().addToCart(product);
+                            _showMessage(context, '${product.name} agregado al carrito.');
+                          }
+                        : null,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(canBuy ? 'Agregar' : 'Sin stock'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -2588,18 +2682,22 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _ImagePreview extends StatelessWidget {
-  const _ImagePreview({required this.imageUrl, required this.height});
+  const _ImagePreview({required this.imageUrl, this.height = 120, this.width});
 
   final String imageUrl;
   final double height;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
-    final resolved = _resolveImageUrl(imageUrl);
+    final resolved = resolveMediaUrl(imageUrl);
+    final hasImage = resolved.isNotEmpty &&
+        (resolved.startsWith('http://') || resolved.startsWith('https://') || resolved.startsWith('data:'));
     return Container(
       height: height,
+      width: width ?? double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         gradient: const LinearGradient(
           colors: [Color(0xFFFFFCFD), MoraColors.rose],
           begin: Alignment.topLeft,
@@ -2607,24 +2705,28 @@ class _ImagePreview extends StatelessWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: resolved == null
-          ? const Center(child: Icon(Icons.image_not_supported_rounded, color: MoraColors.cocoa, size: 32))
-          : Image.network(
+      alignment: Alignment.center,
+      child: hasImage
+          ? Image.network(
               resolved,
               fit: BoxFit.cover,
+              width: width ?? double.infinity,
               errorBuilder: (_, _, _) => const Center(
                 child: Icon(Icons.broken_image_outlined, color: MoraColors.cocoa, size: 32),
               ),
+            )
+          : const Center(
+              child: Icon(Icons.image_not_supported_rounded, color: MoraColors.cocoa, size: 32),
             ),
     );
   }
 }
 
 class _EmptyInfoCard extends StatelessWidget {
-  const _EmptyInfoCard({required this.title, required this.message});
+  const _EmptyInfoCard({required this.title, this.message});
 
   final String title;
-  final String message;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -2637,7 +2739,7 @@ class _EmptyInfoCard extends StatelessWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          Text(message, style: Theme.of(context).textTheme.bodyMedium),
+          Text(message ?? '', style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
@@ -2692,32 +2794,34 @@ class _SelectableSlot {
 
 String _errorMessage(Object? error) {
   if (error is ApiException) {
+    // Si el codigo no es el generico, lo anadimos al mensaje para
+    // que el usuario pueda reportarlo facilmente (slot_taken, min_advance, etc.).
+    if (error.code.isNotEmpty && error.code != 'request_error') {
+      return '${error.message} (${error.code})';
+    }
     return error.message;
   }
+  if (error is SocketException) {
+    return 'No se pudo conectar con el servidor. Verifica tu conexion o la URL del API. (${error.osError?.errorCode ?? 'socket'})';
+  }
+  if (error is HttpException) {
+    return 'No se pudo completar la solicitud HTTP. Intentalo nuevamente.';
+  }
+  if (error is TimeoutException) {
+    return 'La peticion tardo demasiado. Revisa tu conexion o la URL del API.';
+  }
+  if (error is http.ClientException) {
+    return 'Error de red al hablar con el servidor. Revisa tu conexion. (${error.message})';
+  }
   if (error is Exception) {
-    return error.toString().replaceFirst('Exception: ', '');
+    final raw = error.toString().replaceFirst('Exception: ', '');
+    return raw.isEmpty ? 'Ocurrio un error inesperado.' : raw;
   }
   return 'Ocurrio un error inesperado.';
 }
 
 void _showMessage(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-}
-
-String? _resolveImageUrl(String rawUrl) {
-  if (rawUrl.trim().isEmpty || rawUrl.startsWith('data:image/')) {
-    return null;
-  }
-
-  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-    return rawUrl;
-  }
-
-  if (rawUrl.startsWith('/')) {
-    return '${AppConfig.mediaBaseUrl}$rawUrl';
-  }
-
-  return null;
 }
 
 String _initialsFor(String value) {

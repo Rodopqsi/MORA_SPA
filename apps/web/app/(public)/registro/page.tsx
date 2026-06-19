@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,7 @@ export default function RegistroPage() {
     setError('');
 
     try {
-      await apiFetch(`/client-auth/register`, {
+      const response = await apiFetch<{ data: { token: string; client: { id: number } } }>(`/client-auth/register`, {
         method: 'POST',
         body: JSON.stringify({
           name: form.name,
@@ -32,12 +32,7 @@ export default function RegistroPage() {
         })
       });
 
-      const login = await apiFetch<{ token: string }>(`/client-auth/login`, {
-        method: 'POST',
-        body: JSON.stringify({ phone: form.phone, password: form.password })
-      });
-
-      setClientToken(login.token);
+      setClientToken(response.data.token);
       router.push('/mi-cuenta');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrar');
@@ -57,7 +52,7 @@ export default function RegistroPage() {
             <input value={form.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="Tu nombre" />
           </label>
           <label>
-            Telefono
+            Teléfono
             <input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} placeholder="+51 987 654 321" />
           </label>
           <label>
@@ -65,7 +60,7 @@ export default function RegistroPage() {
             <input value={form.email} onChange={(e) => handleChange('email', e.target.value)} placeholder="correo@email.com" />
           </label>
           <label>
-            Contrasena
+            Contraseña
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}

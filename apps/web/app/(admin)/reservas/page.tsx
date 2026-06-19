@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -185,9 +185,9 @@ export default function ReservasPage() {
     <div className="page-stack page-enter">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Gestion de reservas</div>
+          <div className="eyebrow">Gestión de reservas</div>
           <h1>Reservas del dia</h1>
-          <p>11 citas - Minimo 10 min antes - Duracion 20 min a 4 horas</p>
+          <p></p>
         </div>
         <div className="page-actions">
           <button

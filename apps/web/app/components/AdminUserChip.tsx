@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { getToken } from '../lib/auth';
@@ -65,7 +65,7 @@ export default function AdminUserChip() {
   if (!label) return null;
 
   return (
-    <div className="user-chip" aria-label={`Sesion activa: ${label.name}`}>
+    <div className="user-chip" aria-label={`Sesión activa: ${label.name}`}>
       <div className="user-avatar">{label.initials}</div>
       <div>
         <div className="user-name">{label.name}</div>

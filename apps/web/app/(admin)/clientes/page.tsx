@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -177,7 +177,7 @@ export default function ClientesPage() {
     <div className="page-stack page-enter">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Gestion de clientes</div>
+          <div className="eyebrow">Gestión de clientes</div>
           <h1>Relaciones que brillan</h1>
           <p>Segmenta, fideliza y celebra con experiencias personalizadas.</p>
         </div>
@@ -241,7 +241,7 @@ export default function ClientesPage() {
           </div>
           <div className="form-row-2">
             <label>
-              Telefono
+              Teléfono
               <input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
@@ -271,7 +271,7 @@ export default function ClientesPage() {
               />
             </label>
             <label>
-              Contrasena web
+              Contraseña web
               <input
                 type="password"
                 minLength={6}
@@ -318,7 +318,7 @@ export default function ClientesPage() {
             <div className="empty-state">
               <div className="empty-state-icon">CL</div>
               <h3>Sin clientes registrados</h3>
-              <p>Cuando agregues el primero aparecera aqui.</p>
+              <p>Cuándo agregues el primero aparecera aqui.</p>
             </div>
           )}
           {clients.map((client, index) => {
@@ -373,7 +373,7 @@ export default function ClientesPage() {
       <ConfirmDialog
         open={!!confirmDelete}
         title="Eliminar cliente"
-        description={`Eliminar a "${confirmDelete?.name}"? Quedara archivado como inactivo y no podra acceder a sus reservas.`}
+        description={`Eliminar a "${confirmDelete?.name}"? Quedara archivado cómo inactivo y no podrá acceder a sus reservas.`}
         confirmLabel="Eliminar"
         variant="danger"
         loading={deleting}

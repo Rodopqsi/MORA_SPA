@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma, PromotionType } from '@prisma/client';
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { addMinutes } from 'date-fns';
@@ -16,6 +16,7 @@ import {
   readPagination,
   paginatedResponse
 } from './core';
+import { buildChatContext, handleChatbotQuery } from './chatbot';
 import {
   assertWithinWorkingHours,
   computeAvailableSlots,
@@ -236,6 +237,8 @@ const createProductSale = async (input: {
   customerPhone?: string;
   customerEmail?: string;
   paymentReference?: string;
+  paymentProofUrl?: string;
+  paymentProofFileName?: string;
   notes?: string;
   publicOnly?: boolean;
 }) => {
@@ -285,6 +288,8 @@ const createProductSale = async (input: {
         customerEmail: input.customerEmail,
         paymentStatus: input.paymentStatus,
         paymentReference: input.paymentReference,
+        paymentProofUrl: input.paymentProofUrl,
+        paymentProofFileName: input.paymentProofFileName,
         notes: input.notes,
         details: {
           create: items.map((item) => ({
@@ -635,6 +640,24 @@ const getAvailabilityPayload = async ({
   };
 };
 
+// ========== CHATBOT ==========
+
+router.post(
+  '/public/chatbot',
+  asyncHandler(async (req, res) => {
+    const body = parse(
+      z.object({
+        message: z.string().trim().min(1).max(500)
+      }),
+      req.body
+    );
+
+    const ctx = await buildChatContext();
+    const result = handleChatbotQuery(body.message, ctx);
+    res.json({ data: result });
+  })
+);
+
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
@@ -793,6 +816,15 @@ router.post(
   })
 );
 
+const optionalIsoDateSchema = z.preprocess(
+  emptyStringToUndefined,
+  z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de nacimiento debe tener formato YYYY-MM-DD')
+    .optional()
+);
+
 router.post(
   '/client-auth/register',
   asyncHandler(async (req, res) => {
@@ -803,7 +835,7 @@ router.post(
         password: z.string().min(6),
         email: z.string().email().optional(),
         whatsapp: z.string().optional(),
-        birthDate: z.string().optional(),
+        birthDate: optionalIsoDateSchema,
         docType: z.string().optional(),
         docNumber: z.string().optional()
       }),
@@ -842,7 +874,18 @@ router.post(
         }
       });
 
-      return res.status(201).json({ data: { id: updated.id } });
+      const token = signToken({ sub: updated.id, phone: updated.phone, email: updated.email, kind: 'client' });
+      await prisma.client.update({
+        where: { id: updated.id },
+        data: { lastLoginAt: new Date() }
+      });
+      return res.status(200).json({
+        data: {
+          id: updated.id,
+          token,
+          client: { id: updated.id, name: updated.name, phone: updated.phone, email: updated.email }
+        }
+      });
     }
 
     const client = await prisma.client.create({
@@ -858,7 +901,19 @@ router.post(
       }
     });
 
-    res.status(201).json({ data: { id: client.id } });
+    const token = signToken({ sub: client.id, phone: client.phone, email: client.email, kind: 'client' });
+    await prisma.client.update({
+      where: { id: client.id },
+      data: { lastLoginAt: new Date() }
+    });
+
+    res.status(201).json({
+      data: {
+        id: client.id,
+        token,
+        client: { id: client.id, name: client.name, phone: client.phone, email: client.email }
+      }
+    });
   })
 );
 
@@ -1265,6 +1320,32 @@ router.post(
   })
 );
 
+// Public payment-proof uploads: solo imagenes pequenas, sin auth.
+// Usado por el checkout publico para que clientes con Yape/Efectivo
+// puedan adjuntar la captura de su operacion. Equivale al endpoint
+// /uploads privado del admin, pero expuesto a usuarios anonimos para
+// este caso puntual (riesgo acotado: limite de tamano + tipo mime).
+router.post(
+  '/public/uploads/payment-proof',
+  upload.single('file'),
+  handleUploadError,
+  asyncHandler(async (req, res) => {
+    const file = req.file as Express.Multer.File | undefined;
+    if (!file) {
+      throw new AppError(400, 'No se envio el comprobante. Usa el campo "file".', 'no_file');
+    }
+    const url = publicUrlFor('payments', file.filename);
+    res.status(201).json({
+      data: {
+        url,
+        fileName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype
+      }
+    });
+  })
+);
+
 router.post(
   '/client-reservations/:id/payments',
   clientAuthRequired,
@@ -1454,6 +1535,33 @@ router.post(
   })
 );
 
+// Lista las compras de productos realizadas por el cliente autenticado.
+// Filtra por clientId (logueado) o por telefono (pedidos publicos donde
+// el cliente aun no estaba asociado a un Client). Asi cubrimos tanto
+// el checkout publico como el carrito desde "Mi cuenta".
+router.get(
+  '/client-orders',
+  clientAuthRequired,
+  asyncHandler(async (req, res) => {
+    const client = req.client!;
+    const orFilters: Prisma.ProductSaleWhereInput[] = [];
+    if (client.id) {
+      orFilters.push({ clientId: client.id });
+    }
+    if (client.phone) {
+      orFilters.push({ customerPhone: client.phone });
+    }
+
+    const sales = await prisma.productSale.findMany({
+      where: orFilters.length > 0 ? { OR: orFilters } : { clientId: -1 },
+      include: saleInclude,
+      orderBy: { date: 'desc' }
+    });
+
+    res.json({ data: sales });
+  })
+);
+
 router.get(
   '/public/products',
   asyncHandler(async (_req, res) => {
@@ -1477,6 +1585,8 @@ router.post(
         customerEmail: z.preprocess(emptyStringToUndefined, z.string().email().optional()),
         method: productPaymentMethodSchema,
         paymentReference: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
+        paymentProofUrl: z.preprocess(emptyStringToUndefined, z.string().trim().url().optional()),
+        paymentProofFileName: z.preprocess(emptyStringToUndefined, z.string().trim().max(255).optional()),
         notes: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
         items: z
           .array(
@@ -1490,6 +1600,10 @@ router.post(
       req.body
     );
 
+    if (body.method === 'PASARELA' && (body.paymentProofUrl || body.paymentProofFileName)) {
+      throw new AppError(400, 'El comprobante aplica solo para Yape o Efectivo', 'proof_not_for_gateway');
+    }
+
     const sale = await createProductSale({
       items: body.items.map((item) => ({
         productId: item.productId,
@@ -1501,6 +1615,8 @@ router.post(
       customerPhone: body.customerPhone,
       customerEmail: body.customerEmail,
       paymentReference: body.paymentReference,
+      paymentProofUrl: body.paymentProofUrl,
+      paymentProofFileName: body.paymentProofFileName,
       notes: body.notes,
       publicOnly: true
     });

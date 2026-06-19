@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,7 +40,7 @@ export default function ReservarPaso3Page() {
       .then((res) => {
         const data = res.data ?? [];
         setStaff(data);
-        setNotice(data.length === 0 ? 'Aun no hay especialistas habilitados para la agenda online.' : '');
+        setNotice(data.length === 0 ? 'Aún no hay especialistas habilitados para la agenda online.' : '');
       })
       .catch(() => {
         setStaff([]);
@@ -74,7 +74,7 @@ export default function ReservarPaso3Page() {
           } else if (res.meta?.reason === 'NO_TEAM_COVERAGE') {
             setNotice('No hay personal suficiente para cubrir la combinacion elegida. Prueba otra combinacion o separa la reserva.');
           } else if (res.meta?.reason === 'NO_ACTIVE_STAFF') {
-            setNotice('Aun no hay especialistas habilitados para la agenda online.');
+            setNotice('Aún no hay especialistas habilitados para la agenda online.');
           } else {
             setNotice('No hay horarios disponibles para la fecha elegida.');
           }
@@ -167,15 +167,15 @@ export default function ReservarPaso3Page() {
 
         <div className="list-sub">
           {meta?.mode === 'multi_staff'
-            ? 'Se mostraran bloques continuos y, cuando haga falta, una secuencia automatica con varios especialistas.'
-            : 'Se mostraran bloques continuos segun la duracion total de tus servicios.'}
+            ? 'Se mostraran bloques continuos y, cuándo haga falta, una secuencia automatica con varios especialistas.'
+            : 'Se mostraran bloques continuos según la duracion total de tus servicios.'}
         </div>
 
         {loading && <div className="list-sub">Buscando disponibilidad...</div>}
         {!loading && slots.length === 0 && (
           <div className="list-sub">
             {staff.length === 0
-              ? 'Aun no hay especialistas disponibles.'
+              ? 'Aún no hay especialistas disponibles.'
               : notice || 'No hay horarios disponibles para la fecha elegida.'}
           </div>
         )}

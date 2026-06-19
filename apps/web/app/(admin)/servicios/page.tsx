@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -208,7 +208,7 @@ export default function ServiciosPage() {
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Corte y diseno canino"
+                placeholder="Corte y diseño canino"
               />
             </label>
             <label>
@@ -223,7 +223,7 @@ export default function ServiciosPage() {
             </label>
           </div>
           <label>
-            Descripcion
+            Descripción
             <textarea
               rows={3}
               value={form.description}
@@ -259,10 +259,10 @@ export default function ServiciosPage() {
               value={form.images}
               onChange={(images) => setForm({ ...form, images })}
               maxFiles={8}
-              label="Imagenes del servicio (max 8)"
+              label="Imágenes del servicio (max 8)"
             />
             <p className="form-hint">
-              La primera imagen marcada como <strong>portada</strong> se mostrara en el catalogo publico.
+              La primera imagen marcada cómo <strong>portada</strong> se mostrara en el catalogo público.
             </p>
           </div>
 
@@ -279,7 +279,7 @@ export default function ServiciosPage() {
         {services.length === 0 && (
           <div className="card empty-state">
             <div className="empty-state-icon">SR</div>
-            <h3>Aun no hay servicios</h3>
+            <h3>Aún no hay servicios</h3>
             <p>Empieza creando el primero con el boton de arriba.</p>
           </div>
         )}
@@ -332,7 +332,7 @@ export default function ServiciosPage() {
       <ConfirmDialog
         open={!!confirmDelete}
         title="Eliminar servicio"
-        description={`Eliminar "${confirmDelete?.name}"? Quedara archivado como inactivo y no sera visible al cliente.`}
+        description={`Eliminar "${confirmDelete?.name}"? Quedara archivado cómo inactivo y no será visible al cliente.`}
         confirmLabel="Eliminar"
         variant="danger"
         loading={deleting}

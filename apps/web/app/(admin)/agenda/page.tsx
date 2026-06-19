@@ -140,13 +140,11 @@ export default function AgendaPage() {
     <div className="page-stack page-enter">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Agenda inteligente</div>
+          <div className="eyebrow">Agenda</div>
           <h1>{todayLabel}</h1>
-          <p>Gestion diaria del equipo y reservas.</p>
+          <p></p>
         </div>
         <div className="page-actions">
-          <Link className="chip press-feedback" href="/agenda">Hoy</Link>
-          <Link className="chip press-feedback" href="/agenda">Semana</Link>
           <Link className="btn btn-outline press-feedback" href="/reservas">Nueva reserva</Link>
         </div>
       </header>
@@ -173,7 +171,12 @@ export default function AgendaPage() {
               <div className="agenda-role">{column.role}</div>
             </div>
             <MoraScrollReveal as="div" className="agenda-column-body" selector=".agenda-card" variant="fade-up" stagger={0.05} duration={0.45}>
-              {column.items.length === 0 && <div className="list-sub">Sin reservas</div>}
+              {column.items.length === 0 && (
+                <div className="agenda-empty">
+                  <span className="agenda-empty-mark">—</span>
+                  Sin reservas para este filtro
+                </div>
+              )}
               {column.items.map((item, index) => (
                 <div
                   key={item.key}
@@ -183,7 +186,10 @@ export default function AgendaPage() {
                   <div className="agenda-time">{item.time}</div>
                   <div className="agenda-client">{item.client}</div>
                   <div className="agenda-service">{item.service}</div>
-                  <div className="agenda-meta">{item.duration} / {item.price}</div>
+                  <div className="agenda-meta">
+                    <span className="agenda-meta-duration">{item.duration}</span>
+                    <span className="agenda-meta-price">{item.price}</span>
+                  </div>
                 </div>
               ))}
             </MoraScrollReveal>

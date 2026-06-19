@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
@@ -177,7 +177,7 @@ export default function UsuariosPage() {
             />
           </label>
           <label>
-            Contrasena
+            Contraseña
             <input
               type="password"
               required={!form.id}
@@ -243,7 +243,7 @@ export default function UsuariosPage() {
         title="Eliminar usuario"
         description={
           confirmDelete
-            ? `Eliminar a "${confirmDelete.fullName}"? Quedara archivado como inactivo.`
+            ? `Eliminar a "${confirmDelete.fullName}"? Quedara archivado cómo inactivo.`
             : ''
         }
         confirmLabel="Eliminar"
