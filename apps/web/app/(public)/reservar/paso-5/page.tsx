@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { clientFetch } from '../../../lib/clientApi';
 import { apiFetch } from '../../../lib/api';
@@ -9,7 +9,7 @@ import { BookingState, loadBookingState, clearBookingState } from '../bookingSta
 
 type YapeMode = 'qr' | 'code';
 
-export default function ReservarPaso5Page() {
+function ReservarPaso5Form() {
   const router = useRouter();
   const params = useSearchParams();
   const reservationIdParam = params.get('reservationId');
@@ -451,5 +451,13 @@ export default function ReservarPaso5Page() {
         )}
       </section>
     </div>
+  );
+}
+
+export default function ReservarPaso5Page() {
+  return (
+    <Suspense fallback={<div className="booking-shell page-enter"><div className="card">Cargando reserva...</div></div>}>
+      <ReservarPaso5Form />
+    </Suspense>
   );
 }

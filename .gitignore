@@ -5,7 +5,6 @@ node_modules
 dist
 .next
 coverage
-prisma/migrations
 
 # Local file uploads (keep folder structure, ignore contents)
 apps/api/uploads/**

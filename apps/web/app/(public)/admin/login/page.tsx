@@ -1,11 +1,11 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const { setStaffToken } = useAuth();
@@ -66,5 +66,13 @@ export default function AdminLoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-shell"><div className="auth-card"><p>Cargando...</p></div></div>}>
+      <AdminLoginForm />
+    </Suspense>
   );
 }

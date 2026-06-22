@@ -1,11 +1,11 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const { setClientToken } = useAuth();
@@ -72,5 +72,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-shell page-enter"><div className="auth-card"><p>Cargando...</p></div></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
