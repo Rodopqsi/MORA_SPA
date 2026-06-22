@@ -157,9 +157,9 @@ export const requireRoles = (...roles: string[]) => {
 export const errorHandler = (err: unknown, req: Request, res: Response, _next: NextFunction) => {
   const status = err instanceof AppError ? err.status : 500;
   const code = err instanceof AppError ? err.code : 'internal_error';
-  const message = err instanceof AppError ? err.message : 'Internal error';
+  const message = err instanceof AppError ? err.message : (err instanceof Error ? err.message : 'Internal error');
 
-  // Log full stack on 5xx so we can debug 500s in dev
+  // Log full stack on 5xx so we can debug 500s
   if (status >= 500) {
     // eslint-disable-next-line no-console
     console.error(`[api] ${req.method} ${req.originalUrl} -> ${status}`, err);
