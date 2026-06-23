@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type Reservation = {
@@ -39,16 +39,25 @@ export default function ReservasPage() {
   const [status, setStatus] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [query, setQuery] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
+  const [openForm, setOpenForm] = useState(false);
   const [editingReservationId, setEditingReservationId] = useState<number | null>(null);
   const [createForm, setCreateForm] = useState({ clientId: '', serviceId: '', staffId: '', start: '' });
   const [error, setError] = useState('');
-  const formRef = useRef<HTMLDivElement>(null);
 
   const resetCreateForm = () => {
     setCreateForm({ clientId: '', serviceId: '', staffId: '', start: '' });
     setEditingReservationId(null);
     setError('');
+  };
+
+  const openCreate = () => {
+    resetCreateForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => {
+    resetCreateForm();
+    setOpenForm(false);
   };
 
   useEffect(() => {
@@ -156,7 +165,7 @@ export default function ReservasPage() {
       }
 
       resetCreateForm();
-      setShowCreate(false);
+      setOpenForm(false);
       loadReservations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear');
@@ -177,8 +186,7 @@ export default function ReservasPage() {
       staffId: String(detail.staffId),
       start: reservation.start.slice(0, 16)
     });
-    setShowCreate(true);
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    setOpenForm(true);
   };
 
   return (
@@ -192,29 +200,20 @@ export default function ReservasPage() {
         <div className="page-actions">
           <button
             className="btn shine-on-hover press-feedback"
-            onClick={() => {
-              resetCreateForm();
-              setShowCreate(true);
-              setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-            }}
+            onClick={openCreate}
           >
-            Nueva reserva
+            + Añadir
           </button>
         </div>
       </header>
 
-      {showCreate && (
-        <AdminForm
-          eyebrow={editingReservationId ? 'Editar reserva' : 'Crear reserva'}
-          title={editingReservationId ? 'Reprogramar cita' : 'Agenda manual'}
-          onReset={() => {
-            resetCreateForm();
-            setShowCreate(false);
-          }}
-          resetLabel="Cerrar"
-          sectionRef={formRef}
-        >
-          <form className="auth-form" onSubmit={handleSubmit}>
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
+        eyebrow={editingReservationId ? 'Editar reserva' : 'Crear reserva'}
+        title={editingReservationId ? 'Reprogramar cita' : 'Agenda manual'}
+      >
+        <form className="auth-form" onSubmit={handleSubmit}>
             <label>
               Cliente
               <select
@@ -262,10 +261,12 @@ export default function ReservasPage() {
             </label>
             {editingReservationId && <div className="pill">El cliente se mantiene; este formulario reprograma servicio, staff y horario.</div>}
             {error && <div className="auth-error">{error}</div>}
-            <button className="btn shine-on-hover press-feedback" type="submit">{editingReservationId ? 'Guardar cambios' : 'Crear reserva'}</button>
+            <div className="form-actions">
+              <button className="btn btn-ghost" type="button" onClick={closeForm}>Cancelar</button>
+              <button className="btn shine-on-hover press-feedback" type="submit">{editingReservationId ? 'Guardar cambios' : 'Crear reserva'}</button>
+            </div>
           </form>
-        </AdminForm>
-      )}
+        </AdminModalForm>
 
       <div className="toolbar">
         <div className="search wide">

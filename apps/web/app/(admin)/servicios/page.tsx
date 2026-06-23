@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import ImageUploader, { type UploaderImage } from '../../components/ImageUploader';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 
 type Service = {
   id: number;
@@ -75,7 +75,7 @@ export default function ServiciosPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Service | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
 
   const loadServices = () => {
     staffFetch<{ data: Service[] }>('/services')
@@ -91,6 +91,13 @@ export default function ServiciosPage() {
     setForm(createEmptyForm());
     setError('');
   };
+
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -120,6 +127,7 @@ export default function ServiciosPage() {
         body: JSON.stringify(payload)
       });
       resetForm();
+      setOpenForm(false);
       loadServices();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -139,7 +147,7 @@ export default function ServiciosPage() {
       coverUrl: service.coverUrl ?? '',
       images: normalizeServiceImages(service)
     });
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenForm(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -184,21 +192,18 @@ export default function ServiciosPage() {
         <div className="page-actions">
           <button
             className="btn btn-primary shine-on-hover press-feedback"
-            onClick={() => {
-              resetForm();
-              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
+            onClick={openCreate}
           >
-            Nuevo servicio
+            + Añadir
           </button>
         </div>
       </header>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar servicio' : 'Nuevo servicio'}
         title={form.id ? 'Actualizar servicio' : 'Crear servicio'}
-        onReset={resetForm}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-row-2">
@@ -268,12 +273,15 @@ export default function ServiciosPage() {
 
           {error && <div className="auth-error">{error}</div>}
           <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>
+              Cancelar
+            </button>
             <button className="btn btn-primary shine-on-hover press-feedback" type="submit" disabled={saving}>
               {saving ? 'Guardando...' : form.id ? 'Actualizar servicio' : 'Guardar servicio'}
             </button>
           </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       <MoraScrollReveal as="section" className="grid grid-2" selector=".service-card" variant="fade-up" stagger={0.07} duration={0.6}>
         {services.length === 0 && (

@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 
 type AlbumPrivacy = 'INTERNO' | 'PRIVADO_CLIENTE' | 'PUBLICO';
 type PhotoType = 'ANTES' | 'DESPUES' | 'RESULTADO';
@@ -62,7 +62,8 @@ export default function AlbumesPage() {
   const [confirmDeleteAlbum, setConfirmDeleteAlbum] = useState<Álbum | null>(null);
   const [confirmDeletePhotoId, setConfirmDeletePhotoId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
+  const [uploadingLocal, setUploadingLocal] = useState(false);
   const editingAlbum = albums.find((album) => album.id === form.id) ?? null;
 
   const loadData = () => {
@@ -86,6 +87,13 @@ export default function AlbumesPage() {
     setPhotos([emptyPhoto()]);
     setError('');
   };
+
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -142,6 +150,7 @@ export default function AlbumesPage() {
       }
 
       resetForm();
+      setOpenForm(false);
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -169,11 +178,28 @@ export default function AlbumesPage() {
       privacy: album.privacy
     });
     setPhotos([emptyPhoto()]);
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenForm(true);
   };
 
   const handleDelete = (album: Álbum) => {
     setConfirmDeleteAlbum(album);
+  };
+
+  const handleLocalPhotos = async (filesList: FileList | null) => {
+    if (!filesList || filesList.length === 0) return;
+    setUploadingLocal(true);
+    try {
+      const { uploadImages } = await import('../../lib/uploads');
+      const uploaded = await uploadImages(Array.from(filesList), 'misc');
+      setPhotos((current) => [
+        ...current,
+        ...uploaded.map((u) => ({ url: u.url, fileName: u.fileName ?? '', type: 'RESULTADO' as PhotoType }))
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al subir');
+    } finally {
+      setUploadingLocal(false);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -226,20 +252,17 @@ export default function AlbumesPage() {
           <p>Organiza antes y despues, con permisos claros.</p>
         </div>
         <div className="page-actions">
-          <button className="btn shine-on-hover press-feedback" onClick={() => {
-            resetForm();
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}>
-            Nuevo album
+          <button className="btn shine-on-hover press-feedback" onClick={openCreate}>
+            + Añadir
           </button>
         </div>
       </header>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar album' : 'Nuevo album'}
         title={form.id ? 'Actualizar album' : 'Registrar album'}
-        onReset={resetForm}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -271,21 +294,40 @@ export default function AlbumesPage() {
             <div className="section-head" style={{ marginBottom: 12 }}>
               <div>
                 <div className="eyebrow">Imágenes</div>
-                <h2>{form.id ? 'Agregar fotos nuevas' : 'Cargar enlaces de fotos'}</h2>
+                <h2>{form.id ? 'Agregar fotos nuevas' : 'Cargar fotos'}</h2>
               </div>
-              <button className="chip" type="button" onClick={addPhotoField}>Agregar foto</button>
+              <div className="chip-row">
+                <label className="chip">
+                  {uploadingLocal ? 'Subiendo...' : 'Subir archivos'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(e) => handleLocalPhotos(e.target.files)}
+                    disabled={uploadingLocal}
+                  />
+                </label>
+                <button className="chip" type="button" onClick={addPhotoField}>Agregar URL</button>
+              </div>
             </div>
             <div className="grid grid-2">
               {photos.map((photo, index) => (
                 <div key={index} className="card" style={{ padding: 16 }}>
-                  <label>
-                    URL de la imagen
-                    <input
-                      value={photo.url}
-                      onChange={(e) => updatePhoto(index, { url: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </label>
+                  {photo.url ? (
+                    <div style={{ width: '100%', height: 140, borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
+                      <img src={photo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ) : (
+                    <label>
+                      URL de la imagen
+                      <input
+                        value={photo.url}
+                        onChange={(e) => updatePhoto(index, { url: e.target.value })}
+                        placeholder="https://..."
+                      />
+                    </label>
+                  )}
                   <label>
                     Nombre del archivo
                     <input
@@ -340,9 +382,12 @@ export default function AlbumesPage() {
             </div>
           )}
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar album' : 'Guardar album'}</button>
+          <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>Cancelar</button>
+            <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar album' : 'Guardar album'}</button>
+          </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       <MoraScrollReveal as="section" className="grid grid-4" selector=".album-card" variant="fade-up" stagger={0.06} duration={0.55}>
         {albums.map((album, index) => (

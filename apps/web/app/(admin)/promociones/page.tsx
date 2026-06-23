@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 
 type PromotionType = 'PORCENTAJE' | 'MONTO' | 'REGALO';
 
@@ -40,7 +40,7 @@ export default function PromocionesPage() {
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<Promotion | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
 
   const loadPromos = () => {
     Promise.all([
@@ -63,6 +63,13 @@ export default function PromocionesPage() {
     setError('');
   };
 
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
@@ -81,6 +88,7 @@ export default function PromocionesPage() {
         })
       });
       resetForm();
+      setOpenForm(false);
       loadPromos();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -98,7 +106,7 @@ export default function PromocionesPage() {
       channel: promo.channel ?? '',
       serviceIds: promo.serviceIds ?? []
     });
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenForm(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -149,20 +157,17 @@ export default function PromocionesPage() {
           <p>Planifica promociones y descuentos con impacto real.</p>
         </div>
         <div className="page-actions">
-          <button className="btn shine-on-hover press-feedback" onClick={() => {
-            resetForm();
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}>
-            Nueva promocion
+          <button className="btn shine-on-hover press-feedback" onClick={openCreate}>
+            + Añadir
           </button>
         </div>
       </header>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar promocion' : 'Nueva promocion'}
         title={form.id ? 'Actualizar promocion' : 'Crear promocion'}
-        onReset={resetForm}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -214,9 +219,12 @@ export default function PromocionesPage() {
             </MoraScrollReveal>
           </div>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar' : 'Guardar'}</button>
+          <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>Cancelar</button>
+            <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar' : 'Guardar'}</button>
+          </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       <MoraScrollReveal as="section" className="grid grid-3" selector=".promo-card" variant="fade-up" stagger={0.07} duration={0.6}>
         {promos.map((promo, index) => (

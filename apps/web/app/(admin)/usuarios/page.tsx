@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { normalizePersonName } from '../../lib/validation';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 
 type User = { id: number; username: string; fullName: string; active: boolean; roles: string[] };
 
@@ -24,7 +24,7 @@ export default function UsuariosPage() {
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
 
   const loadData = () => {
     Promise.all([
@@ -46,6 +46,13 @@ export default function UsuariosPage() {
     setForm({ ...createEmptyForm(), role: roles[0] ?? 'RECEPCION' });
     setError('');
   };
+
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,6 +90,7 @@ export default function UsuariosPage() {
         });
       }
       resetForm();
+      setOpenForm(false);
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear');
@@ -97,7 +105,7 @@ export default function UsuariosPage() {
       password: '',
       role: user.roles[0] ?? roles[0] ?? 'RECEPCION'
     });
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenForm(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -141,21 +149,18 @@ export default function UsuariosPage() {
         <div className="page-actions">
           <button
             className="btn shine-on-hover press-feedback"
-            onClick={() => {
-              resetForm();
-              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
+            onClick={openCreate}
           >
-            Nuevo usuario
+            + Añadir
           </button>
         </div>
       </header>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar usuario' : 'Nuevo usuario'}
         title={form.id ? 'Actualizar acceso' : 'Crear acceso'}
-        onReset={resetForm}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -198,11 +203,14 @@ export default function UsuariosPage() {
             </select>
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn shine-on-hover press-feedback" type="submit">
-            {form.id ? 'Actualizar' : 'Crear'}
-          </button>
+          <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>Cancelar</button>
+            <button className="btn shine-on-hover press-feedback" type="submit">
+              {form.id ? 'Actualizar' : 'Crear'}
+            </button>
+          </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       <section className="card reveal">
         <div className="table-head">

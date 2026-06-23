@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { normalizePersonName, normalizePhone } from '../../lib/validation';
 import AvatarUploader from '../../components/AvatarUploader';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 
 type Staff = {
@@ -52,7 +52,7 @@ export default function EquipoPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Staff | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
 
   const loadData = () => {
     Promise.all([
@@ -75,6 +75,13 @@ export default function EquipoPage() {
     setError('');
   };
 
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
@@ -92,6 +99,7 @@ export default function EquipoPage() {
         body: JSON.stringify(payload)
       });
       resetForm();
+      setOpenForm(false);
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -108,7 +116,7 @@ export default function EquipoPage() {
       phone: member.phone ?? '',
       avatarUrl: member.avatarUrl ?? ''
     });
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenForm(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -169,21 +177,18 @@ export default function EquipoPage() {
         <div className="page-actions">
           <button
             className="btn btn-primary shine-on-hover press-feedback"
-            onClick={() => {
-              resetForm();
-              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
+            onClick={openCreate}
           >
-            Nuevo personal
+            + Añadir
           </button>
         </div>
       </header>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar personal' : 'Nuevo personal'}
         title={form.id ? 'Actualizar colaborador' : 'Registrar colaborador'}
-        onReset={resetForm}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-row-2">
@@ -231,12 +236,15 @@ export default function EquipoPage() {
 
           {error && <div className="auth-error">{error}</div>}
           <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>
+              Cancelar
+            </button>
             <button className="btn btn-primary shine-on-hover press-feedback" type="submit" disabled={saving}>
               {saving ? 'Guardando...' : form.id ? 'Actualizar colaborador' : 'Guardar colaborador'}
             </button>
           </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       {selectedStaff && (
         <section className="card reveal">

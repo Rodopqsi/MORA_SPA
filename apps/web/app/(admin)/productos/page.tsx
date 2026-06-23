@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { CatalogProduct, getProductCover, ProductImage, productPrice } from '../../lib/shopCart';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { AdminForm } from '../../components/AdminForm';
+import ImageUploader, { type UploaderImage } from '../../components/ImageUploader';
+import AdminModalForm from '../../components/AdminModalForm';
 
 type PaymentStatus = 'PENDIENTE' | 'CONFIRMADO' | 'ANULADO';
 
@@ -27,13 +28,6 @@ type Sale = {
   }[];
 };
 
-type ProductFormImage = {
-  url: string;
-  fileName: string;
-  source: 'URL' | 'LOCAL';
-  isCover: boolean;
-};
-
 type ProductForm = {
   id: number | null;
   name: string;
@@ -43,15 +37,8 @@ type ProductForm = {
   stock: string;
   active: boolean;
   featured: boolean;
-  images: ProductFormImage[];
+  images: UploaderImage[];
 };
-
-const createEmptyImage = (): ProductFormImage => ({
-  url: '',
-  fileName: '',
-  source: 'URL',
-  isCover: true
-});
 
 const createEmptyForm = (): ProductForm => ({
   id: null,
@@ -62,17 +49,8 @@ const createEmptyForm = (): ProductForm => ({
   stock: '0',
   active: true,
   featured: false,
-  images: [createEmptyImage()]
+  images: []
 });
-
-const ensureCover = (images: ProductFormImage[]) => {
-  if (images.length === 0) return [createEmptyImage()];
-  const coverIndex = images.findIndex((image) => image.isCover);
-  return images.map((image, index) => ({
-    ...image,
-    isCover: coverIndex === -1 ? index === 0 : index === coverIndex
-  }));
-};
 
 const mapProductToForm = (product: CatalogProduct): ProductForm => ({
   id: product.id,
@@ -83,32 +61,15 @@ const mapProductToForm = (product: CatalogProduct): ProductForm => ({
   stock: String(product.stock),
   active: product.active,
   featured: product.featured,
-  images: ensureCover(
-    product.images.length
-      ? product.images.map((image) => ({
-          url: image.url,
-          fileName: image.fileName ?? '',
-          source: image.source,
-          isCover: image.isCover
-        }))
-      : [createEmptyImage()]
-  )
+  images: product.images.length
+    ? product.images.map((image) => ({
+        url: image.url,
+        fileName: image.fileName ?? undefined,
+        source: image.source,
+        isCover: image.isCover
+      }))
+    : []
 });
-
-const readFileAsDataUrl = (file: File) =>
-  new Promise<ProductFormImage>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      resolve({
-        url: typeof reader.result === 'string' ? reader.result : '',
-        fileName: file.name,
-        source: 'LOCAL',
-        isCover: false
-      });
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
-    reader.readAsDataURL(file);
-  });
 
 export default function ProductosPage() {
   const [inventory, setInventory] = useState<CatalogProduct[]>([]);
@@ -120,7 +81,7 @@ export default function ProductosPage() {
   const [confirmDelete, setConfirmDelete] = useState<CatalogProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
 
   const loadProducts = () => {
     Promise.all([
@@ -149,6 +110,13 @@ export default function ProductosPage() {
     setForm(createEmptyForm());
     setError('');
   };
+
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -186,6 +154,7 @@ export default function ProductosPage() {
         });
       }
       resetForm();
+      setOpenForm(false);
       loadProducts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -253,44 +222,6 @@ export default function ProductosPage() {
     }
   };
 
-  const updateImage = (index: number, patch: Partial<ProductFormImage>) => {
-    setForm((current) => ({
-      ...current,
-      images: ensureCover(current.images.map((image, itemIndex) => (itemIndex === index ? { ...image, ...patch } : image)))
-    }));
-  };
-
-  const addImageField = () => {
-    setForm((current) => ({
-      ...current,
-      images: ensureCover([...current.images, { ...createEmptyImage(), isCover: false }])
-    }));
-  };
-
-  const removeImage = (index: number) => {
-    setForm((current) => ({
-      ...current,
-      images: ensureCover(current.images.filter((_, itemIndex) => itemIndex !== index))
-    }));
-  };
-
-  const handleLocalImages = async (files: FileList | null) => {
-    if (!files?.length) return;
-
-    setLoadingFiles(true);
-    try {
-      const uploaded = await Promise.all(Array.from(files).map((file) => readFileAsDataUrl(file)));
-      setForm((current) => ({
-        ...current,
-        images: ensureCover([...current.images, ...uploaded])
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar las imagenes.');
-    } finally {
-      setLoadingFiles(false);
-    }
-  };
-
   return (
     <div className="page-stack page-enter">
       <header className="page-head">
@@ -300,11 +231,8 @@ export default function ProductosPage() {
           <p>Administra catalogo, inventario y pagos del checkout web.</p>
         </div>
         <div className="page-actions">
-          <button className="btn shine-on-hover press-feedback" onClick={() => {
-            resetForm();
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}>
-            Nuevo producto
+          <button className="btn shine-on-hover press-feedback" onClick={openCreate}>
+            + Añadir
           </button>
         </div>
       </header>
@@ -327,11 +255,11 @@ export default function ProductosPage() {
         </div>
       </MoraScrollReveal>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar producto' : 'Nuevo producto'}
         title={form.id ? 'Actualizar producto' : 'Registrar producto'}
-        onReset={form.id ? resetForm : undefined}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-row-2">
@@ -394,74 +322,24 @@ export default function ProductosPage() {
             </label>
           </div>
           <div className="form-section">
-            <div className="section-head" style={{ marginBottom: 12 }}>
-              <div>
-                <div className="eyebrow">Imágenes</div>
-                <h2>Galería del producto</h2>
-              </div>
-              <div className="chip-row">
-                <label className="chip">
-                  Subir archivos
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={(e) => handleLocalImages(e.target.files)}
-                    disabled={loadingFiles}
-                  />
-                </label>
-                <button className="chip" type="button" onClick={addImageField}>Agregar URL</button>
-              </div>
-            </div>
-            <p className="form-hint">Marca una imagen cómo portada para que sea la principal en la tienda.</p>
-            <div className="grid grid-2">
-              {form.images.map((image, index) => (
-                <div key={index} className="card" style={{ padding: 16 }}>
-                  <div className="product-admin-media" style={{ marginBottom: 12, height: 160 }}>
-                    {image.url ? <img src={image.url} alt={image.fileName || `Imagen ${index + 1}`} /> : <div className="empty-state">Sin imagen</div>}
-                  </div>
-                  <label>
-                    URL o data URL
-                    <input
-                      value={image.url}
-                      onChange={(e) => updateImage(index, { url: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </label>
-                  <label>
-                    Nombre del archivo
-                    <input
-                      value={image.fileName}
-                      onChange={(e) => updateImage(index, { fileName: e.target.value })}
-                      placeholder="producto.jpg"
-                    />
-                  </label>
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={image.isCover}
-                      onChange={(e) => updateImage(index, { isCover: e.target.checked })}
-                    />
-                    <span>Portada</span>
-                  </label>
-                  <div className="service-actions">
-                    <span className="pill">{image.source === 'LOCAL' ? 'Subida' : 'URL'}</span>
-                    <button className="chip chip-danger" type="button" onClick={() => removeImage(index)}>Quitar</button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ImageUploader
+              bucket="products"
+              value={form.images}
+              onChange={(images) => setForm({ ...form, images })}
+              maxFiles={8}
+              label="Imágenes del producto (max 8)"
+            />
+            <p className="form-hint">
+              Marca una imagen cómo <strong>portada</strong> para que sea la principal en la tienda.
+            </p>
           </div>
           {error && <div className="auth-error">{error}</div>}
           <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>Cancelar</button>
             <button className="btn shine-on-hover press-feedback" type="submit">{form.id ? 'Actualizar producto' : 'Guardar producto'}</button>
-            {form.id && (
-              <button className="chip press-feedback" type="button" onClick={resetForm}>Cancelar</button>
-            )}
           </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       {success && <div className="auth-success">{success}</div>}
 
@@ -513,7 +391,7 @@ export default function ProductosPage() {
                   <div className="table-actions">
                     <button className="chip press-feedback" type="button" onClick={() => {
                       setForm(mapProductToForm(item));
-                      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      setOpenForm(true);
                     }}>Editar</button>
                     <button className="chip press-feedback" type="button" onClick={() => toggleActive(item)}>{item.active ? 'Ocultar' : 'Publicar'}</button>
                     <button className="chip chip-danger press-feedback" type="button" onClick={() => setConfirmDelete(item)}>Eliminar</button>

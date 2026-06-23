@@ -1,12 +1,12 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { normalizePersonName, normalizePhone } from '../../lib/validation';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import AvatarUploader from '../../components/AvatarUploader';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { AdminForm } from '../../components/AdminForm';
+import AdminModalForm from '../../components/AdminModalForm';
 
 type Client = {
   id: number;
@@ -61,7 +61,7 @@ export default function ClientesPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [openForm, setOpenForm] = useState(false);
 
   const loadClients = () => {
     staffFetch<{ data: Client[] }>('/clients')
@@ -77,6 +77,13 @@ export default function ClientesPage() {
     setForm(createEmptyForm());
     setError('');
   };
+
+  const openCreate = () => {
+    resetForm();
+    setOpenForm(true);
+  };
+
+  const closeForm = () => setOpenForm(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -121,6 +128,7 @@ export default function ClientesPage() {
       }
 
       resetForm();
+      setOpenForm(false);
       loadClients();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -142,7 +150,7 @@ export default function ClientesPage() {
       password: '',
       avatarUrl: client.avatarUrl ?? ''
     });
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setOpenForm(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -184,21 +192,18 @@ export default function ClientesPage() {
         <div className="page-actions">
           <button
             className="btn btn-primary shine-on-hover press-feedback"
-            onClick={() => {
-              resetForm();
-              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
+            onClick={openCreate}
           >
-            Nuevo cliente
+            + Añadir
           </button>
         </div>
       </header>
 
-      <AdminForm
+      <AdminModalForm
+        open={openForm}
+        onClose={closeForm}
         eyebrow={form.id ? 'Editar cliente' : 'Nuevo cliente'}
         title={form.id ? 'Actualizar cliente' : 'Registrar cliente'}
-        onReset={resetForm}
-        sectionRef={formRef}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-row-2">
@@ -296,12 +301,15 @@ export default function ClientesPage() {
 
           {error && <div className="auth-error">{error}</div>}
           <div className="form-actions">
+            <button className="btn btn-ghost" type="button" onClick={closeForm}>
+              Cancelar
+            </button>
             <button className="btn btn-primary" type="submit" disabled={saving}>
               {saving ? 'Guardando...' : form.id ? 'Actualizar cliente' : 'Guardar cliente'}
             </button>
           </div>
         </form>
-      </AdminForm>
+      </AdminModalForm>
 
       <section className="card reveal">
         <div className="section-head">
