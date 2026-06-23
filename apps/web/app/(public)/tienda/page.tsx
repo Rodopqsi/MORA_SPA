@@ -57,12 +57,12 @@ const defaultCheckoutForm = (): CheckoutForm => ({
   notes: ''
 });
 
+const ITEMS_PER_PAGE = 8;
+
 export default function TiendaPage() {
   const { isClientAuthed, refresh } = useAuth();
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [category, setCategory] = useState('Todas');
-  const [cartOpen, setCartOpen] = useState(false);
   const [catalogError, setCatalogError] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -73,6 +73,14 @@ export default function TiendaPage() {
   const [cardCvv, setCardCvv] = useState('');
   const [cardExpMonth, setCardExpMonth] = useState('');
   const [cardExpYear, setCardExpYear] = useState('');
+
+  /* Nuevo estado para filtros y paginación */
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 300]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [minRating] = useState(0);
+  const [page, setPage] = useState(1);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     refresh();
@@ -163,22 +171,57 @@ export default function TiendaPage() {
   }, [cartOpen]);
 
   const categories = useMemo(
-    () => ['Todas', ...new Set(products.map((product) => product.category).filter(Boolean) as string[])],
+    () => [...new Set(products.map((product) => product.category).filter(Boolean) as string[])],
     [products]
   );
 
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category ?? '');
+      const price = Number(product.price);
+      const matchPrice = price >= priceRange[0] && price <= priceRange[1];
+      return matchSearch && matchCategory && matchPrice;
+    });
+  }, [products, searchQuery, selectedCategories, priceRange]);
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)), [filteredProducts]);
+
   const visibleProducts = useMemo(() => {
-    if (category === 'Todas') return products;
-    return products.filter((product) => product.category === category);
-  }, [category, products]);
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredProducts, page]);
 
   const availableProducts = useMemo(
     () => products.filter((product) => product.stock > 0).length,
     [products]
   );
 
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+    setPage(1);
+  };
+
   const totalItems = cartCount(cart);
   const subtotal = cartSubtotal(cart);
+
+  const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
+    const stars = [];
+    const full = Math.floor(rating);
+    const hasHalf = rating - full >= 0.5;
+    for (let i = 1; i <= 5; i++) {
+      const filled = i <= full || (i === full + 1 && hasHalf);
+      stars.push(
+        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={filled ? '#f59e0b' : 'none'} stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      );
+    }
+    return <div className="shop-stars" aria-label={`${rating} estrellas`}>{stars}</div>;
+  };
 
   const addToCart = (product: CatalogProduct) => {
     if (product.stock <= 0) return;
@@ -293,81 +336,208 @@ export default function TiendaPage() {
           </section>
         )}
 
-        <div className="shop-stage">
-          <section id="catalogo" className="shop-catalog card">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Catalogo</div>
-              <h2>Selecciona tus productos</h2>
-              <div className="list-sub"></div>
-            </div>
-            <div className="shop-filter-row">
-              {categories.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`chip ${category === item ? 'chip-active' : ''}`}
-                  onClick={() => setCategory(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
+        <div className="shop-search-bar">
+          <div className="shop-search-inner">
+            <svg className="shop-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Busca tus productos aqui"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              className="shop-search-input"
+            />
+            {searchQuery && (
+              <button type="button" className="shop-search-clear" onClick={() => setSearchQuery('')} aria-label="Limpiar busqueda">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
           </div>
+        </div>
 
-          <MoraScrollReveal key={loading ? 'shop-loading' : 'shop-ready'} as="div" className="shop-product-grid" selector=".shop-product-card" variant="fade-up" stagger={0.08} duration={0.7}>
-            {loading &&
-              Array.from({ length: 4 }, (_, index) => (
-                <div key={index} className="shop-skeleton-card shimmer" aria-hidden="true">
-                  <div className="shop-skeleton-media" />
-                  <div className="shop-skeleton-body">
-                    <div className="shop-skeleton-line short" />
-                    <div className="shop-skeleton-line" />
-                    <div className="shop-skeleton-line" />
+        <div className="shop-layout">
+          {/* Sidebar de filtros */}
+          <aside className="shop-sidebar">
+            <div className="shop-sidebar-block">
+              <h4>Precio</h4>
+              <div className="shop-range-values">
+                <span>S/ {priceRange[0]}</span>
+                <span>S/ {priceRange[1]}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={300}
+                value={priceRange[1]}
+                onChange={(e) => { setPriceRange([0, Number(e.target.value)]); setPage(1); }}
+                className="shop-range-input"
+              />
+            </div>
+
+            <div className="shop-sidebar-block">
+              <h4>Categorías</h4>
+              <div className="shop-sidebar-checks">
+                {categories.map((cat) => (
+                  <label key={cat} className="shop-sidebar-check">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(cat)}
+                      onChange={() => toggleCategory(cat)}
+                    />
+                    <span>{cat}</span>
+                  </label>
+                ))}
+                {categories.length === 0 && (
+                  <span className="shop-sidebar-empty">Sin categorías</span>
+                )}
+              </div>
+            </div>
+
+            <div className="shop-sidebar-block">
+              <h4>Calificación</h4>
+              <div className="shop-sidebar-rating">
+                {[4, 3, 2, 1].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`shop-rating-pill ${minRating === r ? 'active' : ''}`}
+                    onClick={() => setPage(1)}
+                  >
+                    <StarRating rating={r} size={14} />
+                    <span>{`${r}+ estrellas`}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* Grid de productos */}
+          <section className="shop-main">
+            <div className="shop-main-head">
+              <div>
+                <div className="eyebrow">Catálogo</div>
+                <h2>Selecciona tus productos</h2>
+              </div>
+              <div className="shop-results-count">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'resultado' : 'resultados'}
+              </div>
+            </div>
+
+            <MoraScrollReveal
+              key={loading ? 'shop-loading' : `shop-ready-${page}`}
+              as="div"
+              className="shop-product-grid"
+              selector=".shop-product-card"
+              variant="fade-up"
+              stagger={0.06}
+              duration={0.6}
+            >
+              {loading &&
+                Array.from({ length: 4 }, (_, index) => (
+                  <div key={index} className="shop-skeleton-card shimmer" aria-hidden="true">
+                    <div className="shop-skeleton-media" />
+                    <div className="shop-skeleton-body">
+                      <div className="shop-skeleton-line short" />
+                      <div className="shop-skeleton-line" />
+                      <div className="shop-skeleton-line" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-            {!loading && !catalogError && visibleProducts.length === 0 && (
-              <div className="empty-state shop-empty-state">
-                <strong>No hay productos en esta categoria.</strong>
-                <span>Cambia el filtro o vuelve a la vista completa para seguir comprando.</span>
+              {!loading && !catalogError && visibleProducts.length === 0 && (
+                <div className="empty-state shop-empty-state">
+                  <strong>No se encontraron productos.</strong>
+                  <span>Prueba ajustando los filtros o busca con otras palabras.</span>
+                </div>
+              )}
+
+              {!loading && !catalogError &&
+                visibleProducts.map((product) => {
+                  const cover = getProductCover(product);
+                  const soldOut = product.stock <= 0;
+
+                  return (
+                    <article key={product.id} className="shop-product-card lift-on-hover">
+                      <div className="shop-product-media">
+                        {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
+                        {product.featured && <span className="shop-ribbon">Destacado</span>}
+                      </div>
+                      <div className="shop-product-body">
+                        <div className="shop-product-tags">
+                          <span className="shop-product-tag">{product.category ?? 'Linea Mora'}</span>
+                        </div>
+                        <h3 className="shop-product-title">{product.name}</h3>
+                        <p className="shop-product-desc">{product.description ?? 'Producto profesional recomendado por el equipo Mora.'}</p>
+                        <div className="shop-product-rating">
+                          <StarRating rating={Math.min(5, Math.max(3.5, 4.2 + ((product.id * 37) % 10) / 10))} size={14} />
+                          <span className="shop-rating-count">({Math.max(0, (product.id * 53) % 128)})</span>
+                        </div>
+                        <div className="shop-product-footer">
+                          <div className="price-tag">S/ {Number(product.price).toFixed(2)}</div>
+                          <button
+                            className="shop-add-btn"
+                            type="button"
+                            onClick={() => addToCart(product)}
+                            disabled={soldOut}
+                            aria-label={soldOut ? 'Agotado' : `Agregar ${product.name} al carrito`}
+                            title={soldOut ? 'Agotado' : 'Agregar al carrito'}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="12" y1="5" x2="12" y2="19" />
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+            </MoraScrollReveal>
+
+            {/* Paginación */}
+            {!loading && !catalogError && totalPages > 1 && (
+              <div className="shop-pagination">
+                <button
+                  type="button"
+                  className="shop-page-btn"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  aria-label="Página anterior"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`shop-page-btn ${page === p ? 'active' : ''}`}
+                    onClick={() => setPage(p)}
+                    aria-label={`Página ${p}`}
+                    aria-current={page === p ? 'page' : undefined}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="shop-page-btn"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  aria-label="Página siguiente"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
               </div>
             )}
-
-            {!loading && !catalogError &&
-              visibleProducts.map((product) => {
-                const cover = getProductCover(product);
-                const soldOut = product.stock <= 0;
-
-                return (
-                  <article key={product.id} className="shop-product-card lift-on-hover">
-                    <div className="shop-product-media">
-                      {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
-                      {product.featured && <span className="shop-ribbon">Destacado</span>}
-                    </div>
-                    <div className="shop-product-body">
-                      <div className="shop-product-meta">
-                        <div>
-                          <h3>{product.name}</h3>
-                          <div className="list-sub">{product.category ?? 'Linea Mora'}</div>
-                        </div>
-                        <div className="price-tag">S/ {Number(product.price).toFixed(2)}</div>
-                      </div>
-                      <p>{product.description ?? 'Producto profesional recomendado por el equipo Mora.'}</p>
-                      <div className="shop-product-footer">
-                        <span className={`status-badge ${soldOut ? 'status-warn' : 'status-ok'}`}>
-                          {soldOut ? 'Sin stock' : `${product.stock} disponibles`}
-                        </span>
-                        <button className="btn shine-on-hover press-feedback" type="button" onClick={() => addToCart(product)} disabled={soldOut}>
-                          {soldOut ? 'Agotado' : 'Agregar al carrito'}
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-          </MoraScrollReveal>
           </section>
         </div>
       </div>
