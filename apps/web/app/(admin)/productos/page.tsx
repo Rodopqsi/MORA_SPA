@@ -115,9 +115,11 @@ export default function ProductosPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [form, setForm] = useState<ProductForm>(createEmptyForm());
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<CatalogProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const loadProducts = () => {
@@ -223,11 +225,13 @@ export default function ProductosPage() {
     if (!confirmDelete) return;
     setDeleting(true);
     setError('');
+    setSuccess('');
     try {
       await staffFetch(`/products/${confirmDelete.id}`, { method: 'DELETE' });
       if (form.id === confirmDelete.id) {
         setForm(createEmptyForm());
       }
+      setSuccess(`"${confirmDelete.name}" archivado correctamente.`);
       loadProducts();
       setConfirmDelete(null);
     } catch (err) {
@@ -459,17 +463,33 @@ export default function ProductosPage() {
         </form>
       </AdminForm>
 
+      {success && <div className="auth-success">{success}</div>}
+
       <section className="card reveal">
         <div className="section-head">
           <div>
             <div className="eyebrow">Catalogo</div>
             <h2>Inventario listo para la tienda</h2>
           </div>
-          <button className="chip press-feedback" type="button" onClick={loadProducts}>Actualizar</button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+              />
+              Mostrar archivados
+            </label>
+            <button className="chip press-feedback" type="button" onClick={loadProducts}>Actualizar</button>
+          </div>
         </div>
         <MoraScrollReveal as="div" className="product-admin-grid" selector=".product-admin-card" variant="fade-up" stagger={0.06} duration={0.5}>
-          {inventory.length === 0 && <div className="empty-state">Todavia no hay productos cargados.</div>}
-          {inventory.map((item) => {
+          {inventory.filter((item) => showArchived || item.active).length === 0 && (
+            <div className="empty-state">
+              {showArchived ? 'No hay productos archivados.' : 'Todavia no hay productos cargados.'}
+            </div>
+          )}
+          {inventory.filter((item) => showArchived || item.active).map((item) => {
             const cover = getProductCover(item);
             return (
               <article key={item.id} className="product-admin-card lift-on-hover">
@@ -557,7 +577,7 @@ export default function ProductosPage() {
         title="Eliminar producto"
         description={
           confirmDelete
-            ? `Eliminar "${confirmDelete.name}"? Quedara archivado cómo no publicado.`
+            ? `Archivar "${confirmDelete.name}"? Se ocultará de la tienda pero permanecerá en el sistema.`
             : ''
         }
         confirmLabel="Eliminar"
