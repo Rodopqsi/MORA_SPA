@@ -1288,22 +1288,28 @@ router.post(
       throw new AppError(500, 'Pasarela de pago no configurada', 'gateway_not_configured');
     }
 
+    const culqiPayload = {
+      card_number: body.card_number.replace(/\s+/g, ''),
+      cvv: body.cvv,
+      expiration_month: body.expiration_month.padStart(2, '0'),
+      expiration_year: body.expiration_year,
+      email: body.email
+    };
+
+    console.log('[CULQI PROXY] Sending payload:', JSON.stringify(culqiPayload));
+
     const culqiResp = await fetch('https://secure.culqi.com/v2/tokens', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${publicKey}`
       },
-      body: JSON.stringify({
-        card_number: body.card_number.replace(/\s+/g, ''),
-        cvv: body.cvv,
-        expiration_month: body.expiration_month.padStart(2, '0'),
-        expiration_year: body.expiration_year,
-        email: body.email
-      })
+      body: JSON.stringify(culqiPayload)
     });
 
     const culqiJson: any = await culqiResp.json().catch(() => ({}));
+
+    console.log('[CULQI PROXY] Culqi status:', culqiResp.status, 'body:', JSON.stringify(culqiJson));
 
     if (!culqiResp.ok || !culqiJson?.id) {
       // Devolvemos el mensaje user_message de Culqi tal cual (ya viene en espanol
