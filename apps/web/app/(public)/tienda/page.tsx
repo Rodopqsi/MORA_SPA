@@ -218,15 +218,10 @@ export default function TiendaPage() {
         }
 
         try {
-          const publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY;
-          if (!publicKey) throw new Error('Pasarela no configurada');
-
-          const tokenResp = await fetch('https://secure.culqi.com/v2/tokens', {
+          // El navegador no puede llamar directo a Culqi (CORS bloqueado).
+          // Pedimos al backend que tokenice la tarjeta y nos devuelva el id.
+          const tokenResp: any = await apiFetch('/public/culqi/token', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${publicKey}`
-            },
             body: JSON.stringify({
               card_number: cardNumber.replace(/\s+/g, ''),
               cvv: cardCvv,
@@ -236,13 +231,13 @@ export default function TiendaPage() {
             })
           });
 
-          const tokenJson = await tokenResp.json();
-          if (!tokenResp.ok || !tokenJson.id) {
-            throw new Error(tokenJson?.user_message || 'No se pudo generar token');
+          const tokenId = tokenResp?.data?.id;
+          if (!tokenId) {
+            throw new Error(tokenResp?.error?.message || 'No se pudo generar token');
           }
 
           // Attach token id as paymentReference
-          setCheckout((c) => ({ ...c, paymentReference: tokenJson.id }));
+          setCheckout((c) => ({ ...c, paymentReference: tokenId }));
         } catch (err) {
           setCheckoutError(err instanceof Error ? err.message : 'Error al tokenizar tarjeta');
           setSubmitting(false);
