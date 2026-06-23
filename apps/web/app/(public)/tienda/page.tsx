@@ -78,7 +78,7 @@ export default function TiendaPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 300]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [minRating] = useState(0);
+  const [minRating, setMinRating] = useState(0);
   const [page, setPage] = useState(1);
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -175,6 +175,10 @@ export default function TiendaPage() {
     [products]
   );
 
+  const getProductRating = useCallback((product: CatalogProduct) => {
+    return Math.min(5, Math.max(3.5, 4.2 + ((product.id * 37) % 10) / 10));
+  }, []);
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,9 +186,10 @@ export default function TiendaPage() {
       const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category ?? '');
       const price = Number(product.price);
       const matchPrice = price >= priceRange[0] && price <= priceRange[1];
-      return matchSearch && matchCategory && matchPrice;
+      const matchRating = getProductRating(product) >= minRating;
+      return matchSearch && matchCategory && matchPrice && matchRating;
     });
-  }, [products, searchQuery, selectedCategories, priceRange]);
+  }, [products, searchQuery, selectedCategories, priceRange, minRating, getProductRating]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)), [filteredProducts]);
 
@@ -406,7 +411,7 @@ export default function TiendaPage() {
                     key={r}
                     type="button"
                     className={`shop-rating-pill ${minRating === r ? 'active' : ''}`}
-                    onClick={() => setPage(1)}
+                    onClick={() => { setMinRating(r === minRating ? 0 : r); setPage(1); }}
                   >
                     <StarRating rating={r} size={14} />
                     <span>{`${r}+ estrellas`}</span>
@@ -474,7 +479,7 @@ export default function TiendaPage() {
                         <h3 className="shop-product-title">{product.name}</h3>
                         <p className="shop-product-desc">{product.description ?? 'Producto profesional recomendado por el equipo Mora.'}</p>
                         <div className="shop-product-rating">
-                          <StarRating rating={Math.min(5, Math.max(3.5, 4.2 + ((product.id * 37) % 10) / 10))} size={14} />
+                          <StarRating rating={getProductRating(product)} size={14} />
                           <span className="shop-rating-count">({Math.max(0, (product.id * 53) % 128)})</span>
                         </div>
                         <div className="shop-product-footer">
