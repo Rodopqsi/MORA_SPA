@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../../lib/api';
-import { clientFetch } from '../../lib/clientApi';
 import { useAuth } from '../../context/AuthContext';
-import { normalizePersonName, normalizePhone } from '../../lib/validation';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import {
   cartCount,
@@ -21,41 +19,7 @@ import {
   upsertCartItem
 } from '../../lib/shopCart';
 
-type ClientProfile = {
-  name: string;
-  phone: string;
-  email?: string | null;
-};
 
-type OrderResponse = {
-  data: {
-    id: number;
-    total: string | number;
-    paymentStatus: 'PENDIENTE' | 'CONFIRMADO' | 'ANULADO';
-    method: 'EFECTIVO' | 'YAPE' | 'PASARELA';
-  };
-  meta?: {
-    requiresGateway?: boolean;
-  };
-};
-
-type CheckoutForm = {
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  method: 'EFECTIVO' | 'YAPE' | 'PASARELA';
-  paymentReference: string;
-  notes: string;
-};
-
-const defaultCheckoutForm = (): CheckoutForm => ({
-  customerName: '',
-  customerPhone: '',
-  customerEmail: '',
-  method: 'PASARELA',
-  paymentReference: '',
-  notes: ''
-});
 
 const ITEMS_PER_PAGE = 8;
 
@@ -64,15 +28,7 @@ export default function TiendaPage() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [catalogError, setCatalogError] = useState('');
-  const [checkoutError, setCheckoutError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<OrderResponse | null>(null);
-  const [checkout, setCheckout] = useState<CheckoutForm>(defaultCheckoutForm);
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardExpMonth, setCardExpMonth] = useState('');
-  const [cardExpYear, setCardExpYear] = useState('');
 
   /* Nuevo estado para filtros y paginación */
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,21 +92,7 @@ export default function TiendaPage() {
     });
   }, [products]);
 
-  useEffect(() => {
-    if (!isClientAuthed) return;
 
-    clientFetch<{ data: ClientProfile }>('/client-auth/me')
-      .then((res) => {
-        const profile = res.data;
-        setCheckout((current) => ({
-          ...current,
-          customerName: current.customerName || profile?.name || '',
-          customerPhone: current.customerPhone || profile?.phone || '',
-          customerEmail: current.customerEmail || profile?.email || ''
-        }));
-      })
-      .catch(() => undefined);
-  }, [isClientAuthed]);
 
   useEffect(() => {
     if (!cartOpen || typeof window === 'undefined') {
@@ -230,9 +172,6 @@ export default function TiendaPage() {
 
   const addToCart = (product: CatalogProduct) => {
     if (product.stock <= 0) return;
-
-    setCheckoutError('');
-    setSuccess(null);
     setCart((current) =>
       upsertCartItem(current, {
         productId: product.id,
@@ -245,85 +184,7 @@ export default function TiendaPage() {
     );
   };
 
-  const handleCheckout = async (event: React.FormEvent) => {
-    event.preventDefault();
 
-    if (cart.length === 0) {
-      setCheckoutError('Agrega al menos un producto al carrito para continuar.');
-      return;
-    }
-
-    setSubmitting(true);
-    setCheckoutError('');
-
-    try {
-      // If using PASARELA, create token first
-      if (checkout.method === 'PASARELA') {
-        if (!cardNumber || !cardCvv || !cardExpMonth || !cardExpYear) {
-          setCheckoutError('Ingresa los datos de tarjeta para procesar el pago.');
-          setSubmitting(false);
-          return;
-        }
-
-        try {
-          // El navegador no puede llamar directo a Culqi (CORS bloqueado).
-          // Pedimos al backend que tokenice la tarjeta y nos devuelva el id.
-          const tokenResp: any = await apiFetch('/public/culqi/token', {
-            method: 'POST',
-            body: JSON.stringify({
-              card_number: cardNumber.replace(/\s+/g, ''),
-              cvv: cardCvv,
-              expiration_month: cardExpMonth,
-              expiration_year: cardExpYear,
-              email: checkout.customerEmail || undefined
-            })
-          });
-
-          const tokenId = tokenResp?.data?.id;
-          if (!tokenId) {
-            throw new Error(tokenResp?.error?.message || 'No se pudo generar token');
-          }
-
-          // Attach token id as paymentReference
-          setCheckout((c) => ({ ...c, paymentReference: tokenId }));
-        } catch (err) {
-          setCheckoutError(err instanceof Error ? err.message : 'Error al tokenizar tarjeta');
-          setSubmitting(false);
-          return;
-        }
-      }
-
-      const response = await apiFetch<OrderResponse>('/public/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          customerName: checkout.customerName.trim(),
-          customerPhone: checkout.customerPhone.trim(),
-          customerEmail: checkout.customerEmail.trim(),
-          method: checkout.method,
-          paymentReference: checkout.paymentReference.trim(),
-          notes: checkout.notes.trim(),
-          items: cart.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity
-          }))
-        })
-      });
-
-      setSuccess(response);
-      setCart([]);
-      setCartOpen(true);
-      setCheckout((current) => ({
-        ...current,
-        method: 'PASARELA',
-        paymentReference: '',
-        notes: ''
-      }));
-    } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : 'No se pudo registrar el pedido.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <>
@@ -605,27 +466,6 @@ export default function TiendaPage() {
         </div>
 
         <div className="shop-drawer-body">
-          {success && (
-            <div className="shop-drawer-status">
-              <div className="shop-status-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <div className="shop-status-content">
-                <div className="eyebrow">Pedido registrado</div>
-                <strong>Orden #{success.data.id}</strong>
-                <p>
-                  Total S/ {Number(success.data.total).toFixed(2)}. {success.meta?.requiresGateway
-                    ? 'Pago pendiente de confirmacion por la pasarela.'
-                    : 'El pedido ya puede confirmarse desde el panel.'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {checkoutError && <div className="auth-error">{checkoutError}</div>}
-
           {cart.length === 0 ? (
             <div className="empty-state shop-cart-empty">
               <div className="shop-cart-empty-art" aria-hidden="true">
@@ -715,104 +555,14 @@ export default function TiendaPage() {
                 <strong className="shop-total-amount">S/ {subtotal.toFixed(2)}</strong>
               </div>
 
-              <form className="auth-form shop-checkout-form" onSubmit={handleCheckout}>
-                <label>
-                  Nombre completo
-                  <input
-                    required
-                    value={checkout.customerName}
-                    onChange={(event) => setCheckout({ ...checkout, customerName: normalizePersonName(event.target.value) })}
-                    pattern="[A-Za-zÀ-ÿ\s]+"
-                    title="Solo se permiten letras y espacios"
-                  />
-                </label>
-                <label>
-                  Teléfono
-                  <input
-                    required
-                    value={checkout.customerPhone}
-                    onChange={(event) => setCheckout({ ...checkout, customerPhone: normalizePhone(event.target.value) })}
-                    inputMode="numeric"
-                    pattern="[0-9]+"
-                    title="Solo se permiten numeros"
-                  />
-                </label>
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={checkout.customerEmail}
-                    onChange={(event) => setCheckout({ ...checkout, customerEmail: event.target.value })}
-                  />
-                </label>
-                <div className="shop-payment-methods" role="radiogroup" aria-label="Metodo de pago">
-                  {(['PASARELA', 'YAPE', 'EFECTIVO'] as const).map((method) => {
-                    const labels: Record<CheckoutForm['method'], { title: string; sub: string }> = {
-                      PASARELA: { title: 'Tarjeta', sub: 'Pasarela online' },
-                      YAPE: { title: 'Yape', sub: 'Comprobante digital' },
-                      EFECTIVO: { title: 'Efectivo', sub: 'Pago al recoger' }
-                    };
-                    const active = checkout.method === method;
-                    return (
-                      <button
-                        key={method}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        className={`shop-payment-pill ${active ? 'active' : ''}`}
-                        onClick={() => setCheckout({ ...checkout, method })}
-                      >
-                        <span className="shop-payment-text">
-                          <strong>{labels[method].title}</strong>
-                          <span>{labels[method].sub}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {checkout.method === 'PASARELA' && (
-                  <div className="card-fields">
-                    <label>
-                      Número de tarjeta
-                      <input
-                        required
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        inputMode="numeric"
-                        placeholder="4111 1111 1111 1111"
-                      />
-                    </label>
-                    <label>
-                      CVV
-                      <input required value={cardCvv} onChange={(e) => setCardCvv(e.target.value)} inputMode="numeric" placeholder="123" />
-                    </label>
-                    <label>
-                      Mes
-                      <input required value={cardExpMonth} onChange={(e) => setCardExpMonth(e.target.value)} inputMode="numeric" placeholder="MM" />
-                    </label>
-                    <label>
-                      Año
-                      <input required value={cardExpYear} onChange={(e) => setCardExpYear(e.target.value)} inputMode="numeric" placeholder="YYYY" />
-                    </label>
-                  </div>
-                )}
-                <label>
-                  Referencia o comprobante
-                  <input
-                    value={checkout.paymentReference}
-                    onChange={(event) => setCheckout({ ...checkout, paymentReference: event.target.value })}
-                    placeholder={checkout.method === 'PASARELA' ? 'ID de pago futuro o checkout session' : 'Operación, captura o nota interna'}
-                  />
-                </label>
-                <label>
-                  Notas del pedido
-                  <textarea value={checkout.notes} onChange={(event) => setCheckout({ ...checkout, notes: event.target.value })} rows={4} />
-                </label>
-
-                <button className="btn" type="submit" disabled={submitting || cart.length === 0}>
-                  {submitting ? 'Procesando...' : 'Registrar pedido'}
+              <div className="shop-cart-actions">
+                <Link href="/tienda/checkout" className="btn btn-primary shine-on-hover press-feedback" onClick={() => setCartOpen(false)}>
+                  Ir a pagar
+                </Link>
+                <button type="button" className="btn btn-ghost" onClick={() => setCartOpen(false)}>
+                  Seguir comprando
                 </button>
-              </form>
+              </div>
             </>
           )}
         </div>

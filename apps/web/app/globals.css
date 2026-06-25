@@ -4257,7 +4257,7 @@ input {
 .shop-total-amount {
   font-size: 26px;
   font-weight: 800;
-  color: var(--accent-dark);
+  color: #2d6a4f;
   letter-spacing: -0.5px;
   line-height: 1;
 }
@@ -4347,6 +4347,28 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+}
+
+.shop-cart-actions {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.shop-cart-actions .btn {
+  width: 100%;
+  text-align: center;
+}
+
+.shop-cart-actions .btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+
+.shop-cart-actions .btn-ghost:hover {
+  background: rgba(198, 90, 125, 0.06);
+  color: var(--accent-dark);
 }
 
 @keyframes shopFloatPulse {
