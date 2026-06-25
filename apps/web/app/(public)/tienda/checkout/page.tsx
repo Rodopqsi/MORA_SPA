@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch } from '../../../lib/api';
 import { clientFetch } from '../../../lib/clientApi';
 import { useAuth } from '../../../context/AuthContext';
@@ -305,6 +306,34 @@ export default function CheckoutPage() {
                 );
               })}
             </div>
+
+            {checkout.method === 'YAPE' && (
+              <div className="card" style={{ marginTop: 10, padding: '18px 16px', textAlign: 'center' }}>
+                <div className="eyebrow" style={{ color: 'var(--accent-dark)', marginBottom: 8 }}>Pago con Yape</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                  <div style={{ padding: 10, background: '#fff', borderRadius: 16, border: '1px solid rgba(198,90,125,0.12)' }}>
+                    <QRCodeSVG
+                      value={`yape://send?phone=917364262&amount=${subtotal.toFixed(2)}&message=Pedido Mora Spa`}
+                      size={180}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>
+                  Escanea el QR con tu app Yape o envía el monto exacto al:
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#2d6a4f', letterSpacing: -0.5 }}>
+                  S/ {subtotal.toFixed(2)}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent-dark)', marginTop: 4 }}>
+                  917 364 262
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+                  Luego ingresa el número de operación como referencia abajo.
+                </div>
+              </div>
+            )}
 
             {checkout.method === 'PASARELA' && (
               <div className="card-fields" style={{ marginTop: 8 }}>
