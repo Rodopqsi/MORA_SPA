@@ -1895,7 +1895,8 @@ router.patch(
         requiresAdvance: z.boolean().optional(),
         advanceType: z.string().optional(),
         advanceValue: toNumber.optional(),
-        minAdvanceMinutes: toInt.optional()
+        minAdvanceMinutes: toInt.optional(),
+        yapePhone: z.string().optional()
       }),
       req.body
     );

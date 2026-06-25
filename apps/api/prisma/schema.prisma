@@ -153,6 +153,7 @@ model BusinessConfig {
   advanceType       String  @default("PORCENTAJE")
   advanceValue      Decimal @default(30.0) @db.Decimal(10, 2)
   minAdvanceMinutes Int     @default(10)
+  yapePhone         String  @default("917364262")
 }
 
 model Staff {

@@ -66,9 +66,13 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [success, setSuccess] = useState<OrderResponse | null>(null);
+  const [config, setConfig] = useState<any | null>(null);
 
   useEffect(() => {
     setCart(loadShopCart());
+    apiFetch('/public/business-config')
+      .then((res: any) => setConfig(res.data ?? null))
+      .catch(() => setConfig(null));
   }, []);
 
   useEffect(() => {
@@ -313,7 +317,7 @@ export default function CheckoutPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
                   <div style={{ padding: 10, background: '#fff', borderRadius: 16, border: '1px solid rgba(198,90,125,0.12)' }}>
                     <QRCodeSVG
-                      value={`yape://send?phone=917364262&amount=${subtotal.toFixed(2)}&message=Pedido Mora Spa`}
+                      value={`yape://send?phone=${String(config?.yapePhone ?? '917364262').replace(/\s/g, '')}&amount=${subtotal.toFixed(2)}&message=Pedido Mora Spa`}
                       size={180}
                       level="M"
                       includeMargin={false}
@@ -327,7 +331,7 @@ export default function CheckoutPage() {
                   S/ {subtotal.toFixed(2)}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent-dark)', marginTop: 4 }}>
-                  917 364 262
+                  {String(config?.yapePhone ?? '917364262').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
                   Luego ingresa el número de operación como referencia abajo.

@@ -29,6 +29,12 @@ const sections = [
       { href: '/resenas', label: 'Reseñas', icon: 'RE' },
       { href: '/albumes', label: 'Álbumes', icon: 'AL' }
     ]
+  },
+  {
+    title: 'Sistema',
+    items: [
+      { href: '/configuracion', label: 'Configuración', icon: 'CF' }
+    ]
   }
 ];
 
