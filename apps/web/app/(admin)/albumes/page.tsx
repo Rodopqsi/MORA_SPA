@@ -412,7 +412,9 @@ export default function AlbumesPage() {
             <div className="album-sub">Cliente: {clientName(album.clientId)}</div>
             <div className="album-sub">{album.description?.trim() || 'Sin descripcion del resultado.'}</div>
             <div className="service-actions">
-              <span className="pill">{album.privacy}</span>
+              <span className={`pill ${album.privacy === 'PUBLICO' ? 'pill--success' : ''}`}>
+                {album.privacy === 'PUBLICO' ? '🌐 Público' : album.privacy}
+              </span>
               <button className="chip press-feedback" type="button" onClick={() => handleEdit(album)}>Editar</button>
               <button className="chip chip-danger press-feedback" type="button" onClick={() => handleDelete(album)}>Eliminar</button>
             </div>

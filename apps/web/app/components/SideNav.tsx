@@ -27,7 +27,8 @@ const sections = [
     title: 'Experiencia',
     items: [
       { href: '/resenas', label: 'Reseñas', icon: 'RE' },
-      { href: '/albumes', label: 'Álbumes', icon: 'AL' }
+      { href: '/albumes', label: 'Álbumes', icon: 'AL' },
+      { href: '/galeria', label: 'Ver galería pública', icon: 'GL' }
     ]
   },
   {

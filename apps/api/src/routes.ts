@@ -653,7 +653,7 @@ router.post(
     );
 
     const ctx = await buildChatContext();
-    const result = handleChatbotQuery(body.message, ctx);
+    const result = await handleChatbotQuery(body.message, ctx);
     res.json({ data: result });
   })
 );
@@ -1080,6 +1080,24 @@ router.get(
       orderBy: { startDate: 'desc' }
     });
     res.json({ data: promotions });
+  })
+);
+
+router.get(
+  '/public/gallery',
+  asyncHandler(async (_req, res) => {
+    const albums = await prisma.album.findMany({
+      where: { privacy: 'PUBLICO' },
+      include: {
+        photos: {
+          where: { deleted: false },
+          orderBy: { order: 'asc' }
+        },
+        client: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: albums });
   })
 );
 

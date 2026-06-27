@@ -28,6 +28,7 @@ const footerColumns = [
 
 const footerLinks = [
   { href: '/#servicios', label: 'Servicios' },
+  { href: '/galeria', label: 'Galería' },
   { href: '/tienda', label: 'Productos' },
   { href: '/reservar', label: 'Reservar' },
   { href: '/mi-cuenta', label: 'Mi cuenta' },

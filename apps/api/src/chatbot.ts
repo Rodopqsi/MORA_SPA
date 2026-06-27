@@ -1,5 +1,18 @@
-import { PromotionType } from '@prisma/client';
+﻿import { PromotionType } from '@prisma/client';
 import { prisma } from './core';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let genAI: any = null;
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? '';
+
+async function initGenAI() {
+  if (!GEMINI_API_KEY) return;
+  if (!genAI) {
+    const mod = await import('@google/genai');
+    genAI = new mod.GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  }
+}
 
 export interface ChatCard {
   type: 'service' | 'product' | 'promotion';
@@ -91,7 +104,101 @@ export async function buildChatContext(): Promise<ChatContext> {
   return { services, products, promotions, staff, reviews };
 }
 
-export function handleChatbotQuery(message: string, ctx: ChatContext): ChatResponseData {
+function buildSystemPrompt(ctx: ChatContext): string {
+  const servicesText = ctx.services.map(s =>
+    `- ${s.name}: S/ ${decimalToString(s.priceBase)}, ${s.durationMin} min. ${s.description ?? ''}`
+  ).join('\n');
+
+  const productsText = ctx.products.map(p =>
+    `- ${p.name}: S/ ${decimalToString(p.price)}, categoría ${p.category ?? 'general'}. Stock: ${p.stock}. ${p.description ?? ''}`
+  ).join('\n');
+
+  const promosText = ctx.promotions.map(p =>
+    `- ${p.name}: ${p.type === 'PORCENTAJE' ? `${Number(p.value)}% OFF` : `S/ ${decimalToString(p.value)} OFF`}. Vigente hasta ${p.endDate.toLocaleDateString('es-PE')}.`
+  ).join('\n') || 'Sin promociones activas.';
+
+  const staffText = ctx.staff.map(s =>
+    `- ${s.name}${s.role ? ` (${s.role})` : ''}: especialista en ${s.services.map(ss => ss.service.name).join(', ') || 'varios servicios'}.`
+  ).join('\n');
+
+  const avgRating = ctx.reviews.length > 0 ? (ctx.reviews.reduce((sum, r) => sum + r.rating, 0) / ctx.reviews.length).toFixed(1) : '5.0';
+
+  return `Eres "Mora Assistant", el asistente virtual de Gisela Mora SPA-BARBER. Eres amable, profesional, usas emojis con moderación y conoces a fondo el negocio.
+
+REGLAS IMPORTANTES:
+- Solo hablas sobre servicios, productos, promociones, reservas y recomendaciones relacionadas con el spa/barbería.
+- Si el usuario pregunta algo fuera de tema (política, noticias, matemáticas, etc.), responde amablemente que solo puedes ayudar con temas de Mora Spa.
+- Puedes dar recomendaciones de color de cabello, tratamientos faciales, etc., basándote en el contexto del negocio y el conocimiento general de estética/belleza.
+- Cuando recomiendes servicios o productos, sé específico y menciona precios si aplica.
+- Si el usuario quiere reservar, indícale que puede hacerlo desde la web.
+- El negocio está en Perú, los precios son en soles (S/). Atienden de lunes a sábado.
+- Calificación promedio de clientes: ${avgRating}/5 estrellas.
+
+SERVICIOS DISPONIBLES:
+${servicesText}
+
+PRODUCTOS EN TIENDA:
+${productsText}
+
+PROMOCIONES ACTIVAS:
+${promosText}
+
+EQUIPO:
+${staffText}
+
+Responde en español, de forma breve pero útil. Si puedes, sugiere 1-3 opciones de seguimiento al final.`;
+}
+
+function extractSuggestions(text: string): string[] {
+  const suggestions: string[] = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      const content = trimmed.slice(1).trim();
+      if (content.length > 3 && content.length < 60) {
+        suggestions.push(content);
+      }
+    }
+  }
+  if (suggestions.length === 0) {
+    const fallback = ['Ver servicios', 'Ver productos', 'Reservar cita'];
+    return fallback;
+  }
+  return suggestions.slice(0, 4);
+}
+
+async function callGemini(message: string, ctx: ChatContext): Promise<string> {
+  await initGenAI();
+  if (!genAI) {
+    return 'Ups, el asistente inteligente no está disponible en este momento. Intenta de nuevo más tarde 💫';
+  }
+
+  const systemPrompt = buildSystemPrompt(ctx);
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: 'Entendido. Estoy listo para ayudar a los clientes de Mora Spa.' }] },
+        { role: 'user', parts: [{ text: message }] }
+      ],
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 800,
+      }
+    });
+
+    return response.text ?? 'Ups, no pude generar una respuesta. Intenta de nuevo 💫';
+  } catch (err: any) {
+    console.error('Gemini error:', err);
+    // Fallback inteligente basado en keywords si Gemini falla (quota, red, etc.)
+    return fallbackReply(message, ctx);
+  }
+}
+
+export async function handleChatbotQuery(message: string, ctx: ChatContext): Promise<ChatResponseData> {
   const tokens = tokenize(message);
 
   const greetings = ['hola', 'buenas', 'buen dia', 'buenas tardes', 'buenas noches', 'que tal', 'como estas', 'mora'];
@@ -119,227 +226,104 @@ export function handleChatbotQuery(message: string, ctx: ChatContext): ChatRespo
     return { reply: '¡Con gusto! 💖 Si necesitas algo más, aquí estaré. ¡Que tengas un hermoso día!', suggestions: ['Hola de nuevo'] };
   }
 
-  const serviceKeywords = ['servicio', 'servicios', 'tratamiento', 'tratamientos', 'corte', 'color', 'barberia', 'manicure', 'pedicure', 'facial', 'masaje', 'spa'];
-  const wantsServices = tokens.some((t) => serviceKeywords.some((k) => t.includes(k)));
-
-  if (wantsServices) {
-    const matched = ctx.services
-      .map((s) => ({ ...s, score: scoreMatch(s.name + ' ' + (s.description ?? ''), tokens) }))
-      .filter((s) => s.score > 0 || tokens.length === 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-
-    const source = matched.length > 0 ? matched : ctx.services.slice(0, 5);
-    const cards: ChatCard[] = source.map((s) => ({
-      type: 'service',
-      id: s.id,
-      title: s.name,
-      subtitle: `${s.durationMin} min`,
-      description: s.description ?? undefined,
-      imageUrl: resolveImageUrl(s.images[0]?.url),
-      price: `S/ ${decimalToString(s.priceBase)}`,
-      link: `/reservar?service=${s.id}`,
-      actionLabel: 'Reservar'
-    }));
-
-    if (matched.length === 1) {
-      return {
-        reply: `**💅 ${matched[0].name}**\n\n💰 Precio: S/ ${decimalToString(matched[0].priceBase)}\n⏱️ Duración: ${matched[0].durationMin} minutos\n📝 ${matched[0].description ?? 'Un servicio de calidad en Mora Spa.'}`,
-        suggestions: ['Reservar cita', 'Ver más servicios', 'Ver productos relacionados'],
-        cards
-      };
-    }
-
-    return {
-      reply: matched.length > 0
-        ? `Estos son los servicios que podrían interesarte:`
-        : `Nuestros servicios principales:`,
-      suggestions: source.slice(0, 3).map((s) => s.name),
-      cards
-    };
-  }
-
-  const productKeywords = ['producto', 'productos', 'tienda', 'boutique', 'shampoo', 'aceite', 'crema', 'comprar', 'catalogo'];
-  const wantsProducts = tokens.some((t) => productKeywords.some((k) => t.includes(k)));
-
-  if (wantsProducts) {
-    const matched = ctx.products
-      .map((p) => ({ ...p, score: scoreMatch(p.name + ' ' + (p.description ?? '') + ' ' + (p.category ?? ''), tokens) }))
-      .filter((p) => p.score > 0 || tokens.length === 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-
-    const cards: ChatCard[] = matched.map((p) => ({
-      type: 'product',
-      id: p.id,
-      title: p.name,
-      subtitle: p.category ?? undefined,
-      description: p.description ?? undefined,
-      imageUrl: resolveImageUrl(p.images[0]?.url),
-      price: `S/ ${decimalToString(p.price)}`,
-      badge: p.featured ? 'Destacado' : undefined,
-      link: '/tienda',
-      actionLabel: 'Ver en tienda'
-    }));
-
-    return {
-      reply: matched.length > 0 ? `Productos encontrados:` : `Nuestros productos destacados ⭐:`,
-      suggestions: matched.slice(0, 3).map((p) => p.name),
-      cards
-    };
-  }
-
-  const priceKeywords = ['precio', 'cuanto', 'cuanto cuesta', 'valor', 'tarifa'];
-  const wantsPrice = tokens.some((t) => priceKeywords.some((k) => t.includes(k)));
-
-  if (wantsPrice) {
-    const serviceMatch = ctx.services
-      .map((s) => ({ ...s, score: scoreMatch(s.name + ' ' + (s.description ?? ''), tokens) }))
-      .sort((a, b) => b.score - a.score)
-      .filter((s) => s.score > 0)
-      .slice(0, 3);
-
-    if (serviceMatch.length > 0) {
-      const cards: ChatCard[] = serviceMatch.map((s) => ({
-        type: 'service',
-        id: s.id,
-        title: s.name,
-        subtitle: `${s.durationMin} min`,
-        price: `S/ ${decimalToString(s.priceBase)}`,
-        imageUrl: resolveImageUrl(s.images[0]?.url),
-        link: `/reservar?service=${s.id}`,
-        actionLabel: 'Reservar'
-      }));
-      return { reply: `Aquí tienes los precios:`, suggestions: serviceMatch.map((s) => 'Reservar ' + s.name), cards };
-    }
-
-    const productMatch = ctx.products
-      .map((p) => ({ ...p, score: scoreMatch(p.name + ' ' + (p.description ?? ''), tokens) }))
-      .sort((a, b) => b.score - a.score)
-      .filter((p) => p.score > 0)
-      .slice(0, 3);
-
-    if (productMatch.length > 0) {
-      const cards: ChatCard[] = productMatch.map((p) => ({
-        type: 'product',
-        id: p.id,
-        title: p.name,
-        price: `S/ ${decimalToString(p.price)}`,
-        imageUrl: resolveImageUrl(p.images[0]?.url),
-        link: '/tienda',
-        actionLabel: 'Ver en tienda'
-      }));
-      return { reply: `Precios encontrados:`, suggestions: productMatch.map((p) => p.name), cards };
-    }
-
-    return {
-      reply: `Nuestros servicios van desde **S/ ${decimalToString(ctx.services.reduce((min, s) => (s.priceBase < min ? s.priceBase : min), ctx.services[0]?.priceBase ?? 0))}** hasta **S/ ${decimalToString(ctx.services.reduce((max, s) => (s.priceBase > max ? s.priceBase : max), ctx.services[0]?.priceBase ?? 0))}**.`,
-      suggestions: ['Ver servicios', 'Ver productos']
-    };
-  }
-
-  const promoKeywords = ['promocion', 'promociones', 'descuento', 'oferta', 'rebaja', 'combo'];
-  const wantsPromos = tokens.some((t) => promoKeywords.some((k) => t.includes(k)));
-
-  if (wantsPromos) {
-    if (ctx.promotions.length === 0) {
-      return { reply: 'Por ahora no tenemos promociones activas, pero siempre hay sorpresas 💫.', suggestions: ['Ver servicios', 'Ver productos'] };
-    }
-    const cards: ChatCard[] = ctx.promotions.slice(0, 3).map((p) => ({
-      type: 'promotion',
-      id: p.id,
-      title: p.name,
-      subtitle: p.value ? (p.type === 'PORCENTAJE' ? `${Number(p.value)}% OFF` : `S/ ${decimalToString(p.value)} OFF`) : undefined,
-      description: `Vigente hasta ${p.endDate.toLocaleDateString('es-PE')}`,
-      badge: 'Promoción',
-      link: `/reservar`,
-      actionLabel: 'Aprovechar'
-    }));
-    return { reply: `🎉 Promociones activas:`, suggestions: ['Reservar cita', 'Ver servicios'], cards };
-  }
-
-  const staffKeywords = ['equipo', 'staff', 'especialista', 'profesional', 'quien', 'barbero', 'estilista', 'colorista'];
-  const wantsStaff = tokens.some((t) => staffKeywords.some((k) => t.includes(k)));
-
-  if (wantsStaff) {
-    const matchedStaff = ctx.staff
-      .map((s) => ({ ...s, score: scoreMatch(s.name + ' ' + (s.role ?? ''), tokens) }))
-      .filter((s) => s.score > 0 || tokens.length === 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-
-    const list = matchedStaff.map((s) => {
-      const services = s.services.map((ss) => ss.service.name).join(', ');
-      return `• **${s.name}** ${s.role ? `— ${s.role}` : ''}\n  Servicios: ${services || 'Varios servicios'}`;
-    }).join('\n\n');
-
-    return {
-      reply: `Nuestro equipo:\n\n${list}\n\n¿Te gustaría reservar con alguno de ellos?`,
-      suggestions: matchedStaff.slice(0, 3).map((s) => 'Reservar con ' + s.name)
-    };
-  }
-
-  const recKeywords = ['recomienda', 'recomiendame', 'sugiere', 'sugerencia', 'que me recomiendas', 'mejor', 'ideal', 'perfecto'];
-  const wantsRecommendation = tokens.some((t) => recKeywords.some((k) => t.includes(k)));
-
-  if (wantsRecommendation) {
-    const hairKeywords = ['cabello', 'pelo', 'corte', 'color', 'tinte', 'mechas', 'balayage', 'decoloracion'];
-    const nailKeywords = ['uña', 'unas', 'manicure', 'pedicure', 'gel', 'acrilico'];
-    const skinKeywords = ['piel', 'facial', 'limpieza', 'hidratacion', 'antiage'];
-    const wantsHair = tokens.some((t) => hairKeywords.some((k) => t.includes(k)));
-    const wantsNails = tokens.some((t) => nailKeywords.some((k) => t.includes(k)));
-    const wantsSkin = tokens.some((t) => skinKeywords.some((k) => t.includes(k)));
-
-    let recs = [];
-    if (wantsHair) recs = ctx.services.filter((s) => hairKeywords.some((k) => normalizeText(s.name + ' ' + (s.description ?? '')).includes(k))).slice(0, 3);
-    else if (wantsNails) recs = ctx.services.filter((s) => nailKeywords.some((k) => normalizeText(s.name + ' ' + (s.description ?? '')).includes(k))).slice(0, 3);
-    else if (wantsSkin) recs = ctx.services.filter((s) => skinKeywords.some((k) => normalizeText(s.name + ' ' + (s.description ?? '')).includes(k))).slice(0, 3);
-    else recs = [...ctx.services].sort(() => 0.5 - Math.random()).slice(0, 3);
-
-    const cards: ChatCard[] = recs.map((s) => ({
-      type: 'service',
-      id: s.id,
-      title: s.name,
-      subtitle: `${s.durationMin} min`,
-      description: s.description ?? undefined,
-      imageUrl: resolveImageUrl(s.images[0]?.url),
-      price: `S/ ${decimalToString(s.priceBase)}`,
-      link: `/reservar?service=${s.id}`,
-      actionLabel: 'Reservar'
-    }));
-
-    return {
-      reply: `Basándome en lo que buscas, te recomiendo:`,
-      suggestions: recs.map((s) => 'Reservar ' + s.name),
-      cards
-    };
-  }
-
-  const reviewKeywords = ['resena', 'resenas', 'opinion', 'opiniones', 'popular', 'recomendado', 'estrellas', 'calificacion'];
-  const wantsReviews = tokens.some((t) => reviewKeywords.some((k) => t.includes(k)));
-
-  if (wantsReviews) {
-    const avgRating = ctx.reviews.length > 0 ? (ctx.reviews.reduce((sum, r) => sum + r.rating, 0) / ctx.reviews.length).toFixed(1) : '5.0';
-    const recent = ctx.reviews.slice(0, 3).map((r) => `\u201c${r.comment ?? 'Excelente servicio'}\u201d \u2014 ${r.reservation?.client?.name ?? 'Cliente'} (${r.rating}\u2b50)`).join('\n');
-    return { reply: `🌟 Nuestros clientes nos califican con **${avgRating}/5 estrellas**\n\nÚltimas opiniones:\n${recent}`, suggestions: ['Reservar cita', 'Ver servicios'] };
-  }
-
   const bookingKeywords = ['reserva', 'reservar', 'cita', 'agenda', 'horario', 'disponible', 'turno'];
   const wantsBooking = tokens.some((t) => bookingKeywords.some((k) => t.includes(k)));
 
-  if (wantsBooking) {
-    return { reply: '📅 Puedes reservar tu cita directamente desde nuestra web. ¿Te gustaría que te muestre los servicios disponibles?', suggestions: ['Reservar cita', 'Ver servicios', 'Ver equipo'] };
+  const geminiReply = await callGemini(message, ctx);
+  const suggestions = extractSuggestions(geminiReply);
+
+  if (wantsBooking && !suggestions.some(s => s.toLowerCase().includes('reservar'))) {
+    suggestions.unshift('Reservar cita');
   }
 
-  const contactKeywords = ['donde', 'ubicacion', 'direccion', 'telefono', 'whatsapp', 'contacto', 'llegar'];
-  const wantsContact = tokens.some((t) => contactKeywords.some((k) => t.includes(k)));
+  const cards: ChatCard[] = [];
 
-  if (wantsContact) {
-    return { reply: '📍 Puedes encontrarnos en nuestras redes y reservar directamente desde la web.', suggestions: ['Reservar cita', 'Ver servicios', 'Ver productos'] };
+  for (const service of ctx.services) {
+    const serviceName = normalizeText(service.name);
+    if (normalizeText(geminiReply).includes(serviceName) && cards.length < 3) {
+      cards.push({
+        type: 'service',
+        id: service.id,
+        title: service.name,
+        subtitle: `${service.durationMin} min`,
+        description: service.description ?? undefined,
+        imageUrl: resolveImageUrl(service.images[0]?.url),
+        price: `S/ ${decimalToString(service.priceBase)}`,
+        link: `/reservar?service=${service.id}`,
+        actionLabel: 'Reservar'
+      });
+    }
+  }
+
+  for (const product of ctx.products) {
+    const productName = normalizeText(product.name);
+    if (normalizeText(geminiReply).includes(productName) && cards.length < 3) {
+      cards.push({
+        type: 'product',
+        id: product.id,
+        title: product.name,
+        subtitle: product.category ?? undefined,
+        description: product.description ?? undefined,
+        imageUrl: resolveImageUrl(product.images[0]?.url),
+        price: `S/ ${decimalToString(product.price)}`,
+        link: '/tienda',
+        actionLabel: 'Ver en tienda'
+      });
+    }
   }
 
   return {
-    reply: `¡Entiendo! 💖 Puedo ayudarte con:\n• Servicios y precios\n• Productos de nuestra boutique\n• Promociones activas\n• Recomendaciones personalizadas\n• Reservas\n\n¿Qué te gustaría saber?`,
-    suggestions: ['Ver servicios', 'Ver productos', 'Recomendarme algo', 'Promociones']
+    reply: geminiReply,
+    suggestions: suggestions.slice(0, 4),
+    cards: cards.length > 0 ? cards : undefined
   };
+}
+
+function fallbackReply(message: string, ctx: ChatContext): string {
+  const tokens = tokenize(message);
+
+  const colorKeywords = ['color', 'cabello', 'pelo', 'tinte', 'rubio', 'moreno', 'castano', 'rojo', 'negro', 'piel'];
+  if (tokens.some((t) => colorKeywords.some((k) => t.includes(k)))) {
+    const colorServices = ctx.services.filter(s => normalizeText(s.name).includes('color') || normalizeText(s.name).includes('tinte') || normalizeText(s.name).includes('mechas'));
+    if (colorServices.length > 0) {
+      const list = colorServices.map(s => `${s.name} (S/ ${decimalToString(s.priceBase)})`).join(', ');
+      return `Para elegir el color de cabello ideal, es mejor que vengas a una consulta personalizada. Contamos con ${list}. Te recomiendo agendar una cita para que nuestro equipo te asesore según tu tono de piel y estilo 💇‍♀️✨`;
+    }
+    return `Para elegir el color de cabello ideal, te recomiendo agendar una cita para una consulta personalizada. Nuestro equipo te asesorará según tu tono de piel y estilo 💇‍♀️✨`;
+  }
+
+  const facialKeywords = ['piel', 'rostro', 'facial', 'acne', 'limpieza', 'hidratacion'];
+  if (tokens.some((t) => facialKeywords.some((k) => t.includes(k)))) {
+    const facialServices = ctx.services.filter(s => normalizeText(s.name).includes('facial') || normalizeText(s.description || '').includes('piel'));
+    if (facialServices.length > 0) {
+      const list = facialServices.map(s => `${s.name} (S/ ${decimalToString(s.priceBase)})`).join(', ');
+      return `Tenemos excelentes tratamientos faciales: ${list}. Te recomiendo agendar una cita para que evaluemos tu tipo de piel y te recomendemos el mejor tratamiento 💆‍♀️`;
+    }
+    return `Contamos con tratamientos faciales personalizados según tu tipo de piel. Te recomiendo agendar una cita para una evaluación 💆‍♀️`;
+  }
+
+  const promoKeywords = ['promo', 'descuento', 'oferta', 'gratis', '2x1'];
+  if (tokens.some((t) => promoKeywords.some((k) => t.includes(k)))) {
+    if (ctx.promotions.length > 0) {
+      const list = ctx.promotions.map(p => `${p.name}: ${p.type === 'PORCENTAJE' ? `${Number(p.value)}% OFF` : `S/ ${decimalToString(p.value)} OFF`}`).join(', ');
+      return `¡Tenemos promociones activas! 🎉 ${list}. ¿Te gustaría reservar para aprovecharlas?`;
+    }
+    return `Por ahora no tenemos promociones activas, pero siguenos en redes para enterarte de las próximas 🔔`;
+  }
+
+  const productKeywords = ['producto', 'shampoo', 'acondicionador', 'crema', 'venta', 'tienda', 'comprar'];
+  if (tokens.some((t) => productKeywords.some((k) => t.includes(k)))) {
+    if (ctx.products.length > 0) {
+      const list = ctx.products.slice(0, 3).map(p => `${p.name} (S/ ${decimalToString(p.price)})`).join(', ');
+      return `Contamos con productos de calidad en nuestra tienda: ${list} y más. Visita /tienda para ver todo el catálogo 🛍️`;
+    }
+    return `Visita nuestra tienda online para ver los productos disponibles 🛍️`;
+  }
+
+  if (ctx.services.length > 0) {
+    const list = ctx.services.slice(0, 3).map(s => `${s.name} (S/ ${decimalToString(s.priceBase)})`).join(', ');
+    return `En Mora Spa ofrecemos: ${list} y más servicios. ¿Te gustaría reservar una cita o saber más de alguno? 💅`;
+  }
+
+  return `¡Hola! Soy el asistente virtual de Mora Spa 💋. ¿En qué puedo ayudarte hoy?`;
 }
