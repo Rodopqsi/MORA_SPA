@@ -171,7 +171,8 @@ function extractSuggestions(text: string): string[] {
 async function callGemini(message: string, ctx: ChatContext): Promise<string> {
   await initGenAI();
   if (!genAI) {
-    return 'Ups, el asistente inteligente no está disponible en este momento. Intenta de nuevo más tarde 💫';
+    // Sin API key: fallback inteligente directo sin mensaje de error
+    return fallbackReply(message, ctx);
   }
 
   const systemPrompt = buildSystemPrompt(ctx);
@@ -190,7 +191,7 @@ async function callGemini(message: string, ctx: ChatContext): Promise<string> {
       }
     });
 
-    return response.text ?? 'Ups, no pude generar una respuesta. Intenta de nuevo 💫';
+    return response.text ?? fallbackReply(message, ctx);
   } catch (err: any) {
     console.error('Gemini error:', err);
     // Fallback inteligente basado en keywords si Gemini falla (quota, red, etc.)

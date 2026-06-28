@@ -40,6 +40,8 @@ function resolveCardImageUrl(url?: string): string | undefined {
   if (!url || url.trim() === "") return undefined;
   if (url.startsWith("http")) return url;
   if (url.startsWith("/uploads/")) return `${apiPublicUrl}${url}`;
+  // Si la URL es relativa sin /uploads/, asumir que es relativa al publicUrl
+  if (url.startsWith("/")) return `${apiPublicUrl}${url}`;
   return url;
 }
 
@@ -56,7 +58,14 @@ function ChatCard({ card }: { card: ChatCardData }) {
         {imageSrc ? (
           <img src={imageSrc} alt={card.title} loading="lazy" />
         ) : (
-          <span className="chatbot-card-placeholder">🐾</span>
+          <div className="chatbot-card-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>Mora Spa</span>
+          </div>
         )}
         {card.badge && (
           <span className={`chatbot-card-badge ${isPromo ? "chatbot-card-badge--promo" : ""}`}>
