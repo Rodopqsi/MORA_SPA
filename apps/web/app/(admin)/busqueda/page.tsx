@@ -136,7 +136,6 @@ export default function BusquedaAdminPage() {
               <div className="eyebrow">Clientes</div>
               <h2>Coincidencias en clientes</h2>
             </div>
-            <Link className="chip press-feedback" href="/clientes">Ver modulo</Link>
           </div>
           <MoraScrollReveal as="div" className="list" selector=".list-item" variant="fade-up" stagger={0.05} duration={0.45}>
             {filteredClients.map((client) => (

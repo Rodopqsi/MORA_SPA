@@ -15,7 +15,6 @@ const sections = [
   {
     title: 'Gestión',
     items: [
-      { href: '/clientes', label: 'Clientes', icon: 'CL' },
       { href: '/usuarios', label: 'Usuarios', icon: 'US' },
       { href: '/equipo', label: 'Equipo', icon: 'EQ' },
       { href: '/servicios', label: 'Servicios', icon: 'SV' },
@@ -24,11 +23,10 @@ const sections = [
     ]
   },
   {
-    title: 'Experiencia',
+    title: 'Galería',
     items: [
-      { href: '/resenas', label: 'Reseñas', icon: 'RE' },
-      { href: '/albumes', label: 'Álbumes', icon: 'AL' },
-      { href: '/galeria', label: 'Ver galería pública', icon: 'GL' }
+      { href: '/albumes', label: 'Galería', icon: 'GL' },
+      { href: '/galeria', label: 'Ver galería pública', icon: 'VP' }
     ]
   },
   {

@@ -240,20 +240,20 @@ export default function AlbumesPage() {
     }
   };
 
-  const clientName = (clientId: number) =>
-    clients.find((client) => client.id === clientId)?.name ?? `Cliente #${clientId}`;
+  const clientName = (clientId?: number | null) =>
+    clientId ? (clients.find((client) => client.id === clientId)?.name ?? `Cliente #${clientId}`) : null;
 
   return (
     <div className="page-stack page-enter">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Álbumes y recuerdos</div>
-          <h1>Historias visuales de transformacion</h1>
-          <p>Organiza antes y despues, con permisos claros.</p>
+          <div className="eyebrow">Galería</div>
+          <h1>Fotos y transformaciones</h1>
+          <p>Sube fotos para la galería pública. Marcá como Público para que aparezcan en el sitio.</p>
         </div>
         <div className="page-actions">
           <button className="btn shine-on-hover press-feedback" onClick={openCreate}>
-            + Añadir
+            + Nueva colección
           </button>
         </div>
       </header>
@@ -261,18 +261,18 @@ export default function AlbumesPage() {
       <AdminModalForm
         open={openForm}
         onClose={closeForm}
-        eyebrow={form.id ? 'Editar album' : 'Nuevo album'}
-        title={form.id ? 'Actualizar album' : 'Registrar album'}
+        eyebrow={form.id ? 'Editar colección' : 'Nueva colección'}
+        title={form.id ? 'Actualizar colección' : 'Registrar colección'}
       >
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            Titulo
+            Título
             <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </label>
           <label>
             Cliente
             <select required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
-              <option value="">Selecciona</option>
+              <option value="">Selecciona un cliente</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>{client.name}</option>
               ))}
@@ -409,8 +409,10 @@ export default function AlbumesPage() {
               <div className="album-count">{album.photos?.length ?? 0} fotos</div>
             </div>
             <div className="album-title">{album.title}</div>
-            <div className="album-sub">Cliente: {clientName(album.clientId)}</div>
-            <div className="album-sub">{album.description?.trim() || 'Sin descripcion del resultado.'}</div>
+            {clientName(album.clientId) && (
+              <div className="album-sub">Cliente: {clientName(album.clientId)}</div>
+            )}
+            <div className="album-sub">{album.description?.trim() || 'Sin descripción.'}</div>
             <div className="service-actions">
               <span className={`pill ${album.privacy === 'PUBLICO' ? 'pill--success' : ''}`}>
                 {album.privacy === 'PUBLICO' ? '🌐 Público' : album.privacy}
