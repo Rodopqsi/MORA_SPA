@@ -48,21 +48,6 @@ const galleryImages = [
   '/assets/img27.jpeg'
 ];
 
-const experienceHighlights = [
-  {
-    title: 'Diagnostico claro',
-    text: 'Cada servicio se recomienda según necesidad real, tiempo disponible y objetivo de resultado.'
-  },
-  {
-    title: 'Agenda sin fricciones',
-    text: 'Tu cuenta conserva reservas, historial y accesos para que reagendar sea rapido y ordenado.'
-  },
-  {
-    title: 'Equipo especializado',
-    text: 'Asignamos a cada profesional según servicio y disponibilidad, no por una agenda ficticia.'
-  }
-] as const;
-
 export default function PublicHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [services, setServices] = useState<Service[]>([]);
@@ -325,24 +310,6 @@ export default function PublicHomePage() {
           {galleryImages.map((image) => (
             <div key={image} className="gallery-tile lift-on-hover">
               <img src={image} alt="Resultado Mora Spa" />
-            </div>
-          ))}
-        </MoraScrollReveal>
-      </section>
-
-      <section className="public-section">
-        <div className="section-premium-head">
-          <div>
-            <span className="eyebrow">Experiencia Mora</span>
-            <h2>Lo que cuidamos en cada visita</h2>
-          </div>
-          <Link href="/reservar" className="section-link-more">Reservar ahora</Link>
-        </div>
-        <MoraScrollReveal selector=".testimonial-card" className="testimonial-grid" stagger={0.1}>
-          {experienceHighlights.map((item) => (
-            <div key={item.title} className="testimonial-card lift-on-hover">
-              <p>{item.text}</p>
-              <div className="testimonial-author">{item.title}</div>
             </div>
           ))}
         </MoraScrollReveal>

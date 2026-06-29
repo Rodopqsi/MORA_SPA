@@ -3606,7 +3606,7 @@ router.post(
           .array(
             z.object({
               type: z.enum(['ANTES', 'DESPUES', 'RESULTADO']).optional(),
-              url: z.string().url(),
+              url: z.string().min(1),
               fileName: z.string().optional(),
               order: toInt.optional(),
               isCover: z.boolean().optional(),
@@ -3694,7 +3694,7 @@ router.post(
     const body = parse(
       z.object({
         type: z.enum(['ANTES', 'DESPUES', 'RESULTADO']).optional(),
-        url: z.string().url(),
+        url: z.string().min(1),
         fileName: z.string().optional(),
         order: toInt.optional(),
         isCover: z.boolean().optional(),
