@@ -686,15 +686,25 @@ router.post(
 
     for (const file of files) {
       if (useCloudinary) {
-        const result = await uploadToCloudinary(file.path, bucket);
-        data.push({
-          url: result.url,
-          fileName: result.fileName,
-          size: file.size,
-          mimetype: file.mimetype,
-          publicId: result.publicId,
-        });
-        await fs.unlink(file.path).catch(() => {});
+        try {
+          const result = await uploadToCloudinary(file.path, bucket);
+          data.push({
+            url: result.url,
+            fileName: result.fileName,
+            size: file.size,
+            mimetype: file.mimetype,
+            publicId: result.publicId,
+          });
+          await fs.unlink(file.path).catch(() => {});
+        } catch (cloudErr) {
+          // Si Cloudinary falla, usar fallback local para no romper el flujo
+          data.push({
+            url: publicUrlFor(bucket as (typeof UPLOAD_BUCKETS)[number], file.filename),
+            fileName: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype,
+          });
+        }
       } else {
         data.push({
           url: publicUrlFor(bucket as (typeof UPLOAD_BUCKETS)[number], file.filename),
