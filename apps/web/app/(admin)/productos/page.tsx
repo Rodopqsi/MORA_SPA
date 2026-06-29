@@ -191,10 +191,12 @@ export default function ProductosPage() {
     setConfirmDelete(product);
   };
 
+  const [confirmDeleteError, setConfirmDeleteError] = useState('');
+
   const handleDeleteConfirm = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
-    setError('');
+    setConfirmDeleteError('');
     setSuccess('');
     try {
       await staffFetch(`/products/${confirmDelete.id}`, { method: 'DELETE' });
@@ -205,7 +207,7 @@ export default function ProductosPage() {
       loadProducts();
       setConfirmDelete(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar');
+      setConfirmDeleteError(err instanceof Error ? err.message : 'Error al eliminar');
     } finally {
       setDeleting(false);
     }
@@ -462,8 +464,9 @@ export default function ProductosPage() {
         confirmLabel="Eliminar"
         variant="danger"
         loading={deleting}
+        error={confirmDeleteError}
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setConfirmDelete(null)}
+        onCancel={() => { setConfirmDelete(null); setConfirmDeleteError(''); }}
       />
     </div>
   );

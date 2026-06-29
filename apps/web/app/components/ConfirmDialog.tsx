@@ -12,6 +12,7 @@ type Props = {
   cancelLabel?: string;
   variant?: Variant;
   loading?: boolean;
+  error?: string;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -24,6 +25,7 @@ export default function ConfirmDialog({
   cancelLabel = 'Cancelar',
   variant = 'default',
   loading = false,
+  error,
   onConfirm,
   onCancel
 }: Props) {
@@ -56,6 +58,7 @@ export default function ConfirmDialog({
           {title}
         </h3>
         {description && <p className="confirm-desc">{description}</p>}
+        {error && <p className="confirm-error" style={{ color: '#c62828', fontSize: 14, marginTop: 8 }}>{error}</p>}
         <div className="confirm-actions">
           <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={loading}>
             {cancelLabel}

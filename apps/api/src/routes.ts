@@ -4009,9 +4009,9 @@ router.delete(
       where: { id },
       include: { images: true, saleDetails: true }
     });
-    if (!product) throw new Error('Producto no encontrado');
-    if (product.saleDetails.length > 0) {
-      throw new Error('No se puede eliminar: el producto tiene ventas registradas. Ocultalo en su lugar.');
+    if (!product) throw new AppError(404, 'Producto no encontrado', 'not_found');
+    if ((product.saleDetails ?? []).length > 0) {
+      throw new AppError(409, 'No se puede eliminar: el producto tiene ventas registradas. Ocultalo en su lugar.', 'has_sales');
     }
 
     await prisma.$transaction(async (tx) => {
@@ -4019,7 +4019,7 @@ router.delete(
       await tx.product.delete({ where: { id } });
     });
 
-    for (const img of product.images) {
+    for (const img of product.images ?? []) {
       if (img.cloudinaryPublicId) {
         try {
           await deleteFromCloudinary(img.cloudinaryPublicId);
