@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { apiFetch, apiBaseUrl } from "../lib/api";
-import PublicNav from "../components/PublicNav";
-import MoraScrollReveal from "../components/MoraScrollReveal";
+import { apiFetch, apiBaseUrl } from "../../lib/api";
+import MoraScrollReveal from "../../components/MoraScrollReveal";
 
 type AlbumPhoto = {
   id: number;
@@ -55,8 +53,6 @@ export default function GaleriaPage() {
 
   return (
     <div className="public-page">
-      <PublicNav />
-
       <section className="section hero hero--small">
         <MoraScrollReveal>
           <h1>Galería</h1>
@@ -118,33 +114,6 @@ export default function GaleriaPage() {
           )}
         </div>
       </section>
-
-      <footer className="public-footer">
-        <div className="content">
-          <div className="footer-grid">
-            <div>
-              <div className="brand-badge" style={{ marginBottom: 12 }}>
-                GM
-              </div>
-              <p className="muted">
-                Gisela Mora — SPA · BARBER. Transformación con estilo.
-              </p>
-            </div>
-            <div>
-              <h4>Navegación</h4>
-              <div className="footer-links">
-                <Link href="/">Inicio</Link>
-                <Link href="/tienda">Tienda</Link>
-                <Link href="/galeria">Galería</Link>
-                <Link href="/reservar">Reservar</Link>
-              </div>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© {new Date().getFullYear()} Gisela Mora SPA-BARBER</span>
-          </div>
-        </div>
-      </footer>
 
       {/* Lightbox */}
       {lightbox && (
