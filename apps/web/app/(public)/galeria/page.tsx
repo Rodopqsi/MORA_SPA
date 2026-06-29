@@ -43,75 +43,137 @@ export default function GaleriaPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const allPhotos = albums.flatMap((album) =>
-    album.photos.map((photo) => ({
-      ...photo,
-      albumTitle: album.title,
-      albumDescription: album.description,
-    }))
-  );
-
   return (
     <div className="public-page">
       <section className="section hero hero--small">
         <MoraScrollReveal>
           <h1>Galería</h1>
-          <p>Resultados reales de transformaciones en Mora Spa.</p>
+          <p>Transformaciones, estilos y momentos capturados en Mora Spa.</p>
         </MoraScrollReveal>
       </section>
 
       <section className="section">
         <div className="content">
           {loading && (
-            <div className="center" style={{ padding: "4rem 0" }}>
+            <div className="center" style={{ padding: "5rem 0" }}>
               <div className="spinner" />
-              <p style={{ marginTop: 12, color: "var(--muted)" }}>Cargando galería...</p>
+              <p style={{ marginTop: 14, color: "var(--muted)", fontSize: 14 }}>
+                Cargando colección...
+              </p>
             </div>
           )}
 
           {error && (
-            <div className="center" style={{ padding: "4rem 0", color: "var(--danger)" }}>
+            <div className="center" style={{ padding: "5rem 0", color: "var(--danger)" }}>
               {error}
             </div>
           )}
 
-          {!loading && !error && allPhotos.length === 0 && (
-            <div className="center" style={{ padding: "4rem 0", color: "var(--muted)" }}>
-              Aún no hay fotos públicas en la galería.
+          {!loading && !error && albums.length === 0 && (
+            <div className="center" style={{ padding: "5rem 0" }}>
+              <div
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  background: "var(--surface)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                  fontSize: 32,
+                }}
+              >
+                📷
+              </div>
+              <p style={{ color: "var(--text)", fontWeight: 500, marginBottom: 6 }}>
+                Galería en construcción
+              </p>
+              <p style={{ color: "var(--muted)", fontSize: 14, maxWidth: 320, margin: "0 auto" }}>
+                Pronto compartiremos transformaciones, estilos y momentos del spa.
+              </p>
             </div>
           )}
 
-          {!loading && !error && allPhotos.length > 0 && (
-            <MoraScrollReveal>
-              <div className="gallery-grid">
-                {allPhotos.map((photo, index) => (
-                  <button
-                    key={photo.id}
-                    className="gallery-item"
-                    onClick={() =>
-                      setLightbox({
-                        url: resolveImageUrl(photo.url),
-                        title: photo.albumTitle,
-                      })
-                    }
-                    style={{ animationDelay: `${index * 50}ms` }}
+          {!loading &&
+            !error &&
+            albums.map((album) => (
+              <div key={album.id} style={{ marginBottom: 56 }}>
+                <MoraScrollReveal>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 12,
+                      marginBottom: 20,
+                      flexWrap: "wrap",
+                    }}
                   >
-                    <img
-                      src={resolveImageUrl(photo.url)}
-                      alt={photo.fileName ?? photo.albumTitle}
-                      loading="lazy"
-                    />
-                    <div className="gallery-overlay">
-                      <span className="gallery-title">{photo.albumTitle}</span>
-                      {photo.albumDescription && (
-                        <span className="gallery-desc">{photo.albumDescription}</span>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                    <h2
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 600,
+                        letterSpacing: "0.2px",
+                        color: "var(--text)",
+                      }}
+                    >
+                      {album.title}
+                    </h2>
+                    {album.client?.name && (
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: "var(--muted)",
+                          fontWeight: 500,
+                        }}
+                      >
+                        — {album.client.name}
+                      </span>
+                    )}
+                  </div>
+                  {album.description && (
+                    <p
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: 14,
+                        marginBottom: 20,
+                        maxWidth: 600,
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {album.description}
+                    </p>
+                  )}
+                </MoraScrollReveal>
+                <div className="gallery-grid">
+                  {album.photos.map((photo, index) => (
+                    <button
+                      key={photo.id}
+                      className="gallery-item"
+                      onClick={() =>
+                        setLightbox({
+                          url: resolveImageUrl(photo.url),
+                          title: album.title,
+                        })
+                      }
+                      style={{ animationDelay: `${index * 60}ms` }}
+                    >
+                      <img
+                        src={resolveImageUrl(photo.url)}
+                        alt={photo.fileName ?? album.title}
+                        loading="lazy"
+                      />
+                      <div className="gallery-overlay">
+                        <span className="gallery-title">{album.title}</span>
+                        {album.description && (
+                          <span className="gallery-desc">{album.description}</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </MoraScrollReveal>
-          )}
+            ))}
         </div>
       </section>
 
