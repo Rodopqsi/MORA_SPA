@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { apiBaseUrl } from '../../lib/api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import AdminModalForm from '../../components/AdminModalForm';
@@ -39,6 +40,14 @@ type AlbumForm = {
   description: string;
   privacy: AlbumPrivacy;
 };
+
+const apiPublicUrl = apiBaseUrl.replace(/\/api$/, '');
+
+function resolveImageUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${apiPublicUrl}${url}`;
+}
 
 const emptyPhoto = (): PhotoForm => ({ url: '', fileName: '', type: 'RESULTADO' });
 const createEmptyForm = (): AlbumForm => ({ id: null, title: '', clientId: '', description: '', privacy: 'INTERNO' });
@@ -316,7 +325,7 @@ export default function AlbumesPage() {
                 <div key={index} className="card" style={{ padding: 16 }}>
                   {photo.url ? (
                     <div style={{ width: '100%', height: 140, borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
-                      <img src={photo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={resolveImageUrl(photo.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                   ) : (
                     <label>
@@ -366,7 +375,7 @@ export default function AlbumesPage() {
                   <div key={photo.id} className="card" style={{ padding: 16 }}>
                     <div className="album-thumb" style={{ marginBottom: 12 }}>
                       <img
-                        src={photo.url}
+                        src={resolveImageUrl(photo.url)}
                         alt={photo.fileName || `Foto ${index + 1}`}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 20 }}
                       />
@@ -399,7 +408,7 @@ export default function AlbumesPage() {
             <div className="album-thumb">
               {album.photos?.[0]?.url ? (
                 <img
-                  src={album.photos[0].url}
+                  src={resolveImageUrl(album.photos[0].url)}
                   alt={album.photos[0].fileName || album.title}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 20 }}
                 />

@@ -48,12 +48,12 @@ export default function SideNav() {
   return (
     <aside className="sidebar">
       <div className="brand">
-  <div className="brand-badge flex-shrink-0">GM</div>
-  <div className="flex flex-col justify-center text-left">
-    <div className="brand-title leading-tight font-bold">Gisela Mora</div>
-    <div className="brand-subtitle text-xs leading-none">SPA - BARBER</div>
-  </div>
-</div>
+        <div className="brand-badge">GM</div>
+        <div>
+          <div className="brand-title">Gisela Mora</div>
+          <div className="brand-subtitle">SPA - BARBER</div>
+        </div>
+      </div>
 
       <nav className="nav">
         {sections.map((section) => (
