@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch, apiBaseUrl } from "../../lib/api";
+import { apiFetch, getApiPublicUrl } from "../../lib/api";
 import MoraScrollReveal from "../../components/MoraScrollReveal";
 
 type AlbumPhoto = {
@@ -20,12 +20,10 @@ type GalleryAlbum = {
   client?: { name: string } | null;
 };
 
-const apiPublicUrl = apiBaseUrl.replace(/\/api$/, "");
-
 function resolveImageUrl(url?: string): string {
   if (!url) return "";
   if (url.startsWith("http")) return url;
-  return `${apiPublicUrl}${url}`;
+  return `${getApiPublicUrl()}${url}`;
 }
 
 export const dynamic = "force-dynamic";

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
-import { apiBaseUrl } from '../../lib/api';
+import { getApiPublicUrl } from '../../lib/api';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import AdminModalForm from '../../components/AdminModalForm';
@@ -41,12 +41,10 @@ type AlbumForm = {
   privacy: AlbumPrivacy;
 };
 
-const apiPublicUrl = apiBaseUrl.replace(/\/api$/, '');
-
 function resolveImageUrl(url?: string): string {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `${apiPublicUrl}${url}`;
+  return `${getApiPublicUrl()}${url}`;
 }
 
 const emptyPhoto = (): PhotoForm => ({ url: '', fileName: '', type: 'RESULTADO' });

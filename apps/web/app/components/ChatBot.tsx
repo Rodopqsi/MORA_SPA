@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { apiFetch, apiBaseUrl } from "../lib/api";
+import { apiFetch, getApiPublicUrl } from "../lib/api";
 
 interface ChatCardData {
   type: "service" | "product" | "promotion";
@@ -34,14 +34,12 @@ interface ChatResponse {
   };
 }
 
-const apiPublicUrl = apiBaseUrl.replace(/\/api$/, "");
-
 function resolveCardImageUrl(url?: string): string | undefined {
   if (!url || url.trim() === "") return undefined;
   if (url.startsWith("http")) return url;
-  if (url.startsWith("/uploads/")) return `${apiPublicUrl}${url}`;
-  // Si la URL es relativa sin /uploads/, asumir que es relativa al publicUrl
-  if (url.startsWith("/")) return `${apiPublicUrl}${url}`;
+  const base = getApiPublicUrl();
+  if (url.startsWith("/uploads/")) return `${base}${url}`;
+  if (url.startsWith("/")) return `${base}${url}`;
   return url;
 }
 

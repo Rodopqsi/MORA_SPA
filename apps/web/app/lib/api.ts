@@ -3,6 +3,18 @@ import { getToken, clearToken } from './auth';
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api';
 
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (!host.includes('localhost')) {
+      return `${window.location.protocol}//${host.replace('web', 'api')}/api`;
+    }
+  }
+  return apiBaseUrl;
+};
+
+export const getApiPublicUrl = (): string => getApiBaseUrl().replace(/\/api$/, '');
+
 export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<T> => {
   const token = getToken('clientToken');
   const response = await fetch(`${apiBaseUrl}${path}`, {
