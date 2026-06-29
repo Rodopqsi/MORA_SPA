@@ -32,6 +32,8 @@ import {
   UPLOAD_BUCKETS,
   resolveUploadAbsolutePath
 } from './uploads';
+import { uploadToCloudinary, deleteFromCloudinary } from './cloudinary';
+import fs from 'fs/promises';
 import { logAudit } from './audit';
 
 const router = Router();
@@ -86,7 +88,8 @@ const productImageInputSchema = z.object({
     ),
   fileName: z.preprocess(emptyStringToUndefined, z.string().trim().optional()),
   source: z.enum(['URL', 'LOCAL']).optional(),
-  isCover: z.boolean().optional()
+  isCover: z.boolean().optional(),
+  cloudinaryPublicId: z.string().trim().optional()
 });
 
 const serviceImageInputSchema = productImageInputSchema;
@@ -216,6 +219,7 @@ const normalizeProductImages = (images: ProductImageInput[] = []) => {
     fileName: image.fileName?.trim(),
     source: image.source ?? (image.url.startsWith('data:image/') ? 'LOCAL' : 'URL'),
     isCover: Boolean(image.isCover),
+    cloudinaryPublicId: image.cloudinaryPublicId?.trim(),
     order: index + 1
   }));
 
@@ -676,12 +680,30 @@ router.post(
     const rawBucket = (req.query.bucket as string | undefined) ?? (req.body?.bucket as string | undefined) ?? 'misc';
     const bucket = (UPLOAD_BUCKETS as readonly string[]).includes(rawBucket) ? rawBucket : 'misc';
 
-    const data = files.map((file) => ({
-      url: publicUrlFor(bucket as (typeof UPLOAD_BUCKETS)[number], file.filename),
-      fileName: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype
-    }));
+    const useCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+
+    const data: { url: string; fileName: string; size: number; mimetype: string; publicId?: string }[] = [];
+
+    for (const file of files) {
+      if (useCloudinary) {
+        const result = await uploadToCloudinary(file.path, bucket);
+        data.push({
+          url: result.url,
+          fileName: result.fileName,
+          size: file.size,
+          mimetype: file.mimetype,
+          publicId: result.publicId,
+        });
+        await fs.unlink(file.path).catch(() => {});
+      } else {
+        data.push({
+          url: publicUrlFor(bucket as (typeof UPLOAD_BUCKETS)[number], file.filename),
+          fileName: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+        });
+      }
+    }
 
     if (req.user) {
       await logAudit({
@@ -708,13 +730,24 @@ router.delete(
     if (!url) {
       throw new AppError(400, 'Se requiere el parametro "url".', 'url_required');
     }
+
+    const publicId = (req.query.publicId as string | undefined) ?? (req.body?.publicId as string | undefined);
+    if (publicId && (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)) {
+      try {
+        await deleteFromCloudinary(publicId);
+      } catch {
+        // ignore cleanup errors
+      }
+      res.json({ ok: true, removed: true, cloudinary: true });
+      return;
+    }
+
     const absolute = resolveUploadAbsolutePath(url);
     if (!absolute) {
       // External URL or unsupported scheme - silently succeed
       res.json({ ok: true, removed: false, reason: 'external_url' });
       return;
     }
-    const fs = await import('fs/promises');
     try {
       await fs.unlink(absolute);
       res.json({ ok: true, removed: true });
@@ -2155,7 +2188,8 @@ router.post(
             fileName: image.fileName,
             source: image.source,
             order: image.order,
-            isCover: image.isCover
+            isCover: image.isCover,
+            cloudinaryPublicId: image.cloudinaryPublicId
           }))
         }
       },
@@ -2222,7 +2256,8 @@ router.patch(
               fileName: image.fileName,
               source: image.source,
               order: image.order,
-              isCover: image.isCover
+              isCover: image.isCover,
+              cloudinaryPublicId: image.cloudinaryPublicId
             }))
           });
         }
@@ -3610,7 +3645,8 @@ router.post(
               fileName: z.string().optional(),
               order: toInt.optional(),
               isCover: z.boolean().optional(),
-              takenAt: z.string().optional()
+              takenAt: z.string().optional(),
+              cloudinaryPublicId: z.string().optional()
             })
           )
           .optional()
@@ -3635,7 +3671,8 @@ router.post(
                 order: photo.order ?? index + 1,
                 isCover: photo.isCover ?? index === 0,
                 takenAt: photo.takenAt ? parseDateTime(photo.takenAt) : undefined,
-                uploadedById: req.user?.id
+                uploadedById: req.user?.id,
+                cloudinaryPublicId: photo.cloudinaryPublicId
               }))
             }
           : undefined
@@ -3698,7 +3735,8 @@ router.post(
         fileName: z.string().optional(),
         order: toInt.optional(),
         isCover: z.boolean().optional(),
-        takenAt: z.string().optional()
+        takenAt: z.string().optional(),
+        cloudinaryPublicId: z.string().optional()
       }),
       req.body
     );
@@ -3712,7 +3750,8 @@ router.post(
         order: body.order ?? 1,
         isCover: body.isCover ?? false,
         takenAt: body.takenAt ? parseDateTime(body.takenAt) : undefined,
-        uploadedById: req.user?.id
+        uploadedById: req.user?.id,
+        cloudinaryPublicId: body.cloudinaryPublicId
       }
     });
 
@@ -3839,7 +3878,8 @@ router.post(
                 fileName: image.fileName,
                 source: image.source,
                 order: image.order,
-                isCover: image.isCover
+                isCover: image.isCover,
+                cloudinaryPublicId: image.cloudinaryPublicId
               }))
             }
           : undefined
@@ -3897,7 +3937,8 @@ router.patch(
               fileName: image.fileName,
               source: image.source,
               order: image.order,
-              isCover: image.isCover
+              isCover: image.isCover,
+              cloudinaryPublicId: image.cloudinaryPublicId
             }))
           });
         }

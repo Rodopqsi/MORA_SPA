@@ -137,7 +137,8 @@ export default function ProductosPage() {
           fileName: image.fileName || undefined,
           source: image.source,
           isCover: image.isCover,
-          order: index
+          order: index,
+          cloudinaryPublicId: image.publicId
         }))
     };
 

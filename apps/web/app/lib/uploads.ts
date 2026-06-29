@@ -8,6 +8,7 @@ export type UploadedFile = {
   fileName: string;
   size: number;
   mimetype: string;
+  publicId?: string;
 };
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -69,12 +70,15 @@ export const uploadImages = async (files: File[], bucket: UploadBucket): Promise
   return json.data ?? [];
 };
 
-export const deleteUpload = async (url: string): Promise<void> => {
+export const deleteUpload = async (url: string, publicId?: string): Promise<void> => {
   const token = getToken('staffToken');
   if (!token) {
     throw new Error('No auth token');
   }
-  const response = await fetch(`${apiBaseUrl}/uploads?url=${encodeURIComponent(url)}`, {
+  const qs = new URLSearchParams();
+  qs.set('url', url);
+  if (publicId) qs.set('publicId', publicId);
+  const response = await fetch(`${apiBaseUrl}/uploads?${qs.toString()}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` }
   });

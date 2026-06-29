@@ -31,6 +31,7 @@ type PhotoForm = {
   url: string;
   fileName: string;
   type: PhotoType;
+  cloudinaryPublicId?: string;
 };
 
 type AlbumForm = {
@@ -55,7 +56,8 @@ const buildValidPhotos = (photos: PhotoForm[]) => {
     .map((photo) => ({
       url: photo.url.trim(),
       fileName: photo.fileName.trim(),
-      type: photo.type
+      type: photo.type,
+      cloudinaryPublicId: photo.cloudinaryPublicId
     }))
     .filter((photo) => photo.url.length > 0);
 };
@@ -131,7 +133,8 @@ export default function AlbumesPage() {
                   fileName: photo.fileName || undefined,
                   type: photo.type,
                   order: initialOrder + index,
-                  isCover: (editingAlbum?.photos?.length ?? 0) === 0 && index === 0
+                  isCover: (editingAlbum?.photos?.length ?? 0) === 0 && index === 0,
+                  cloudinaryPublicId: photo.cloudinaryPublicId || undefined
                 })
               })
             )
@@ -150,7 +153,8 @@ export default function AlbumesPage() {
               fileName: photo.fileName || undefined,
               type: photo.type,
               order: index + 1,
-              isCover: index === 0
+              isCover: index === 0,
+              cloudinaryPublicId: photo.cloudinaryPublicId || undefined
             }))
           })
         });
@@ -200,7 +204,12 @@ export default function AlbumesPage() {
       const uploaded = await uploadImages(Array.from(filesList), 'misc');
       setPhotos((current) => [
         ...current,
-        ...uploaded.map((u) => ({ url: u.url, fileName: u.fileName ?? '', type: 'RESULTADO' as PhotoType }))
+        ...uploaded.map((u) => ({
+          url: u.url,
+          fileName: u.fileName ?? '',
+          type: 'RESULTADO' as PhotoType,
+          cloudinaryPublicId: u.publicId
+        }))
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al subir');

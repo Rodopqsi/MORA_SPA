@@ -8,6 +8,7 @@ export type UploaderImage = {
   fileName?: string;
   source: 'URL' | 'LOCAL';
   isCover: boolean;
+  publicId?: string;
 };
 
 type Props = {
@@ -59,7 +60,8 @@ export default function ImageUploader({ bucket, value, onChange, maxFiles = 8, l
           url: u.url,
           fileName: u.fileName,
           source: 'LOCAL' as const,
-          isCover: false
+          isCover: false,
+          publicId: u.publicId
         }))
       ];
       onChange(ensureCover(next));
@@ -76,7 +78,7 @@ export default function ImageUploader({ bucket, value, onChange, maxFiles = 8, l
     const target = value[index];
     if (target && isLocalUrl(target.url)) {
       try {
-        await deleteUpload(target.url);
+        await deleteUpload(target.url, target.publicId);
       } catch {
         // ignore
       }

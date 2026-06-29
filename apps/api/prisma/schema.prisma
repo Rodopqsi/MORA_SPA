@@ -410,15 +410,16 @@ model ProductSale {
 }
 
 model ProductImage {
-  id        Int                @id @default(autoincrement())
-  productId Int
-  url       String
-  fileName  String?
-  source    ProductImageSource @default(URL)
-  order     Int                @default(1)
-  isCover   Boolean            @default(false)
-  createdAt DateTime           @default(now())
-  product   Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                Int                @id @default(autoincrement())
+  productId         Int
+  url               String
+  fileName          String?
+  source            ProductImageSource @default(URL)
+  order             Int                @default(1)
+  isCover           Boolean            @default(false)
+  cloudinaryPublicId String?
+  createdAt         DateTime           @default(now())
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, order])
 }
@@ -464,19 +465,20 @@ model Album {
 }
 
 model AlbumPhoto {
-  id           Int       @id @default(autoincrement())
-  albumId      Int
-  type         PhotoType @default(RESULTADO)
-  url          String
-  fileName     String?
-  order        Int       @default(1)
-  isCover      Boolean   @default(false)
-  takenAt      DateTime?
-  uploadedAt   DateTime  @default(now())
-  uploadedById Int?
-  deleted      Boolean   @default(false)
-  album        Album     @relation(fields: [albumId], references: [id])
-  uploadedBy   User?     @relation("PhotoUploadedBy", fields: [uploadedById], references: [id])
+  id                Int       @id @default(autoincrement())
+  albumId           Int
+  type              PhotoType @default(RESULTADO)
+  url               String
+  fileName          String?
+  order             Int       @default(1)
+  isCover           Boolean   @default(false)
+  takenAt           DateTime?
+  uploadedAt        DateTime  @default(now())
+  uploadedById      Int?
+  deleted           Boolean   @default(false)
+  cloudinaryPublicId String?
+  album             Album     @relation(fields: [albumId], references: [id])
+  uploadedBy        User?     @relation("PhotoUploadedBy", fields: [uploadedById], references: [id])
 }
 
 model ImageConsent {
