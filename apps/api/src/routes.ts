@@ -666,6 +666,11 @@ router.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+router.get('/upload-config', (_req, res) => {
+  const cloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+  res.json({ cloudinary });
+});
+
 // ----- File uploads (admin/staff) -----
 router.post(
   '/uploads',

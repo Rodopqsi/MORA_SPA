@@ -3,6 +3,7 @@ import SideNav from '../components/SideNav';
 import AdminSearch from '../components/AdminSearch';
 import AdminLogoutButton from '../components/AdminLogoutButton';
 import AdminUserChip from '../components/AdminUserChip';
+import CloudinaryBanner from '../components/CloudinaryBanner';
 
 export const metadata = {
   title: 'Mora Spa Admin',
@@ -24,6 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminUserChip />
           </div>
         </header>
+        <CloudinaryBanner />
         <main className="content">{children}</main>
       </div>
     </div>
