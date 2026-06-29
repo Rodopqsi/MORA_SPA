@@ -15,7 +15,8 @@ type Service = {
   priceBase: string | number;
   durationMin: number;
 };
-type Promotion = { id: number; name: string; channel?: string | null; startDate: string; endDate: string };
+type PromotionImage = { url: string; fileName?: string | null; source?: 'URL' | 'LOCAL'; isCover?: boolean; cloudinaryPublicId?: string | null };
+type Promotion = { id: number; name: string; channel?: string | null; startDate: string; endDate: string; images?: PromotionImage[] };
 type Staff = { id: number; name: string; role?: string | null; services?: { service: { name: string } }[] };
 
 const heroSlides = [
@@ -252,23 +253,34 @@ export default function PublicHomePage() {
           </div>
           <Link href="/reservar" className="section-link-more">Aplicar promo</Link>
         </div>
-        <MoraScrollReveal selector=".promo-pill" className="promo-evolution-banner" stagger={0.09} variant="fade-right">
-          <div>
-            <h3>Beneficios listos para tu proxima visita</h3>
-            <p>Revisa las promos activas en web y reserva con la combinacion que mejor encaje con tu rutina.</p>
-          </div>
-          <div className="promo-stack">
-            {promotions.length === 0 && <div className="list-sub">No hay promociones activas por ahora.</div>}
-            {promotions.slice(0, 3).map((promo) => (
-              <div key={promo.id} className="promo-pill">
-                <div className="promo-pill-title">{promo.name}</div>
-                <div className="promo-pill-sub">
-                  Vigente hasta {new Date(promo.endDate).toLocaleDateString('es-PE')}
+        <div className="promo-carousel-wrap">
+          {promotions.length === 0 && <div className="list-sub">No hay promociones activas por ahora.</div>}
+          {promotions.length > 0 && (
+            <div className="promo-carousel-track" aria-label="Carrusel de promociones">
+              {promotions
+                .filter((p) => (p.images ?? []).length > 0)
+                .flatMap((p) => (p.images ?? []))
+                .concat(promotions.filter((p) => (p.images ?? []).length > 0).flatMap((p) => (p.images ?? [])))
+                .map((img, i) => (
+                  <div key={`${img.url}-${i}`} className="promo-carousel-slide">
+                    <img src={img.url} alt={img.fileName || 'Promocion Mora'} loading="lazy" />
+                  </div>
+                ))}
+            </div>
+          )}
+          {promotions.some((p) => (p.images ?? []).length === 0) && (
+            <div className="promo-stack" style={{ marginTop: 16 }}>
+              {promotions.filter((p) => (p.images ?? []).length === 0).slice(0, 3).map((promo) => (
+                <div key={promo.id} className="promo-pill">
+                  <div className="promo-pill-title">{promo.name}</div>
+                  <div className="promo-pill-sub">
+                    Vigente hasta {new Date(promo.endDate).toLocaleDateString('es-PE')}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </MoraScrollReveal>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="public-section" id="equipo">

@@ -5,10 +5,19 @@ import { staffFetch } from '../../lib/staffApi';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import AdminModalForm from '../../components/AdminModalForm';
+import ImageUploader, { type UploaderImage } from '../../components/ImageUploader';
 
 type PromotionType = 'PORCENTAJE' | 'MONTO' | 'REGALO';
 
 type Service = { id: number; name: string };
+
+type PromotionImage = {
+  url: string;
+  fileName?: string | null;
+  source?: 'URL' | 'LOCAL';
+  isCover?: boolean;
+  cloudinaryPublicId?: string | null;
+};
 
 type Promotion = {
   id: number;
@@ -20,6 +29,7 @@ type Promotion = {
   endDate: string;
   channel?: string | null;
   serviceIds: number[];
+  images?: PromotionImage[];
 };
 
 const createEmptyForm = () => ({
@@ -30,7 +40,8 @@ const createEmptyForm = () => ({
   startDate: '',
   endDate: '',
   channel: '',
-  serviceIds: [] as number[]
+  serviceIds: [] as number[],
+  images: [] as UploaderImage[]
 });
 
 export default function PromocionesPage() {
@@ -75,6 +86,16 @@ export default function PromocionesPage() {
     setError('');
 
     try {
+      const imagesPayload = form.images
+        .filter((img) => img.url.trim().length > 0)
+        .map((img) => ({
+          url: img.url,
+          fileName: img.fileName || undefined,
+          source: img.source,
+          isCover: img.isCover,
+          cloudinaryPublicId: img.publicId
+        }));
+
       await staffFetch(form.id ? `/promotions/${form.id}` : '/promotions', {
         method: form.id ? 'PATCH' : 'POST',
         body: JSON.stringify({
@@ -84,7 +105,8 @@ export default function PromocionesPage() {
           startDate: form.startDate,
           endDate: form.endDate,
           channel: form.channel.trim() || undefined,
-          serviceIds: form.serviceIds
+          serviceIds: form.serviceIds,
+          images: imagesPayload
         })
       });
       resetForm();
@@ -104,7 +126,14 @@ export default function PromocionesPage() {
       startDate: promo.startDate?.slice(0, 10) ?? '',
       endDate: promo.endDate?.slice(0, 10) ?? '',
       channel: promo.channel ?? '',
-      serviceIds: promo.serviceIds ?? []
+      serviceIds: promo.serviceIds ?? [],
+      images: (promo.images ?? []).map((img) => ({
+        url: img.url,
+        fileName: img.fileName ?? undefined,
+        source: img.source ?? 'URL',
+        isCover: img.isCover ?? false,
+        publicId: img.cloudinaryPublicId ?? undefined
+      }))
     });
     setOpenForm(true);
   };
@@ -198,6 +227,15 @@ export default function PromocionesPage() {
             Canal
             <input value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })} placeholder="Whatsapp, Instagram, Web..." />
           </label>
+          <div>
+            <ImageUploader
+              bucket="misc"
+              value={form.images}
+              onChange={(images) => setForm({ ...form, images })}
+              maxFiles={4}
+              label="Imagenes de la promocion"
+            />
+          </div>
           <div>
             <div className="section-head" style={{ marginBottom: 12 }}>
               <div>

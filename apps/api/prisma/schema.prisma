@@ -185,15 +185,16 @@ model Service {
 }
 
 model ServiceImage {
-  id        Int               @id @default(autoincrement())
-  serviceId Int
-  url       String
-  fileName  String?
-  source    EntityImageSource @default(URL)
-  order     Int               @default(0)
-  isCover   Boolean           @default(false)
-  createdAt DateTime          @default(now())
-  service   Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  id                 Int               @id @default(autoincrement())
+  serviceId          Int
+  url                String
+  fileName           String?
+  source             EntityImageSource @default(URL)
+  order              Int               @default(0)
+  isCover            Boolean           @default(false)
+  cloudinaryPublicId String?
+  createdAt          DateTime          @default(now())
+  service            Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@index([serviceId])
 }
@@ -343,8 +344,24 @@ model Promotion {
   endDate      DateTime
   channel      String?
   active       Boolean                @default(true)
+  images       PromotionImage[]
   services     PromotionService[]
   reservations ReservationPromotion[]
+}
+
+model PromotionImage {
+  id                 Int               @id @default(autoincrement())
+  promotionId        Int
+  url                String
+  fileName           String?
+  source             EntityImageSource @default(URL)
+  order              Int               @default(0)
+  isCover            Boolean           @default(false)
+  cloudinaryPublicId String?
+  createdAt          DateTime          @default(now())
+  promotion          Promotion         @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
 }
 
 model PromotionService {

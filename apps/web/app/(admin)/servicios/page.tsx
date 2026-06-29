@@ -118,7 +118,8 @@ export default function ServiciosPage() {
           url: img.url,
           fileName: img.fileName,
           source: img.source,
-          isCover: img.isCover
+          isCover: img.isCover,
+          cloudinaryPublicId: img.publicId
         }))
       };
 

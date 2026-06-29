@@ -201,7 +201,7 @@ export default function ProductosPage() {
       if (form.id === confirmDelete.id) {
         setForm(createEmptyForm());
       }
-      setSuccess(`"${confirmDelete.name}" archivado correctamente.`);
+      setSuccess(`"${confirmDelete.name}" eliminado correctamente.`);
       loadProducts();
       setConfirmDelete(null);
     } catch (err) {
@@ -456,7 +456,7 @@ export default function ProductosPage() {
         title="Eliminar producto"
         description={
           confirmDelete
-            ? `Archivar "${confirmDelete.name}"? Se ocultará de la tienda pero permanecerá en el sistema.`
+            ? `Eliminar "${confirmDelete.name}" permanentemente? No se puede deshacer.`
             : ''
         }
         confirmLabel="Eliminar"

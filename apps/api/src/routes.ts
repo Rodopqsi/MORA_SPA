@@ -1120,6 +1120,7 @@ router.get(
         startDate: { lte: now },
         endDate: { gte: now }
       },
+      include: { images: { orderBy: { order: 'asc' } } },
       orderBy: { startDate: 'desc' }
     });
     res.json({ data: promotions });
@@ -3305,7 +3306,7 @@ router.get(
     const [promotions, total] = await Promise.all([
       prisma.promotion.findMany({
         where,
-        include: { services: true },
+        include: { services: true, images: { orderBy: { order: 'asc' } } },
         orderBy: { startDate: 'desc' },
         skip: (params.page - 1) * params.pageSize,
         take: params.pageSize
@@ -3338,10 +3339,13 @@ router.post(
         endDate: z.string(),
         channel: z.string().optional(),
         active: z.boolean().optional(),
-        serviceIds: z.array(toInt).optional()
+        serviceIds: z.array(toInt).optional(),
+        images: z.array(productImageInputSchema).max(8).optional()
       }),
       req.body
     );
+
+    const images = normalizeProductImages(body.images ?? []);
 
     const promotion = await prisma.promotion.create({
       data: {
@@ -3356,11 +3360,24 @@ router.post(
           ? {
               create: body.serviceIds.map((serviceId) => ({ serviceId }))
             }
+          : undefined,
+        images: images.length
+          ? {
+              create: images.map((image) => ({
+                url: image.url,
+                fileName: image.fileName,
+                source: image.source,
+                order: image.order,
+                isCover: image.isCover,
+                cloudinaryPublicId: image.cloudinaryPublicId
+              }))
+            }
           : undefined
-      }
+      },
+      include: { services: true, images: { orderBy: { order: 'asc' } } }
     });
 
-    res.status(201).json({ data: promotion });
+    res.status(201).json({ data: { ...promotion, serviceIds: promotion.services.map((s) => s.serviceId) } });
   })
 );
 
@@ -3378,7 +3395,8 @@ router.patch(
         endDate: z.string().optional(),
         channel: z.string().optional(),
         active: z.boolean().optional(),
-        serviceIds: z.array(toInt).optional()
+        serviceIds: z.array(toInt).optional(),
+        images: z.array(productImageInputSchema).max(8).optional()
       }),
       req.body
     );
@@ -3390,20 +3408,41 @@ router.patch(
       });
     }
 
-    const promotion = await prisma.promotion.update({
-      where: { id },
-      data: {
-        name: body.name,
-        type: body.type,
-        value: body.value,
-        startDate: body.startDate ? parseDate(body.startDate) : undefined,
-        endDate: body.endDate ? parseDate(body.endDate) : undefined,
-        channel: body.channel,
-        active: body.active
+    const promotion = await prisma.$transaction(async (tx) => {
+      if (body.images) {
+        const normalized = normalizeProductImages(body.images);
+        await tx.promotionImage.deleteMany({ where: { promotionId: id } });
+        if (normalized.length > 0) {
+          await tx.promotionImage.createMany({
+            data: normalized.map((image) => ({
+              promotionId: id,
+              url: image.url,
+              fileName: image.fileName,
+              source: image.source,
+              order: image.order,
+              isCover: image.isCover,
+              cloudinaryPublicId: image.cloudinaryPublicId
+            }))
+          });
+        }
       }
+
+      return tx.promotion.update({
+        where: { id },
+        data: {
+          name: body.name,
+          type: body.type,
+          value: body.value,
+          startDate: body.startDate ? parseDate(body.startDate) : undefined,
+          endDate: body.endDate ? parseDate(body.endDate) : undefined,
+          channel: body.channel,
+          active: body.active
+        },
+        include: { services: true, images: { orderBy: { order: 'asc' } } }
+      });
     });
 
-    res.json({ data: promotion });
+    res.json({ data: { ...promotion, serviceIds: promotion.services.map((s) => s.serviceId) } });
   })
 );
 
@@ -3966,7 +4005,28 @@ router.delete(
   requireRoles('ADMIN'),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    await prisma.product.update({ where: { id }, data: { active: false } });
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { images: true, saleDetails: true }
+    });
+    if (!product) throw new Error('Producto no encontrado');
+    if (product.saleDetails.length > 0) {
+      throw new Error('No se puede eliminar: el producto tiene ventas registradas. Ocultalo en su lugar.');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.productImage.deleteMany({ where: { productId: id } });
+      await tx.product.delete({ where: { id } });
+    });
+
+    for (const img of product.images) {
+      if (img.cloudinaryPublicId) {
+        try {
+          await deleteFromCloudinary(img.cloudinaryPublicId);
+        } catch {}
+      }
+    }
+
     res.status(204).send();
   })
 );
