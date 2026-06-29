@@ -28,6 +28,8 @@ if (fs.existsSync(uploadsRoot)) {
   app.use('/uploads', (_req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
     next();
   }, express.static(uploadsRoot, { fallthrough: true, maxAge: '1d' }));
 }
