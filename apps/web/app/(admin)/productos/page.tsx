@@ -364,34 +364,45 @@ export default function ProductosPage() {
             <button className="chip press-feedback" type="button" onClick={loadProducts}>Actualizar</button>
           </div>
         </div>
-        <MoraScrollReveal as="div" className="product-admin-grid" selector=".product-admin-card" variant="fade-up" stagger={0.06} duration={0.5}>
+        <MoraScrollReveal as="div" className="showcase-evolution-grid" selector=".premium-service-box" variant="fade-up" stagger={0.08} duration={0.5}>
           {inventory.filter((item) => showArchived || item.active).length === 0 && (
-            <div className="empty-state">
-              {showArchived ? 'No hay productos archivados.' : 'Todavia no hay productos cargados.'}
+            <div className="premium-service-box" style={{ justifyContent: 'center', alignItems: 'center', padding: '48px', textAlign: 'center' }}>
+              <div className="empty-state-icon">PD</div>
+              <h3>{showArchived ? 'No hay archivados' : 'Aún no hay productos'}</h3>
+              <p>{showArchived ? 'No hay productos archivados.' : 'Empieza creando el primero.'}</p>
             </div>
           )}
-          {inventory.filter((item) => showArchived || item.active).map((item) => {
+          {inventory.filter((item) => showArchived || item.active).map((item, index) => {
             const cover = getProductCover(item);
             return (
-              <article key={item.id} className="product-admin-card lift-on-hover">
-                <div className="product-admin-media">
-                  {cover ? <img src={cover.url} alt={item.name} /> : <div className="empty-state">Sin imagen</div>}
-                </div>
-                <div className="product-admin-body">
-                  <div className="section-head">
-                    <div>
-                      <div className="list-title">{item.name}</div>
-                      <div className="list-sub">{item.category ?? 'Sin categoria'}</div>
+              <article key={item.id} className="premium-service-box lift-on-hover reveal" style={{ animationDelay: `${index * 90}ms` }}>
+                <div className="service-box-visual">
+                  {cover ? (
+                    <img src={cover.url} alt={item.name} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #fde6ef 0%, #f9d9e6 100%)', color: 'var(--accent-dark)', fontWeight: 700, fontSize: '14px' }}>
+                      {item.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="price-tag">S/ {productPrice(item.price).toFixed(2)}</span>
+                  )}
+                  <div className="service-box-overlay">
+                    <span className="service-box-tag">{item.stock} uds</span>
                   </div>
-                  <p>{item.description ?? 'Sin descripcion comercial todavia.'}</p>
-                  <div className="chip-row">
-                    <span className="pill">{item.stock} unidades</span>
-                    <span className={`status-badge ${item.active ? 'status-ok' : 'status-warn'}`}>{item.active ? 'Publicado' : 'Oculto'}</span>
-                    {item.featured && <span className="pill">Destacado</span>}
+                </div>
+                <div className="service-box-content">
+                  <div className="service-box-header">
+                    <h3>{item.name}</h3>
+                    <span className="service-box-price">S/ {productPrice(item.price).toFixed(2)}</span>
                   </div>
-                  <div className="table-actions">
+                  <p className="service-box-text">
+                    {item.description ?? 'Sin descripción comercial todavía.'}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span className={`status-pill ${item.active ? 'status-on' : 'status-off'}`}>
+                      {item.active ? 'Publicado' : 'Oculto'}
+                    </span>
+                    {item.featured && <span className="pill pill-soft">Destacado</span>}
+                  </div>
+                  <div className="service-actions" style={{ marginTop: 'auto', paddingTop: '4px' }}>
                     <button className="chip press-feedback" type="button" onClick={() => {
                       setForm(mapProductToForm(item));
                       setOpenForm(true);

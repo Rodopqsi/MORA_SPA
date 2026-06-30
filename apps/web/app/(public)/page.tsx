@@ -2,18 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { apiFetch } from '../lib/api';
+import { apiFetch, resolveUploadUrl } from '../lib/api';
 import { CatalogProduct, getProductCover } from '../lib/shopCart';
 import { ensureGsapRegistered, gsap, MoraDuration, MoraEase, prefersReducedMotion } from '../lib/gsap';
 import { MoraScrollReveal } from '../components/MoraScrollReveal';
 import { MoraHero } from '../components/MoraHero';
 
+type ServiceImage = { url: string; isCover?: boolean };
 type Service = {
   id: number;
   name: string;
   description?: string | null;
   priceBase: string | number;
   durationMin: number;
+  images?: ServiceImage[];
 };
 type Staff = { id: number; name: string; role?: string | null; services?: { service: { name: string } }[] };
 
@@ -118,10 +120,11 @@ export default function PublicHomePage() {
       });
   }, []);
 
-  const serviceImages = useMemo(
-    () => ['/assets/img10.jpeg', '/assets/img12.jpeg', '/assets/img15.jpeg', '/assets/img31.jpeg'],
-    []
-  );
+  const getServiceCover = (service: Service): string | undefined => {
+    const images = service.images ?? [];
+    const cover = images.find((i) => i.isCover) ?? images[0];
+    return cover ? resolveUploadUrl(cover.url) : undefined;
+  };
 
   return (
     <div className="public-page page-enter">
@@ -180,26 +183,35 @@ export default function PublicHomePage() {
 
         <MoraScrollReveal selector=".premium-service-box" className="showcase-evolution-grid" stagger={0.08}>
           {services.length === 0 && <div className="list-sub">Todavia no hay servicios publicados.</div>}
-          {services.slice(0, 6).map((service, index) => (
-            <div key={service.id} className="premium-service-box lift-on-hover">
-              <div className="service-box-visual">
-                <img src={serviceImages[index % serviceImages.length]} alt={service.name} />
-                <div className="service-box-overlay">
-                  <span className="service-box-tag">{service.durationMin} min</span>
+          {services.slice(0, 6).map((service) => {
+            const cover = getServiceCover(service);
+            return (
+              <div key={service.id} className="premium-service-box lift-on-hover">
+                <div className="service-box-visual">
+                  {cover ? (
+                    <img src={cover} alt={service.name} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #fde6ef 0%, #f9d9e6 100%)', color: 'var(--accent-dark)', fontWeight: 700, fontSize: '14px' }}>
+                      {service.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="service-box-overlay">
+                    <span className="service-box-tag">{service.durationMin} min</span>
+                  </div>
+                </div>
+                <div className="service-box-content">
+                  <div className="service-box-header">
+                    <h3>{service.name}</h3>
+                    <span className="service-box-price">S/ {service.priceBase}</span>
+                  </div>
+                  <p className="service-box-text">
+                    {service.description ?? 'Atención personalizada con diagnostico y acabado profesional.'}
+                  </p>
+                  <Link href={`/reservar?service=${service.id}`} className="service-box-action">Reservar este servicio</Link>
                 </div>
               </div>
-              <div className="service-box-content">
-                <div className="service-box-header">
-                  <h3>{service.name}</h3>
-                  <span className="service-box-price">S/ {service.priceBase}</span>
-                </div>
-                <p className="service-box-text">
-                  {service.description ?? 'Atención personalizada con diagnostico y acabado profesional.'}
-                </p>
-                <Link href={`/reservar?service=${service.id}`} className="service-box-action">Reservar este servicio</Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </MoraScrollReveal>
       </section>
 
