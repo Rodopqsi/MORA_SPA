@@ -15,6 +15,12 @@ export const getApiBaseUrl = (): string => {
 
 export const getApiPublicUrl = (): string => getApiBaseUrl().replace(/\/api$/, '');
 
+export const resolveUploadUrl = (url?: string | null): string => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${getApiPublicUrl()}${url}`;
+};
+
 export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<T> => {
   const token = getToken('clientToken');
   const response = await fetch(`${apiBaseUrl}${path}`, {

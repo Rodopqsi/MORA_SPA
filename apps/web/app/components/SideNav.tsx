@@ -25,8 +25,7 @@ const sections = [
   {
     title: 'Galería',
     items: [
-      { href: '/albumes', label: 'Galería', icon: 'GL' },
-      { href: '/galeria', label: 'Ver galería pública', icon: 'VP' }
+      { href: '/albumes', label: 'Galería', icon: 'GL' }
     ]
   },
   {

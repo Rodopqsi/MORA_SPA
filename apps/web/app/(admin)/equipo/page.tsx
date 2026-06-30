@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
 import { normalizePersonName, normalizePhone } from '../../lib/validation';
+import { resolveUploadUrl } from '../../lib/api';
 import AvatarUploader from '../../components/AvatarUploader';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AdminModalForm from '../../components/AdminModalForm';
@@ -309,7 +310,7 @@ export default function EquipoPage() {
                 <div className="avatar avatar-lg">
                   {member.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={member.avatarUrl} alt={member.name} />
+                    <img src={resolveUploadUrl(member.avatarUrl)} alt={member.name} />
                   ) : (
                     <span>{initials}</span>
                   )}
