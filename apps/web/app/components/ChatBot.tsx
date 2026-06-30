@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { apiFetch, getApiPublicUrl } from "../lib/api";
+import { apiFetch, resolveUploadUrl } from "../lib/api";
 
 interface ChatCardData {
   type: "service" | "product" | "promotion";
@@ -36,11 +36,7 @@ interface ChatResponse {
 
 function resolveCardImageUrl(url?: string): string | undefined {
   if (!url || url.trim() === "") return undefined;
-  if (url.startsWith("http")) return url;
-  const base = getApiPublicUrl();
-  if (url.startsWith("/uploads/")) return `${base}${url}`;
-  if (url.startsWith("/")) return `${base}${url}`;
-  return url;
+  return resolveUploadUrl(url) || undefined;
 }
 
 function ChatCard({ card }: { card: ChatCardData }) {

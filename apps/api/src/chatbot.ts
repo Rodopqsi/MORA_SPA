@@ -68,9 +68,12 @@ function decimalToString(value: unknown): string {
   return Number(value).toFixed(2);
 }
 
+const API_BASE_URL = process.env.API_PUBLIC_URL || 'http://localhost:4000';
+
 function resolveImageUrl(url?: string): string | undefined {
   if (!url) return undefined;
-  return url;
+  if (url.startsWith('http')) return url;
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 export async function buildChatContext(): Promise<ChatContext> {
@@ -171,7 +174,7 @@ function extractSuggestions(text: string): string[] {
 async function callGemini(message: string, ctx: ChatContext): Promise<string> {
   await initGenAI();
   if (!genAI) {
-    // Sin API key: fallback inteligente directo sin mensaje de error
+    console.warn('[Chatbot] Gemini no inicializado (sin API key). Usando fallback.');
     return fallbackReply(message, ctx);
   }
 
@@ -191,10 +194,14 @@ async function callGemini(message: string, ctx: ChatContext): Promise<string> {
       }
     });
 
-    return response.text ?? fallbackReply(message, ctx);
+    const text = response?.text;
+    if (!text) {
+      console.warn('[Chatbot] Gemini respondió vacío. Usando fallback.');
+      return fallbackReply(message, ctx);
+    }
+    return text;
   } catch (err: any) {
-    console.error('Gemini error:', err);
-    // Fallback inteligente basado en keywords si Gemini falla (quota, red, etc.)
+    console.error('[Chatbot] Gemini error:', err?.message || err);
     return fallbackReply(message, ctx);
   }
 }
@@ -283,8 +290,53 @@ export async function handleChatbotQuery(message: string, ctx: ChatContext): Pro
 function fallbackReply(message: string, ctx: ChatContext): string {
   const tokens = tokenize(message);
 
-  const colorKeywords = ['color', 'cabello', 'pelo', 'tinte', 'rubio', 'moreno', 'castano', 'rojo', 'negro', 'piel'];
-  if (tokens.some((t) => colorKeywords.some((k) => t.includes(k)))) {
+  // 1. Preguntas de precio / costo — buscar servicios o productos por relevancia
+  const priceKeywords = ['precio', 'cuesta', 'cuanto', 'valor', 'tarifa'];
+  const wantsPrice = tokens.some((t) => priceKeywords.includes(t));
+  if (wantsPrice) {
+    const stopwords = new Set(['de', 'un', 'una', 'el', 'la', 'los', 'las', 'con', 'para', 'y', 'o', 'en', 'por', 'cuanto', 'cuesta', 'precio', 'valor', 'que', 'es', 'son', 'me']);
+    const meaningfulTokens = tokens.filter((t) => !stopwords.has(t) && t.length >= 3);
+    const searchTokens = meaningfulTokens.length > 0 ? meaningfulTokens : tokens.filter((t) => t.length >= 3);
+
+    let bestService = null;
+    let bestScore = 0;
+    for (const service of ctx.services) {
+      const nameScore = scoreMatch(service.name, searchTokens) * 2; // nombre pesa más
+      const descScore = scoreMatch(service.description || '', searchTokens);
+      const score = nameScore + descScore;
+      if (score > bestScore) {
+        bestScore = score;
+        bestService = service;
+      }
+    }
+    if (bestService && bestScore >= 0.5) {
+      return `${bestService.name}: S/ ${decimalToString(bestService.priceBase)} — ${bestService.durationMin} min. ${bestService.description ?? ''} ¿Te gustaría reservar? 💅`;
+    }
+
+    let bestProduct = null;
+    let bestProductScore = 0;
+    for (const product of ctx.products) {
+      const nameScore = scoreMatch(product.name, searchTokens) * 2;
+      const descScore = scoreMatch(product.description || '', searchTokens);
+      const score = nameScore + descScore;
+      if (score > bestProductScore) {
+        bestProductScore = score;
+        bestProduct = product;
+      }
+    }
+    if (bestProduct && bestProductScore >= 0.5) {
+      return `${bestProduct.name}: S/ ${decimalToString(bestProduct.price)}. Stock: ${bestProduct.stock} unidades. ${bestProduct.description ?? ''} 🛍️`;
+    }
+
+    if (ctx.services.length > 0) {
+      const list = ctx.services.slice(0, 3).map(s => `${s.name}: S/ ${decimalToString(s.priceBase)}`).join(', ');
+      return `Nuestros servicios principales: ${list} y más. ¿Sobre cuál te gustaría saber? 💁‍♀️`;
+    }
+  }
+
+  // 2. Coloración — keywords específicas (evitar falsos positivos con "cabello" genérico)
+  const colorKeywords = ['color', 'tinte', 'mechas', 'rubio', 'moreno', 'castano', 'rojo', 'negro', 'decolorar', 'matizar', 'iluminacion'];
+  if (tokens.some((t) => colorKeywords.some((k) => t === k || t.startsWith(k)))) {
     const colorServices = ctx.services.filter(s => normalizeText(s.name).includes('color') || normalizeText(s.name).includes('tinte') || normalizeText(s.name).includes('mechas'));
     if (colorServices.length > 0) {
       const list = colorServices.map(s => `${s.name} (S/ ${decimalToString(s.priceBase)})`).join(', ');
@@ -294,7 +346,7 @@ function fallbackReply(message: string, ctx: ChatContext): string {
   }
 
   const facialKeywords = ['piel', 'rostro', 'facial', 'acne', 'limpieza', 'hidratacion'];
-  if (tokens.some((t) => facialKeywords.some((k) => t.includes(k)))) {
+  if (tokens.some((t) => facialKeywords.some((k) => t === k || t.startsWith(k)))) {
     const facialServices = ctx.services.filter(s => normalizeText(s.name).includes('facial') || normalizeText(s.description || '').includes('piel'));
     if (facialServices.length > 0) {
       const list = facialServices.map(s => `${s.name} (S/ ${decimalToString(s.priceBase)})`).join(', ');
@@ -304,7 +356,7 @@ function fallbackReply(message: string, ctx: ChatContext): string {
   }
 
   const promoKeywords = ['promo', 'descuento', 'oferta', 'gratis', '2x1'];
-  if (tokens.some((t) => promoKeywords.some((k) => t.includes(k)))) {
+  if (tokens.some((t) => promoKeywords.some((k) => t === k || t.startsWith(k)))) {
     if (ctx.promotions.length > 0) {
       const list = ctx.promotions.map(p => `${p.name}: ${p.type === 'PORCENTAJE' ? `${Number(p.value)}% OFF` : `S/ ${decimalToString(p.value)} OFF`}`).join(', ');
       return `¡Tenemos promociones activas! 🎉 ${list}. ¿Te gustaría reservar para aprovecharlas?`;
@@ -313,7 +365,7 @@ function fallbackReply(message: string, ctx: ChatContext): string {
   }
 
   const productKeywords = ['producto', 'shampoo', 'acondicionador', 'crema', 'venta', 'tienda', 'comprar'];
-  if (tokens.some((t) => productKeywords.some((k) => t.includes(k)))) {
+  if (tokens.some((t) => productKeywords.some((k) => t === k || t.startsWith(k)))) {
     if (ctx.products.length > 0) {
       const list = ctx.products.slice(0, 3).map(p => `${p.name} (S/ ${decimalToString(p.price)})`).join(', ');
       return `Contamos con productos de calidad en nuestra tienda: ${list} y más. Visita /tienda para ver todo el catálogo 🛍️`;
