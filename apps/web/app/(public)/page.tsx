@@ -15,8 +15,6 @@ type Service = {
   priceBase: string | number;
   durationMin: number;
 };
-type PromotionImage = { url: string; fileName?: string | null; source?: 'URL' | 'LOCAL'; isCover?: boolean; cloudinaryPublicId?: string | null };
-type Promotion = { id: number; name: string; channel?: string | null; startDate: string; endDate: string; images?: PromotionImage[] };
 type Staff = { id: number; name: string; role?: string | null; services?: { service: { name: string } }[] };
 
 const heroSlides = [
@@ -52,7 +50,6 @@ const galleryImages = [
 export default function PublicHomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [services, setServices] = useState<Service[]>([]);
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
 
@@ -106,19 +103,16 @@ export default function PublicHomePage() {
   useEffect(() => {
     Promise.all([
       apiFetch<{ data: Service[] }>('/public/services'),
-      apiFetch<{ data: Promotion[] }>('/public/promotions'),
       apiFetch<{ data: Staff[] }>('/public/staff'),
       apiFetch<{ data: CatalogProduct[] }>('/public/products')
     ])
-      .then(([servicesRes, promotionsRes, staffRes, productsRes]) => {
+      .then(([servicesRes, staffRes, productsRes]) => {
         setServices(servicesRes.data ?? []);
-        setPromotions(promotionsRes.data ?? []);
         setStaff(staffRes.data ?? []);
         setProducts(productsRes.data ?? []);
       })
       .catch(() => {
         setServices([]);
-        setPromotions([]);
         setStaff([]);
         setProducts([]);
       });
@@ -207,44 +201,6 @@ export default function PublicHomePage() {
             </div>
           ))}
         </MoraScrollReveal>
-      </section>
-
-      <section className="public-section" id="promos">
-        <div className="section-premium-head">
-          <div>
-            <span className="eyebrow">Campanas activas</span>
-            <h2>Promociones vigentes</h2>
-          </div>
-          <Link href="/reservar" className="section-link-more">Aplicar promo</Link>
-        </div>
-        <div className="promo-carousel-wrap">
-          {promotions.length === 0 && <div className="list-sub">No hay promociones activas por ahora.</div>}
-          {promotions.length > 0 && (
-            <div className="promo-carousel-track" aria-label="Carrusel de promociones">
-              {promotions
-                .filter((p) => (p.images ?? []).length > 0)
-                .flatMap((p) => (p.images ?? []))
-                .concat(promotions.filter((p) => (p.images ?? []).length > 0).flatMap((p) => (p.images ?? [])))
-                .map((img, i) => (
-                  <div key={`${img.url}-${i}`} className="promo-carousel-slide">
-                    <img src={img.url} alt={img.fileName || 'Promocion Mora'} loading="lazy" />
-                  </div>
-                ))}
-            </div>
-          )}
-          {promotions.some((p) => (p.images ?? []).length === 0) && (
-            <div className="promo-stack" style={{ marginTop: 16 }}>
-              {promotions.filter((p) => (p.images ?? []).length === 0).slice(0, 3).map((promo) => (
-                <div key={promo.id} className="promo-pill">
-                  <div className="promo-pill-title">{promo.name}</div>
-                  <div className="promo-pill-sub">
-                    Vigente hasta {new Date(promo.endDate).toLocaleDateString('es-PE')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </section>
 
       <section className="public-section" id="productos">

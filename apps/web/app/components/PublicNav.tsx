@@ -26,7 +26,6 @@ export default function PublicNav() {
         <Link href="/#servicios">Servicios</Link>
         <Link href="/tienda">Productos</Link>
         <Link href="/galeria">Galería</Link>
-        <Link href="/#promos">Promociones</Link>
         <Link href="/#experiencia">Experiencia</Link>
         {isClientAuthed ? (
           <>
