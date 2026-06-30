@@ -43,15 +43,19 @@ export default function GaleriaPage() {
 
   return (
     <div className="public-page">
-      <section className="section hero hero--small">
-        <MoraScrollReveal>
-          <h1>Galería</h1>
-          <p>Transformaciones, estilos y momentos capturados en Mora Spa.</p>
-        </MoraScrollReveal>
+      <section className="public-section" style={{ paddingTop: 48, paddingBottom: 16 }}>
+        <div className="section-premium-head">
+          <div>
+            <span className="eyebrow">Mora Spa</span>
+            <h1>Galería</h1>
+            <p style={{ color: 'var(--muted)', maxWidth: 520, marginTop: 8, lineHeight: 1.55 }}>
+              Transformaciones, estilos y momentos capturados en cada visita.
+            </p>
+          </div>
+        </div>
       </section>
 
-      <section className="section">
-        <div className="content">
+      <section className="public-section" style={{ paddingTop: 0 }}>
           {loading && (
             <div className="center" style={{ padding: "5rem 0" }}>
               <div className="spinner" />
@@ -96,52 +100,19 @@ export default function GaleriaPage() {
           {!loading &&
             !error &&
             albums.map((album) => (
-              <div key={album.id} style={{ marginBottom: 56 }}>
+              <div key={album.id} className="gallery-album">
                 <MoraScrollReveal>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: 12,
-                      marginBottom: 20,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <h2
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 600,
-                        letterSpacing: "0.2px",
-                        color: "var(--text)",
-                      }}
-                    >
-                      {album.title}
-                    </h2>
-                    {album.client?.name && (
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: "var(--muted)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        — {album.client.name}
-                      </span>
-                    )}
+                  <div className="section-premium-head" style={{ marginBottom: 20 }}>
+                    <div>
+                      <span className="eyebrow">{album.client?.name ?? 'Album'}</span>
+                      <h2>{album.title}</h2>
+                      {album.description && (
+                        <p style={{ color: 'var(--muted)', fontSize: 14, maxWidth: 600, lineHeight: 1.55, marginTop: 6 }}>
+                          {album.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {album.description && (
-                    <p
-                      style={{
-                        color: "var(--muted)",
-                        fontSize: 14,
-                        marginBottom: 20,
-                        maxWidth: 600,
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {album.description}
-                    </p>
-                  )}
                 </MoraScrollReveal>
                 <div className="gallery-grid">
                   {album.photos.map((photo, index) => (

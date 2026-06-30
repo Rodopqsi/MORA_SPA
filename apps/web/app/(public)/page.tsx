@@ -209,42 +209,6 @@ export default function PublicHomePage() {
         </MoraScrollReveal>
       </section>
 
-      <section className="public-section" id="productos">
-        <div className="section-premium-head">
-          <div>
-            <span className="eyebrow">Linea de productos</span>
-            <h2>Compra desde la web</h2>
-          </div>
-          <Link href="/tienda" className="section-link-more">Ir a tienda</Link>
-        </div>
-        <MoraScrollReveal selector=".shop-feature-card" className="shop-feature-grid" stagger={0.09}>
-          {products.filter((product) => product.featured).slice(0, 4).map((product) => {
-            const cover = getProductCover(product);
-            return (
-              <article key={product.id} className="shop-feature-card lift-on-hover">
-                <div className="shop-feature-media">
-                  {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
-                </div>
-                <div className="shop-feature-body">
-                  <div className="shop-product-meta">
-                    <div>
-                      <h3>{product.name}</h3>
-                      <div className="list-sub">{product.category ?? 'Linea Mora'}</div>
-                    </div>
-                    <span className="price-tag">S/ {Number(product.price).toFixed(2)}</span>
-                  </div>
-                  <p>{product.description ?? 'Compra este favorito desde la tienda online de Mora.'}</p>
-                  <Link href="/tienda" className="service-box-action">Comprar ahora</Link>
-                </div>
-              </article>
-            );
-          })}
-          {products.filter((product) => product.featured).length === 0 && (
-            <div className="empty-state">Los productos destacados apareceran aqui cuándo el catalogo este listo.</div>
-          )}
-        </MoraScrollReveal>
-      </section>
-
       <section className="public-section" id="promos">
         <div className="section-premium-head">
           <div>
@@ -283,6 +247,42 @@ export default function PublicHomePage() {
         </div>
       </section>
 
+      <section className="public-section" id="productos">
+        <div className="section-premium-head">
+          <div>
+            <span className="eyebrow">Linea de productos</span>
+            <h2>Compra desde la web</h2>
+          </div>
+          <Link href="/tienda" className="section-link-more">Ir a tienda</Link>
+        </div>
+        <MoraScrollReveal selector=".shop-feature-card" className="shop-feature-grid" stagger={0.09}>
+          {products.filter((product) => product.featured).slice(0, 4).map((product) => {
+            const cover = getProductCover(product);
+            return (
+              <article key={product.id} className="shop-feature-card lift-on-hover">
+                <div className="shop-feature-media">
+                  {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
+                </div>
+                <div className="shop-feature-body">
+                  <div className="shop-product-meta">
+                    <div>
+                      <h3>{product.name}</h3>
+                      <div className="list-sub">{product.category ?? 'Linea Mora'}</div>
+                    </div>
+                    <span className="price-tag">S/ {Number(product.price).toFixed(2)}</span>
+                  </div>
+                  <p>{product.description ?? 'Compra este favorito desde la tienda online de Mora.'}</p>
+                  <Link href="/tienda" className="service-box-action">Comprar ahora</Link>
+                </div>
+              </article>
+            );
+          })}
+          {products.filter((product) => product.featured).length === 0 && (
+            <div className="empty-state">Los productos destacados apareceran aqui cuándo el catalogo este listo.</div>
+          )}
+        </MoraScrollReveal>
+      </section>
+
       <section className="public-section" id="equipo">
         <div className="section-premium-head">
           <div>
@@ -305,23 +305,6 @@ export default function PublicHomePage() {
                   ))}
                 </div>
               </div>
-            </div>
-          ))}
-        </MoraScrollReveal>
-      </section>
-
-      <section className="public-section" id="galeria">
-        <div className="section-premium-head">
-          <div>
-            <span className="eyebrow">Resultados reales</span>
-            <h2>Galería de resultados</h2>
-          </div>
-          <Link href="/reservar" className="section-link-more">Quiero este look</Link>
-        </div>
-        <MoraScrollReveal selector=".gallery-tile" className="gallery-grid" stagger={0.07} variant="scale">
-          {galleryImages.map((image) => (
-            <div key={image} className="gallery-tile lift-on-hover">
-              <img src={image} alt="Resultado Mora Spa" />
             </div>
           ))}
         </MoraScrollReveal>
