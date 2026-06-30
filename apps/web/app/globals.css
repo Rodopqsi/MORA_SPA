@@ -3024,7 +3024,7 @@ input {
 .hero-immersive {
   position: relative;
   width: 100%;
-  min-height: 580px;
+  min-height: 720px;
   display: flex;
   align-items: center;
   margin-top: -40px; /* Acople total al nav */
