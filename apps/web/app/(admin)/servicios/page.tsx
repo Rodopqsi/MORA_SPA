@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { resolveUploadUrl } from '../../lib/api';
 import ImageUploader, { type UploaderImage } from '../../components/ImageUploader';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -43,7 +44,7 @@ const createEmptyForm = (): ServiceForm => ({
 const normalizeServiceImages = (service: Service): UploaderImage[] => {
   if (!service.images || service.images.length === 0) return [];
   return service.images.map((img) => ({
-    url: img.url,
+    url: resolveUploadUrl(img.url),
     fileName: img.fileName,
     source: img.source,
     isCover: img.isCover
@@ -61,11 +62,11 @@ const ensureCover = (images: UploaderImage[]): UploaderImage[] => {
 };
 
 const serviceCover = (service: Service): string | null => {
-  if (service.coverUrl) return service.coverUrl;
+  if (service.coverUrl) return resolveUploadUrl(service.coverUrl);
   const images = service.images ?? [];
   const cover = images.find((i) => i.isCover);
-  if (cover) return cover.url;
-  return images[0]?.url ?? null;
+  if (cover) return resolveUploadUrl(cover.url);
+  return resolveUploadUrl(images[0]?.url);
 };
 
 export default function ServiciosPage() {
