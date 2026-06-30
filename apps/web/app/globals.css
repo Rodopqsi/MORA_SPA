@@ -7397,14 +7397,14 @@ input {
 /* ===== GALERÍA ===== */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-  padding: 32px 0;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 24px 0;
 }
 
 .gallery-item {
   position: relative;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   background: var(--card);
@@ -7415,15 +7415,21 @@ input {
   text-align: left;
   opacity: 0;
   animation: fadeUp 0.6s ease forwards;
-  aspect-ratio: 4 / 5;
 }
 
 .gallery-item:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 24px 48px -12px rgba(155, 63, 93, 0.28);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 40px -10px rgba(155, 63, 93, 0.22);
 }
 
-.gallery-item img {
+.gallery-image-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
+}
+
+.gallery-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -7431,55 +7437,30 @@ input {
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.gallery-item:hover img {
-  transform: scale(1.1);
+.gallery-item:hover .gallery-image-wrap img {
+  transform: scale(1.08);
 }
 
-.gallery-overlay {
-  position: absolute;
-  inset: 0;
-  padding: 28px 20px 20px;
-  background: linear-gradient(
-    to top,
-    rgba(42, 28, 36, 0.92) 0%,
-    rgba(42, 28, 36, 0.5) 45%,
-    transparent 70%
-  );
-  color: #fff;
+.gallery-caption {
+  padding: 12px 14px 14px;
+  background: var(--card);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: 6px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-
-.gallery-item:hover .gallery-overlay {
-  opacity: 1;
+  gap: 4px;
 }
 
 .gallery-title {
   font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.3px;
-  transform: translateY(10px);
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.gallery-item:hover .gallery-title {
-  transform: translateY(0);
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 0.2px;
+  line-height: 1.3;
 }
 
 .gallery-desc {
-  font-size: 12.5px;
-  opacity: 0.85;
-  transform: translateY(10px);
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) 0.06s;
-}
-
-.gallery-item:hover .gallery-desc {
-  transform: translateY(0);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
 @keyframes fadeUp {

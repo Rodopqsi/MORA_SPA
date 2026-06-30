@@ -127,12 +127,14 @@ export default function GaleriaPage() {
                       }
                       style={{ animationDelay: `${index * 60}ms` }}
                     >
-                      <img
-                        src={resolveImageUrl(photo.url)}
-                        alt={photo.fileName ?? album.title}
-                        loading="lazy"
-                      />
-                      <div className="gallery-overlay">
+                      <div className="gallery-image-wrap">
+                        <img
+                          src={resolveImageUrl(photo.url)}
+                          alt={photo.fileName ?? album.title}
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="gallery-caption">
                         <span className="gallery-title">{album.title}</span>
                         {album.description && (
                           <span className="gallery-desc">{album.description}</span>
