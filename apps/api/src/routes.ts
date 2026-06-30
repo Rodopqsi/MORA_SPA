@@ -60,9 +60,9 @@ const optionalPersonNameSchema = z.preprocess(emptyStringToUndefined, personName
 const phoneSchema = z
   .string()
   .trim()
-  .min(6, 'El telefono debe tener al menos 6 digitos')
-  .max(15, 'El telefono no puede exceder 15 digitos')
-  .regex(/^\d+$/, 'El telefono solo debe contener numeros');
+  .min(9, 'El celular debe tener 9 digitos')
+  .max(9, 'El celular debe tener 9 digitos')
+  .regex(/^\d+$/, 'El celular solo debe contener numeros');
 
 const optionalPhoneSchema = z.preprocess(emptyStringToUndefined, phoneSchema.optional());
 const productNameSchema = z.string().trim().min(2, 'El producto debe tener al menos 2 caracteres');
@@ -971,22 +971,13 @@ router.post(
     const body = parse(
       z
         .object({
-          phone: z.string().min(6).optional(),
-          email: z.string().email().optional(),
+          phone: phoneSchema,
           password: z.string().min(6)
-        })
-        .refine((data) => Boolean(data.phone || data.email), {
-          message: 'phone or email required'
         }),
       req.body
     );
 
-    let client = null;
-    if (body.phone) {
-      client = await prisma.client.findUnique({ where: { phone: body.phone } });
-    } else if (body.email) {
-      client = await prisma.client.findUnique({ where: { email: body.email } });
-    }
+    const client = await prisma.client.findUnique({ where: { phone: body.phone } });
     if (!client || !client.active || !client.passwordHash) {
       throw new AppError(401, 'Invalid credentials', 'invalid_credentials');
     }

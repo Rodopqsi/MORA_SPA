@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { normalizePhone } from '../../lib/validation';
 
 export default function RegistroPage() {
   const router = useRouter();
@@ -13,7 +14,8 @@ export default function RegistroPage() {
   const [error, setError] = useState('');
 
   const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const next = field === 'phone' ? normalizePhone(value) : value;
+    setForm((prev) => ({ ...prev, [field]: next }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -21,6 +23,11 @@ export default function RegistroPage() {
     setLoading(true);
     setError('');
 
+    if (form.phone.length !== 9) {
+      setError('Ingresa tu celular de 9 digitos');
+      setLoading(false);
+      return;
+    }
     try {
       const response = await apiFetch<{ data: { token: string; client: { id: number } } }>(`/client-auth/register`, {
         method: 'POST',
@@ -52,8 +59,16 @@ export default function RegistroPage() {
             <input value={form.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="Tu nombre" />
           </label>
           <label>
-            Teléfono
-            <input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} placeholder="+51 987 654 321" />
+            Celular (9 digitos)
+            <input
+              required
+              inputMode="numeric"
+              pattern="[0-9]{9}"
+              maxLength={9}
+              value={form.phone}
+              onChange={(e) => handleChange('phone', e.target.value)}
+              placeholder="987 654 321"
+            />
           </label>
           <label>
             Email (opcional)
@@ -64,7 +79,7 @@ export default function RegistroPage() {
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit">
+          <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit" style={{ fontSize: '17px', padding: '14px 32px', fontWeight: 700, letterSpacing: '0.3px' }}>
             {loading ? 'Creando...' : 'Crear cuenta'}
           </button>
         </form>

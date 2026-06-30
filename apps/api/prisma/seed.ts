@@ -48,19 +48,19 @@ const starterStaff = [
   {
     name: 'Mora Gisela',
     role: 'Estilista integral',
-    phone: '+51987654110',
+    phone: '987654110',
     services: ['Corte y brushing', 'Coloracion de raiz', 'Hidratacion profunda']
   },
   {
     name: 'Thalia Vega',
     role: 'Especialista en nails',
-    phone: '+51987654111',
+    phone: '987654111',
     services: ['Manicure spa', 'Pedicure spa', 'Hidratacion profunda']
   },
   {
     name: 'Beatriz Ruiz',
     role: 'Barber artist',
-    phone: '+51987654112',
+    phone: '987654112',
     services: ['Barber fade y barba', 'Corte y brushing']
   }
 ] as const;

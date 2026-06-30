@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { normalizePhone } from '../../lib/validation';
 
 function LoginForm() {
   const router = useRouter();
@@ -15,7 +16,8 @@ function LoginForm() {
   const sessionExpired = search.get('expired') === '1';
 
   const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const next = field === 'phone' ? normalizePhone(value) : value;
+    setForm((prev) => ({ ...prev, [field]: next }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -23,8 +25,13 @@ function LoginForm() {
     setLoading(true);
     setError('');
 
+    if (form.phone.length !== 9) {
+      setError('Ingresa tu celular de 9 digitos');
+      setLoading(false);
+      return;
+    }
     try {
-      const payload = form.phone ? { phone: form.phone, password: form.password } : { email: form.email, password: form.password };
+      const payload = { phone: form.phone, password: form.password };
       const response = await apiFetch<{ token: string }>(`/client-auth/login`, {
         method: 'POST',
         body: JSON.stringify(payload)
@@ -50,8 +57,16 @@ function LoginForm() {
         )}
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            Teléfono
-            <input value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} placeholder="+51 987 654 321" />
+            Celular (9 digitos)
+            <input
+              required
+              inputMode="numeric"
+              pattern="[0-9]{9}"
+              maxLength={9}
+              value={form.phone}
+              onChange={(e) => handleChange('phone', e.target.value)}
+              placeholder="987 654 321"
+            />
           </label>
           <label>
             Email (opcional)
@@ -62,7 +77,7 @@ function LoginForm() {
             <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit">
+          <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit" style={{ fontSize: '17px', padding: '14px 32px', fontWeight: 700, letterSpacing: '0.3px' }}>
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>

@@ -212,12 +212,14 @@ export default function EquipoPage() {
             </label>
           </div>
           <label>
-            Teléfono
+            Celular (9 digitos)
             <input
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
               inputMode="numeric"
-              pattern="[0-9]+"
+              pattern="[0-9]{9}"
+              maxLength={9}
+              placeholder="987 654 321"
               title="Solo se permiten numeros"
             />
           </label>

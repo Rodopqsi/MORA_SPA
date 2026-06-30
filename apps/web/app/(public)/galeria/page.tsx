@@ -143,7 +143,6 @@ export default function GaleriaPage() {
                 </div>
               </div>
             ))}
-        </div>
       </section>
 
       {/* Lightbox */}

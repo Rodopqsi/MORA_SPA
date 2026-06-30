@@ -266,13 +266,15 @@ export default function CheckoutPage() {
               />
             </label>
             <label>
-              Teléfono
+              Celular (9 digitos)
               <input
                 required
                 value={checkout.customerPhone}
                 onChange={(event) => setCheckout({ ...checkout, customerPhone: normalizePhone(event.target.value) })}
                 inputMode="numeric"
-                pattern="[0-9]+"
+                pattern="[0-9]{9}"
+                maxLength={9}
+                placeholder="987 654 321"
                 title="Solo se permiten numeros"
               />
             </label>
