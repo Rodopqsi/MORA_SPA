@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { uploadImages, deleteUpload, type UploadBucket } from '../lib/uploads';
+import { resolveUploadUrl } from '../lib/api';
 
 type Props = {
   bucket: UploadBucket;
@@ -73,7 +74,7 @@ export default function AvatarUploader({
         >
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={value} alt="Avatar" />
+            <img src={resolveUploadUrl(value)} alt="Avatar" />
           ) : (
             <span>{fallbackInitials.slice(0, 2).toUpperCase()}</span>
           )}

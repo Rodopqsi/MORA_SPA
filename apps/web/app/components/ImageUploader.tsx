@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { uploadImages, deleteUpload, type UploadBucket } from '../lib/uploads';
+import { resolveUploadUrl } from '../lib/api';
 
 export type UploaderImage = {
   url: string;
@@ -126,7 +127,7 @@ export default function ImageUploader({ bucket, value, onChange, maxFiles = 8, l
           <div key={`${img.url}-${index}`} className={`uploader-tile ${img.isCover ? 'is-cover' : ''}`}>
             {img.url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={img.url} alt={`Imagen ${index + 1}`} />
+              <img src={resolveUploadUrl(img.url)} alt={`Imagen ${index + 1}`} />
             ) : (
               <input
                 className="uploader-url-input"
