@@ -45,7 +45,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="public-footer-top">
           <div className="public-footer-brand-block">
             <div className="public-footer-brand-mark">
-              <div className="brand-badge public-footer-brand-badge">GM</div>
+              <div className="brand-badge public-footer-brand-badge"><img src="/assets/logo.svg" alt="GM" /></div>
               <div>
                 <div className="public-footer-brand-title">Gisela Mora</div>
                 <div className="public-footer-brand-subtitle">SPA &middot; BARBER</div>

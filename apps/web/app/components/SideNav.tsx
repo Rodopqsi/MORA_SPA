@@ -48,7 +48,7 @@ export default function SideNav() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-badge">GM</div>
+        <div className="brand-badge"><img src="/assets/logo.svg" alt="GM" /></div>
         <div>
           <div className="brand-title">Gisela Mora</div>
           <div className="brand-subtitle">SPA - BARBER</div>
