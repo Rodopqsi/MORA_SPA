@@ -285,12 +285,12 @@ export default function ServiciosPage() {
         </form>
       </AdminModalForm>
 
-      <MoraScrollReveal as="section" className="grid grid-2" selector=".service-card" variant="fade-up" stagger={0.07} duration={0.6}>
+      <MoraScrollReveal as="section" className="showcase-evolution-grid" selector=".premium-service-box" variant="fade-up" stagger={0.08} duration={0.6}>
         {services.length === 0 && (
-          <div className="card empty-state">
+          <div className="premium-service-box" style={{ justifyContent: 'center', alignItems: 'center', padding: '48px', textAlign: 'center' }}>
             <div className="empty-state-icon">SR</div>
             <h3>Aún no hay servicios</h3>
-            <p>Empieza creando el primero con el boton de arriba.</p>
+            <p>Empieza creando el primero con el botón de arriba.</p>
           </div>
         )}
         {services.map((service, index) => {
@@ -298,31 +298,39 @@ export default function ServiciosPage() {
           return (
             <div
               key={service.id}
-              className="card service-card lift-on-hover reveal"
+              className="premium-service-box lift-on-hover reveal"
               style={{ animationDelay: `${index * 90}ms` }}
             >
-              <div className="service-card-image">
+              <div className="service-box-visual">
                 {cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={cover} alt={service.name} />
                 ) : (
-                  <div className="service-card-placeholder">{service.name.slice(0, 2).toUpperCase()}</div>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #fde6ef 0%, #f9d9e6 100%)', color: 'var(--accent-dark)', fontWeight: 700, fontSize: '14px' }}>
+                    {service.name.slice(0, 2).toUpperCase()}
+                  </div>
                 )}
+                <div className="service-box-overlay">
+                  <span className="service-box-tag">{service.durationMin} min</span>
+                </div>
               </div>
-              <div className="service-card-body">
-                <div className="service-title">{service.name}</div>
-                <p>{service.description?.trim() || 'Sin descripcion registrada.'}</p>
-                <div className="service-meta">
-                  <span className="pill">{service.durationMin} min</span>
-                  <span className="pill">S/ {service.priceBase}</span>
+              <div className="service-box-content">
+                <div className="service-box-header">
+                  <h3>{service.name}</h3>
+                  <span className="service-box-price">S/ {service.priceBase}</span>
+                </div>
+                <p className="service-box-text">
+                  {service.description?.trim() || 'Sin descripción registrada.'}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span className={`status-pill ${service.active ? 'status-on' : 'status-off'}`}>
+                    {service.active ? 'Activo' : 'Inactivo'}
+                  </span>
                   {service.images && service.images.length > 1 && (
                     <span className="pill pill-soft">+{service.images.length - 1} fotos</span>
                   )}
                 </div>
-                <div className={`status-pill ${service.active ? 'status-on' : 'status-off'}`}>
-                  {service.active ? 'Activo' : 'Inactivo'}
-                </div>
-                <div className="service-actions">
+                <div className="service-actions" style={{ marginTop: 'auto', paddingTop: '4px' }}>
                   <button className="chip press-feedback" onClick={() => handleEdit(service)}>
                     Editar
                   </button>
