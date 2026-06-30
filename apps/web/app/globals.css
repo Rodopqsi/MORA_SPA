@@ -123,11 +123,9 @@ input {
   width: 44px;
   height: 44px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #f7d5e5 0%, #f2b8cf 100%);
+  background: transparent;
   display: grid;
   place-items: center;
-  font-weight: 700;
-  color: var(--accent-dark);
   box-shadow: var(--shadow);
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
 }
@@ -550,9 +548,7 @@ input {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 14px;
+  background: transparent;
   box-shadow: none;
 }
 
