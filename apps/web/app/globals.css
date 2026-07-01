@@ -6365,9 +6365,6 @@ input {
   .staff-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .gallery-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .booking-grid {
     grid-template-columns: 1fr;
   }
@@ -6385,9 +6382,6 @@ input {
 @media (max-width: 720px) {
   .staff-grid {
     grid-template-columns: 1fr;
-  }
-  .gallery-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .booking-slot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7417,9 +7411,28 @@ input {
 /* ===== GALERÍA ===== */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
   padding: 24px 0;
+}
+
+@media (max-width: 1200px) {
+  .gallery-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .gallery-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
 }
 
 .gallery-item {

@@ -24,19 +24,19 @@ const heroSlides = [
     badge: 'Mora signature',
     title: 'Color, corte y cuidado en una sola experiencia',
     subtitle: 'Reserva online, elige a tu especialista y llega a tu cita con todo coordinado desde tu cuenta.',
-    image: '/assets/img35.webp'
+    image: '/assets/img35mej.jpg'
   },
   {
     badge: 'Agenda inteligente',
     title: 'Horarios reales según servicios, staff y disponibilidad',
     subtitle: 'El sistema cruza duraciones y equipo activo para mostrar solo slots realmente reservables.',
-    image: '/assets/img24.jpeg'
+    image: '/assets/img24mej.jpg'
   },
   {
     badge: 'Cuidado continuo',
     title: 'Resultados que se ven bien hoy y se mantienen despues',
     subtitle: 'Desde barberia y color hasta nails y tratamientos, cada visita parte de un diagnostico claro.',
-    image: '/assets/img18.jpeg'
+    image: '/assets/img18mej.jpg'
   }
 ] as const;
 
