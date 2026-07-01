@@ -27,12 +27,6 @@ const sections = [
     items: [
       { href: '/albumes', label: 'Galería', icon: 'GL' }
     ]
-  },
-  {
-    title: 'Sistema',
-    items: [
-      { href: '/configuracion', label: 'Configuración', icon: 'CF' }
-    ]
   }
 ];
 
