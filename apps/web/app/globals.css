@@ -144,10 +144,7 @@ input {
 
 .brand-title {
   font-weight: 700;
-  background: linear-gradient(135deg, var(--ink) 0%, var(--accent-dark) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent-dark);
   letter-spacing: -0.2px;
 }
 
@@ -854,10 +851,7 @@ input {
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 4px;
-  background: linear-gradient(135deg, var(--ink) 0%, var(--accent-dark) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent-dark);
   letter-spacing: -0.3px;
 }
 
@@ -2288,10 +2282,7 @@ input {
 .section-premium-head h2 {
   font-size: 32px;
   font-weight: 700;
-  background: linear-gradient(120deg, var(--ink) 30%, var(--accent-dark) 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent-dark);
   position: relative;
 }
 
@@ -7471,11 +7462,11 @@ input {
 }
 
 .gallery-caption {
-  padding: 12px 14px 14px;
+  padding: 8px 12px 12px;
   background: var(--card);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .gallery-title {

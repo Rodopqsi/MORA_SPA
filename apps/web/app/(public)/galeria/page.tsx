@@ -101,19 +101,6 @@ export default function GaleriaPage() {
             !error &&
             albums.map((album) => (
               <div key={album.id} className="gallery-album">
-                <MoraScrollReveal>
-                  <div className="section-premium-head" style={{ marginBottom: 20 }}>
-                    <div>
-                      <span className="eyebrow">{album.client?.name ?? 'Album'}</span>
-                      <h2>{album.title}</h2>
-                      {album.description && (
-                        <p style={{ color: 'var(--muted)', fontSize: 14, maxWidth: 600, lineHeight: 1.55, marginTop: 6 }}>
-                          {album.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </MoraScrollReveal>
                 <div className="gallery-grid">
                   {album.photos.map((photo, index) => (
                     <button
