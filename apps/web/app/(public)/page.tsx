@@ -224,7 +224,7 @@ export default function PublicHomePage() {
           <Link href="/tienda" className="section-link-more">Ir a tienda</Link>
         </div>
         <MoraScrollReveal selector=".shop-feature-card" className="shop-feature-grid" stagger={0.09}>
-          {products.filter((product) => product.featured).slice(0, 4).map((product) => {
+          {products.filter((product) => product.featured).slice(0, 10).map((product) => {
             const cover = getProductCover(product);
             return (
               <article key={product.id} className="shop-feature-card lift-on-hover">
