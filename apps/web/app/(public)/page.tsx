@@ -17,7 +17,7 @@ type Service = {
   durationMin: number;
   images?: ServiceImage[];
 };
-type Staff = { id: number; name: string; role?: string | null; services?: { service: { name: string } }[] };
+type Staff = { id: number; name: string; role?: string | null; avatarUrl?: string | null; services?: { service: { name: string } }[] };
 
 const heroSlides = [
   {
@@ -263,7 +263,11 @@ export default function PublicHomePage() {
           {staff.length === 0 && <div className="list-sub">Nuestro equipo aparecera aqui cuándo la agenda este habilitada.</div>}
           {staff.slice(0, 4).map((member, index) => (
             <div key={member.id} className="staff-card lift-on-hover">
-              <img src={galleryImages[index % galleryImages.length]} alt={member.name} />
+              {member.avatarUrl ? (
+                <img src={resolveUploadUrl(member.avatarUrl)} alt={member.name} />
+              ) : (
+                <img src={galleryImages[index % galleryImages.length]} alt={member.name} />
+              )}
               <div className="staff-card-body">
                 <div className="staff-name">{member.name}</div>
                 <div className="staff-role">{member.role ?? 'Especialista'}</div>
