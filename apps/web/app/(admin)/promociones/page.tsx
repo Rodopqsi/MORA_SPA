@@ -243,9 +243,9 @@ export default function PromocionesPage() {
                 <h2>Define el alcance</h2>
               </div>
             </div>
-            <MoraScrollReveal as="div" className="chip-row" selector=".chip" variant="fade-up" stagger={0.04} duration={0.4}>
-                {services.map((service) => (
-                  <label key={service.id} className="chip press-feedback">
+            <div className="chip-row">
+              {services.map((service) => (
+                <label key={service.id} className="chip press-feedback">
                   <input
                     type="checkbox"
                     checked={form.serviceIds.includes(service.id)}
@@ -254,7 +254,7 @@ export default function PromocionesPage() {
                   {service.name}
                 </label>
               ))}
-            </MoraScrollReveal>
+            </div>
           </div>
           {error && <div className="auth-error">{error}</div>}
           <div className="form-actions">
