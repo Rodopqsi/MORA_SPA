@@ -20,16 +20,34 @@ function LoginForm() {
     setForm((prev) => ({ ...prev, [field]: next }));
   };
 
+  const translateError = (message: string): string => {
+    const map: Record<string, string> = {
+      'Invalid credentials': 'Teléfono o contraseña incorrectos. Verifica tus datos.',
+      'invalid_credentials': 'Teléfono o contraseña incorrectos. Verifica tus datos.',
+      'Request failed': 'No pudimos conectar con el servidor. Intenta de nuevo.',
+      'No auth token': 'Tu sesión expiró. Ingresa de nuevo.',
+      'token_expired': 'Tu sesión expiró. Ingresa de nuevo.',
+      'invalid_token': 'Tu sesión no es válida. Ingresa de nuevo.',
+    };
+    return map[message] ?? message;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
     setError('');
 
     if (form.phone.length !== 9) {
-      setError('Ingresa tu celular de 9 digitos');
+      setError('Ingresa un celular válido de 9 dígitos (ej: 987654321)');
       setLoading(false);
       return;
     }
+    if (form.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = { phone: form.phone, password: form.password };
       const response = await apiFetch<{ token: string }>(`/client-auth/login`, {
@@ -37,9 +55,11 @@ function LoginForm() {
         body: JSON.stringify(payload)
       });
       setClientToken(response.token);
-      router.push('/mi-cuenta');
+      // Forzar full reload para que el middleware y el estado de auth se sincronicen correctamente
+      window.location.href = '/mi-cuenta';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de ingreso');
+      const raw = err instanceof Error ? err.message : 'Error de ingreso';
+      setError(translateError(raw));
     } finally {
       setLoading(false);
     }
@@ -74,7 +94,14 @@ function LoginForm() {
           </label>
           <label>
             Contraseña
-            <input type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} />
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={form.password}
+              onChange={(e) => handleChange('password', e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+            />
           </label>
           {error && <div className="auth-error">{error}</div>}
           <button className="btn shine-on-hover press-feedback" disabled={loading} type="submit" style={{ fontSize: '17px', padding: '14px 32px', fontWeight: 700, letterSpacing: '0.3px' }}>
