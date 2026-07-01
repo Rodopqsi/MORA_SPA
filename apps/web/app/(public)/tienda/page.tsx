@@ -117,10 +117,6 @@ export default function TiendaPage() {
     [products]
   );
 
-  const getProductRating = useCallback((product: CatalogProduct) => {
-    return Math.min(5, Math.max(3.5, 4.2 + ((product.id * 37) % 10) / 10));
-  }, []);
-
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,10 +124,10 @@ export default function TiendaPage() {
       const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category ?? '');
       const price = Number(product.price);
       const matchPrice = price >= priceRange[0] && price <= priceRange[1];
-      const matchRating = getProductRating(product) >= minRating;
+      const matchRating = (product.averageRating ?? 0) >= minRating;
       return matchSearch && matchCategory && matchPrice && matchRating;
     });
-  }, [products, searchQuery, selectedCategories, priceRange, minRating, getProductRating]);
+  }, [products, searchQuery, selectedCategories, priceRange, minRating]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)), [filteredProducts]);
 
@@ -340,8 +336,8 @@ export default function TiendaPage() {
                         <h3 className="shop-product-title">{product.name}</h3>
                         <p className="shop-product-desc">{product.description ?? 'Producto profesional recomendado por el equipo Mora.'}</p>
                         <div className="shop-product-rating">
-                          <StarRating rating={getProductRating(product)} size={14} />
-                          <span className="shop-rating-count">({Math.max(0, (product.id * 53) % 128)})</span>
+                          <StarRating rating={product.averageRating ?? 0} size={14} />
+                          <span className="shop-rating-count">({product.reviewCount ?? 0})</span>
                         </div>
                         <div className="shop-product-footer">
                           <div className="price-tag">S/ {Number(product.price).toFixed(2)}</div>

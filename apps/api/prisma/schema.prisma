@@ -258,6 +258,7 @@ model Client {
   referrals       Client[]         @relation("ClientReferral")
   reservations    Reservation[]
   reviews         Review[]
+  productReviews  ProductReview[]
   albums          Album[]
   consents        ImageConsent[]
   loyaltyBenefits LoyaltyBenefit[]
@@ -402,8 +403,9 @@ model Product {
   stock       Int                 @default(0)
   active      Boolean             @default(true)
   featured    Boolean             @default(false)
-  images      ProductImage[]
-  saleDetails ProductSaleDetail[]
+  images        ProductImage[]
+  saleDetails   ProductSaleDetail[]
+  productReviews ProductReview[]
 }
 
 model ProductSale {
@@ -424,6 +426,7 @@ model ProductSale {
   client           Client?             @relation(fields: [clientId], references: [id])
   user             User?               @relation(fields: [userId], references: [id])
   details          ProductSaleDetail[]
+  productReviews   ProductReview[]
 }
 
 model ProductImage {
@@ -450,6 +453,26 @@ model ProductSaleDetail {
   subtotal  Decimal     @db.Decimal(10, 2)
   sale      ProductSale @relation(fields: [saleId], references: [id])
   product   Product     @relation(fields: [productId], references: [id])
+}
+
+model ProductReview {
+  id        Int         @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  clientId  Int
+  rating    Int
+  comment   String?
+  visible   Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime?
+
+  sale      ProductSale @relation(fields: [saleId], references: [id])
+  product   Product     @relation(fields: [productId], references: [id])
+  client    Client      @relation(fields: [clientId], references: [id])
+
+  @@unique([saleId, productId])
+  @@index([productId])
+  @@index([clientId])
 }
 
 model Review {

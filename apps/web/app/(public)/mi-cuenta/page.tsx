@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { clientFetch } from '../../lib/clientApi';
 import { useAuth } from '../../context/AuthContext';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
@@ -35,6 +35,14 @@ type ProductSale = {
   paymentStatus: 'CONFIRMADO' | 'ANULADO' | 'PENDIENTE';
   paymentProofUrl?: string | null;
   details: ProductSaleDetail[];
+};
+
+type ProductReview = {
+  id: number;
+  saleId: number;
+  productId: number;
+  rating: number;
+  comment?: string | null;
 };
 
 const formatCurrency = (value: number) =>
@@ -99,6 +107,12 @@ export default function MiCuentaPage() {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [orders, setOrders] = useState<ProductSale[]>([]);
+  const [productReviews, setProductReviews] = useState<ProductReview[]>([]);
+  const [reviewing, setReviewing] = useState<{ saleId: number; productId: number } | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -107,12 +121,14 @@ export default function MiCuentaPage() {
     Promise.all([
       clientFetch<{ data?: ClientProfile }>('/client-auth/me'),
       clientFetch<{ data: Reservation[] }>('/client-reservations'),
-      clientFetch<{ data: ProductSale[] }>('/client-orders')
+      clientFetch<{ data: ProductSale[] }>('/client-orders'),
+      clientFetch<{ data: ProductReview[] }>('/client/product-reviews')
     ])
-      .then(([profileRes, reservationsRes, ordersRes]) => {
+      .then(([profileRes, reservationsRes, ordersRes, reviewsRes]) => {
         setProfile(profileRes.data ?? (profileRes as unknown as ClientProfile));
         setReservations(reservationsRes.data ?? []);
         setOrders(ordersRes.data ?? []);
+        setProductReviews(reviewsRes.data ?? []);
         setError('');
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la información.'))
@@ -123,6 +139,35 @@ export default function MiCuentaPage() {
     clearClient();
     window.location.href = '/login';
   };
+
+  const hasReview = (saleId: number, productId: number) =>
+    productReviews.some((r) => r.saleId === saleId && r.productId === productId);
+
+  const submitReview = useCallback(async () => {
+    if (!reviewing || reviewRating === 0) return;
+    setSubmittingReview(true);
+    setReviewError('');
+    try {
+      await clientFetch('/client/product-reviews', {
+        method: 'POST',
+        body: JSON.stringify({
+          saleId: reviewing.saleId,
+          productId: reviewing.productId,
+          rating: reviewRating,
+          comment: reviewComment || undefined
+        })
+      });
+      const res = await clientFetch<{ data: ProductReview[] }>('/client/product-reviews');
+      setProductReviews(res.data ?? []);
+      setReviewing(null);
+      setReviewRating(0);
+      setReviewComment('');
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : 'Error al enviar valoración');
+    } finally {
+      setSubmittingReview(false);
+    }
+  }, [reviewing, reviewRating, reviewComment]);
 
   const sorted = useMemo(
     () =>
@@ -276,6 +321,58 @@ export default function MiCuentaPage() {
                       <span className="account-min-order-detail-sub">
                         {formatCurrency(detail.subtotal)}
                       </span>
+                      {order.paymentStatus === 'CONFIRMADO' && !hasReview(order.id, detail.productId) && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => {
+                            setReviewing({ saleId: order.id, productId: detail.productId });
+                            setReviewRating(0);
+                            setReviewComment('');
+                            setReviewError('');
+                          }}
+                        >
+                          Valorar
+                        </button>
+                      )}
+                      {hasReview(order.id, detail.productId) && (
+                        <span style={{ fontSize: 12, color: 'var(--accent-dark)' }}>Valorado</span>
+                      )}
+                      {reviewing?.saleId === order.id && reviewing?.productId === detail.productId && (
+                        <div className="card" style={{ marginTop: 10, padding: 14, width: '100%' }}>
+                          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setReviewRating(star)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                                aria-label={`${star} estrellas`}
+                              >
+                                <svg width={22} height={22} viewBox="0 0 24 24" fill={star <= reviewRating ? '#f59e0b' : 'none'} stroke="#f59e0b" strokeWidth="1.8">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            placeholder="Comentario opcional..."
+                            rows={3}
+                            style={{ width: '100%', marginBottom: 10 }}
+                          />
+                          {reviewError && <div className="auth-error" style={{ marginBottom: 8 }}>{reviewError}</div>}
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="btn btn-sm btn-primary" onClick={submitReview} disabled={submittingReview || reviewRating === 0}>
+                              {submittingReview ? 'Enviando...' : 'Enviar'}
+                            </button>
+                            <button className="btn btn-sm btn-ghost" onClick={() => setReviewing(null)}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

@@ -1599,6 +1599,77 @@ router.post(
   })
 );
 
+router.get(
+  '/client/product-reviews',
+  clientAuthRequired,
+  asyncHandler(async (req, res) => {
+    const reviews = await prisma.productReview.findMany({
+      where: { clientId: req.client!.id },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: reviews });
+  })
+);
+
+router.post(
+  '/client/product-reviews',
+  clientAuthRequired,
+  asyncHandler(async (req, res) => {
+    const body = parse(
+      z.object({
+        saleId: toInt,
+        productId: toInt,
+        rating: z.number().int().min(1).max(5),
+        comment: z.preprocess(emptyStringToUndefined, z.string().trim().optional())
+      }),
+      req.body
+    );
+
+    const sale = await prisma.productSale.findUnique({
+      where: { id: body.saleId },
+      include: { details: true }
+    });
+
+    if (!sale) {
+      throw new AppError(404, 'Compra no encontrada', 'sale_not_found');
+    }
+    if (sale.paymentStatus !== 'CONFIRMADO') {
+      throw new AppError(400, 'Solo puedes valorar compras confirmadas', 'sale_not_confirmed');
+    }
+
+    const client = req.client!;
+    const isOwner = sale.clientId === client.id || sale.customerPhone === client.phone;
+    if (!isOwner) {
+      throw new AppError(403, 'No tienes permiso para valorar esta compra', 'unauthorized');
+    }
+
+    const hasProduct = sale.details.some((d) => d.productId === body.productId);
+    if (!hasProduct) {
+      throw new AppError(400, 'El producto no pertenece a esta compra', 'product_not_in_sale');
+    }
+
+    const existing = await prisma.productReview.findUnique({
+      where: { saleId_productId: { saleId: body.saleId, productId: body.productId } }
+    });
+    if (existing) {
+      throw new AppError(409, 'Ya valoraste este producto', 'already_reviewed');
+    }
+
+    const review = await prisma.productReview.create({
+      data: {
+        saleId: body.saleId,
+        productId: body.productId,
+        clientId: client.id,
+        rating: body.rating,
+        comment: body.comment,
+        visible: true
+      }
+    });
+
+    res.status(201).json({ data: review });
+  })
+);
+
 // Lista las compras de productos realizadas por el cliente autenticado.
 // Filtra por clientId (logueado) o por telefono (pedidos publicos donde
 // el cliente aun no estaba asociado a un Client). Asi cubrimos tanto
@@ -1635,7 +1706,27 @@ router.get(
       orderBy: [{ featured: 'desc' }, { name: 'asc' }]
     });
 
-    res.json({ data: products });
+    const reviewStats = await prisma.productReview.groupBy({
+      by: ['productId'],
+      where: { visible: true },
+      _avg: { rating: true },
+      _count: { rating: true }
+    });
+
+    const statsMap = new Map(
+      reviewStats.map((s) => [
+        s.productId,
+        { avg: Number(s._avg.rating ?? 0), count: s._count.rating }
+      ])
+    );
+
+    const data = products.map((p) => ({
+      ...p,
+      averageRating: statsMap.get(p.id)?.avg ?? 0,
+      reviewCount: statsMap.get(p.id)?.count ?? 0
+    }));
+
+    res.json({ data });
   })
 );
 

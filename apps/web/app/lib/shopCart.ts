@@ -18,8 +18,8 @@ export type CatalogProduct = {
   active: boolean;
   featured: boolean;
   images: ProductImage[];
-  rating?: number | null;
-  reviewCount?: number | null;
+  averageRating?: number;
+  reviewCount?: number;
 };
 
 export type CartItem = {
