@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { staffFetch } from '../../lib/staffApi';
+import { resolveUploadUrl } from '../../lib/api';
 import { CatalogProduct, getProductCover, ProductImage, productPrice } from '../../lib/shopCart';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -66,7 +67,8 @@ const mapProductToForm = (product: CatalogProduct): ProductForm => ({
         url: image.url,
         fileName: image.fileName ?? undefined,
         source: image.source,
-        isCover: image.isCover
+        isCover: image.isCover,
+        publicId: image.cloudinaryPublicId ?? undefined
       }))
     : []
 });
@@ -378,7 +380,7 @@ export default function ProductosPage() {
               <article key={item.id} className="premium-service-box lift-on-hover reveal" style={{ animationDelay: `${index * 90}ms` }}>
                 <div className="service-box-visual">
                   {cover ? (
-                    <img src={cover.url} alt={item.name} />
+                    <img src={resolveUploadUrl(cover.url)} alt={item.name} />
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #fde6ef 0%, #f9d9e6 100%)', color: 'var(--accent-dark)', fontWeight: 700, fontSize: '14px' }}>
                       {item.name.slice(0, 2).toUpperCase()}

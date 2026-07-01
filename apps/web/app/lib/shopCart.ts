@@ -5,6 +5,7 @@ export type ProductImage = {
   source: 'URL' | 'LOCAL';
   order?: number;
   isCover: boolean;
+  cloudinaryPublicId?: string | null;
 };
 
 export type CatalogProduct = {

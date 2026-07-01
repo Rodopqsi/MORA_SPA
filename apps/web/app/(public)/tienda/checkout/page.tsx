@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { apiFetch } from '../../../lib/api';
+import { apiFetch, resolveUploadUrl } from '../../../lib/api';
 import { clientFetch } from '../../../lib/clientApi';
 import { useAuth } from '../../../context/AuthContext';
 import { normalizePersonName, normalizePhone } from '../../../lib/validation';
@@ -233,7 +233,7 @@ export default function CheckoutPage() {
                 <div key={item.productId} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#f3f0ec' }}>
                     {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={resolveUploadUrl(item.imageUrl)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <div className="avatar" style={{ width: '100%', height: '100%', borderRadius: 0, fontSize: 12 }} aria-hidden="true">PD</div>
                     )}

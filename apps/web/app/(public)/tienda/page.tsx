@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, resolveUploadUrl } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import MoraScrollReveal from '../../components/MoraScrollReveal';
 import {
@@ -330,7 +330,7 @@ export default function TiendaPage() {
                   return (
                     <article key={product.id} className="shop-product-card lift-on-hover">
                       <div className="shop-product-media">
-                        {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
+                        {cover ? <img src={resolveUploadUrl(cover.url)} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
                         {product.featured && <span className="shop-ribbon">Destacado</span>}
                       </div>
                       <div className="shop-product-body">
@@ -490,7 +490,7 @@ export default function TiendaPage() {
                     <div key={item.productId} className="shop-cart-item">
                       <div className="shop-cart-item-media">
                         {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={item.name} />
+                          <img src={resolveUploadUrl(item.imageUrl)} alt={item.name} />
                         ) : (
                           <div className="avatar" aria-hidden="true">PD</div>
                         )}
