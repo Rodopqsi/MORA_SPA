@@ -188,8 +188,8 @@ export default function ServiciosPage() {
       <header className="page-head">
         <div>
           <div className="eyebrow">Catalogo de servicios</div>
-          <h1>Servicios que enamoran</h1>
-          <p>Duraciones, costos, imagenes y especialistas alineados con tu agenda.</p>
+          <h1>Servicios del salon</h1>
+          <p>Duraciones, precios y especialistas asignados.</p>
         </div>
         <div className="page-actions">
           <button

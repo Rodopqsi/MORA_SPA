@@ -143,8 +143,8 @@ export default function UsuariosPage() {
       <header className="page-head">
         <div>
           <div className="eyebrow">Control de usuarios</div>
-          <h1>Accesos con estilo y seguridad</h1>
-          <p>Gestiona roles, permisos y accesos desde un solo lugar.</p>
+          <h1>Usuarios y permisos</h1>
+          <p>Gestiona roles y accesos del personal.</p>
         </div>
         <div className="page-actions">
           <button

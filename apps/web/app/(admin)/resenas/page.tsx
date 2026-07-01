@@ -54,8 +54,8 @@ export default function ResenasPage() {
       <header className="page-head">
         <div>
           <div className="eyebrow">Reseñas y reputación</div>
-          <h1>Lo que dicen tus clientas</h1>
-          <p>Modera, responde y usa el feedback para mejorar.</p>
+          <h1>Opiniones de clientes</h1>
+          <p>Modera y responde reseñas publicadas.</p>
         </div>
         <div className="page-actions">
           <button className="btn shine-on-hover press-feedback" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>

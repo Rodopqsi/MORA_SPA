@@ -182,8 +182,8 @@ export default function PromocionesPage() {
       <header className="page-head">
         <div>
           <div className="eyebrow">Promociones y beneficios</div>
-          <h1>Campanas que atraen</h1>
-          <p>Planifica promociones y descuentos con impacto real.</p>
+          <h1>Promociones activas</h1>
+          <p>Crea y gestiona descuentos para la tienda y reservas.</p>
         </div>
         <div className="page-actions">
           <button className="btn shine-on-hover press-feedback" onClick={openCreate}>

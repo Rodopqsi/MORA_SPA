@@ -172,8 +172,8 @@ export default function EquipoPage() {
       <header className="page-head">
         <div>
           <div className="eyebrow">Equipo en turno</div>
-          <h1>Coordinacion con elegancia</h1>
-          <p>Visualiza turnos, roles y disponibilidad en tiempo real.</p>
+          <h1>Staff y especialistas</h1>
+          <p>Roles, disponibilidad y servicios asignados.</p>
         </div>
         <div className="page-actions">
           <button
