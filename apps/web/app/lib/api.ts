@@ -4,10 +4,21 @@ export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api';
 
 export const getApiBaseUrl = (): string => {
+  // En el navegador, NEXT_PUBLIC_* se inyecta en build time.
+  // Si la variable de entorno existe, siempre tiene prioridad.
   if (typeof window !== 'undefined') {
+    const envUrl = (window as any).__NEXT_PUBLIC_API_BASE_URL__ ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (envUrl) return envUrl;
+
     const host = window.location.hostname;
     if (!host.includes('localhost')) {
-      return `${window.location.protocol}//${host.replace('web', 'api')}/api`;
+      // Fallback: si el hostname contiene 'web', reemplazar por 'api'.
+      // Ej: mora-spa-web.onrender.com -> mora-spa-api.onrender.com
+      if (host.includes('web')) {
+        return `${window.location.protocol}//${host.replace('web', 'api')}/api`;
+      }
+      // Si frontend y backend comparten el mismo dominio (ej. /api path)
+      return `${window.location.origin}/api`;
     }
   }
   return apiBaseUrl;
