@@ -229,7 +229,7 @@ export default function PublicHomePage() {
             return (
               <article key={product.id} className="shop-feature-card lift-on-hover">
                 <div className="shop-feature-media">
-                  {cover ? <img src={cover.url} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
+                  {cover ? <img src={resolveUploadUrl(cover.url)} alt={product.name} /> : <div className="empty-state">Sin imagen</div>}
                 </div>
                 <div className="shop-feature-body">
                   <div className="shop-product-meta">
